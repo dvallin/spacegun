@@ -1,0 +1,43 @@
+apiVersion: v1
+clusters:
+- cluster:
+    certificate-authority-data: CERTDEV
+    server: https://localhost:8080/dev
+  name: dev_cluster
+- cluster:
+    certificate-authority-data: CERTPRE
+    server: https://localhost:8080/pre
+  name: pre_cluster
+- cluster:
+    certificate-authority-data: CERTLIVE
+    server: https://localhost:8080/live
+  name: live_cluster
+contexts:
+- context:
+    cluster: dev_cluster
+    user: dev_user
+  name: dev
+- context:
+    cluster: pre_cluster
+    user: pre_user
+  name: pre
+- context:
+    cluster: live_cluster
+    user: live_user
+  name: live
+current-context: dev
+kind: Config
+preferences: {}
+users:
+- name: dev_user
+  user:
+    password: abc
+    username: admin
+- name: pre_user
+  user:
+    password: abc
+    username: admin
+- name: live_user
+  user:
+    password: abc
+    username: admin

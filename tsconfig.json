@@ -1,0 +1,44 @@
+{
+    "compilerOptions": {
+        "target": "es5",
+        "module": "commonjs",
+        "plugins": [
+            {
+                "name": "tslint-language-service"
+            }
+        ],
+        "lib": [
+            "es2015"
+        ],
+        "outDir": "dist",
+        "declaration": true,
+        "sourceMap": true,
+        "removeComments": true,
+        "strict": true,
+        "noImplicitThis": false,
+        "noUnusedLocals": true,
+        "noUnusedParameters": true,
+        "noImplicitReturns": true,
+        "noFallthroughCasesInSwitch": true,
+        "baseUrl": ".",
+        "paths": {
+            "@/*": [
+                "src/*"
+            ]
+        },
+        "typeRoots": [
+            "node_modules/@types"
+        ],
+        "types": [
+            "jest",
+            "node"
+        ],
+        "allowSyntheticDefaultImports": false,
+        "experimentalDecorators": true,
+        "emitDecoratorMetadata": true
+    },
+    "include": [
+        "src/**/*",
+        "node_modules/@types"
+    ]
+}

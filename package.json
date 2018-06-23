@@ -1,0 +1,28 @@
+{
+    "name": "spacegun",
+    "version": "0.0.2",
+    "main": "index.js",
+    "license": "MIT",
+    "scripts": {
+        "build": "tsc",
+        "test": "jest --config=jest.conf.js",
+        "test:watch": "jest --config=jest.conf.js --watch",
+        "cli": "node cli.js"
+    },
+    "bin": {
+        "spacegun": "bin/spacegun"
+    },
+    "dependencies": {
+        "@kubernetes/client-node": "^0.3.0",
+        "command-line-args": "^5.0.2"
+    },
+    "devDependencies": {
+        "@types/command-line-args": "^5.0.0",
+        "@types/jest": "^23.1.1",
+        "@types/node": "^10.3.4",
+        "babel-jest": "^23.0.1",
+        "jest": "^23.1.0",
+        "ts-jest": "^22.4.6",
+        "typescript": "^2.9.2"
+    }
+}
