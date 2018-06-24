@@ -14,12 +14,14 @@
     },
     "dependencies": {
         "@kubernetes/client-node": "^0.3.0",
+        "axios": "^0.18.0",
         "chalk": "^2.4.1",
         "command-line-args": "^5.0.2",
         "lodash.clonedeep": "^4.5.0",
         "ora": "^2.1.0"
     },
     "devDependencies": {
+        "@types/axios": "^0.14.0",
         "@types/command-line-args": "^5.0.0",
         "@types/jest": "^23.1.1",
         "@types/lodash.clonedeep": "^4.5.3",

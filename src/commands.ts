@@ -8,7 +8,7 @@ export type Command = "pods" | "deployments" | "scalers" | "help"
 
 async function load<T>(p: Promise<T>): Promise<T> {
     const progress = ora()
-    progress.start("Loading")
+    progress.start("loading")
     const result = await p
     progress.stop()
     return result
@@ -16,22 +16,23 @@ async function load<T>(p: Promise<T>): Promise<T> {
 
 async function foreachCluster(clusterProvider: ClusterProvider, f: (clusterProvider: ClusterProvider, cluster: string) => void) {
     for (const cluster of clusterProvider.clusters) {
-        console.log(chalk.inverse(pad(`Cluster ${cluster}`)))
+        console.log("")
+        console.log(chalk.underline.bold(pad(`${cluster}`)))
         await f(clusterProvider, cluster)
     }
 }
 
 async function podsCommand(clusterProvider: ClusterProvider, cluster: string) {
     const pods = await load(clusterProvider.pods(cluster))
-    console.log(chalk.bold.underline(pad("pod name", 5) + pad("tag name", 5) + pad("restarts", 2)))
+    console.log(chalk.bold(pad("pod name", 5) + pad("tag name", 5) + pad("restarts", 2)))
     pods.forEach(pod => {
-        let restartText = pad(pod.restarts.toString(), 2)
+        let restartText = pod.restarts.toString()
         if (pod.restarts > 30) {
-            restartText = chalk.black.bgRed(restartText)
+            restartText = chalk.bold.cyan(pad(restartText + "!", 2))
         } else if (pod.restarts > 10) {
-            restartText = chalk.black.bgYellow(restartText)
+            restartText = chalk.bold.magenta(pad(restartText, 2))
         } else {
-            restartText = pod.restarts.toString()
+            restartText = pad(restartText, 2)
         }
         console.log(pad(pod.name, 5) + pad(pod.image.tag, 5) + restartText)
     })
@@ -39,7 +40,7 @@ async function podsCommand(clusterProvider: ClusterProvider, cluster: string) {
 
 async function deployementsCommand(clusterProvider: ClusterProvider, cluster: string) {
     const deployments = await load(clusterProvider.deployments(cluster))
-    console.log(chalk.bold.underline(pad("deployment name", 5) + pad("tag name", 7)))
+    console.log(chalk.bold(pad("deployment name", 5) + pad("tag name", 7)))
     deployments.forEach(deployment => {
         console.log(pad(deployment.name, 5) + pad(deployment.image.tag, 7))
     })
@@ -48,17 +49,18 @@ async function deployementsCommand(clusterProvider: ClusterProvider, cluster: st
 async function scalersCommand(clusterProvider: ClusterProvider, cluster: string) {
     const scalers = await load(clusterProvider.scalers(cluster))
     console.log(chalk.bold(pad("scaler name", 5) + pad("replication", 7)))
-    console.log(chalk.bold.underline(pad("", 5) + pad("current", 3) + pad("minimum", 2) + pad("maximum", 2)))
+    console.log(chalk.bold(pad("", 5) + pad("current", 3) + pad("minimum", 2) + pad("maximum", 2)))
     scalers.forEach(scaler => {
         let line = pad(scaler.name, 5)
-        const currentText = pad(scaler.replicas.current.toString(), 3)
+        let currentText = scaler.replicas.current.toString()
         if (scaler.replicas.current < scaler.replicas.minimum) {
-            line += chalk.red(currentText)
+            currentText = chalk.bold.cyan(pad(currentText + "!", 3))
         } else if (scaler.replicas.current >= scaler.replicas.maximum) {
-            line += chalk.yellow(currentText)
+            currentText = chalk.bold.magenta(pad(currentText, 3))
         } else {
-            line += currentText
+            currentText = pad(currentText, 3)
         }
+        line += currentText
         line += pad(scaler.replicas.minimum.toString(), 2) + pad(scaler.replicas.maximum.toString(), 2)
         console.log(line)
     })

@@ -1,3 +1,5 @@
+import { Image } from "@/images/ImageProvider";
+
 export interface ClusterProvider {
     clusters: string[]
     pods(cluster: string): Promise<Pod[]>
@@ -14,11 +16,6 @@ export interface Pod {
 export interface Deployment {
     name: string
     image: Image
-}
-
-export interface Image {
-    image: string
-    tag: string
 }
 
 export interface Scaler {
