@@ -5,7 +5,7 @@ describe("options", () => {
     it("defaults correctly", () => {
         process.argv = []
         expect(parse().kube.endsWith("/.kube/config")).toBeTruthy()
-        expect(parse().command).toEqual("pods")
+        expect(parse().command).toEqual("help")
     })
 
     describe("commands", () => {

@@ -10,14 +10,14 @@ export interface Options {
 
 function parse(): Options {
     const internalOptions = commandLineArgs([
-        { name: 'command', defaultOption: true },
+        { name: 'command', defaultOption: true, defaultValue: "help" },
         { name: 'kube', alias: 'k', type: String }
     ]) as {
             kube?: string
             command?: string
         }
 
-    let command: Command = "pods"
+    let command: Command = "help"
     if (internalOptions.command !== undefined) {
         switch (internalOptions.command) {
             case "scalers":
@@ -25,8 +25,6 @@ function parse(): Options {
             case "deployments":
                 command = internalOptions.command
                 break
-            default:
-                throw new Error(`${internalOptions.command} is not a valid command. Must be one of 'scalers' 'pods' 'deployments'`)
         }
     }
 

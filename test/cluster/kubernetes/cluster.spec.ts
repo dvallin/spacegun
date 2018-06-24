@@ -1,8 +1,6 @@
 import { KubernetesClusterProvider } from "../../../src/cluster/kubernetes/KubernetesCluster"
 import { Pod, Deployment, Scaler } from "../../../src/cluster/Cluster"
 
-import { Autoscaling_v1Api, Apps_v1beta2Api, Core_v1Api } from '@kubernetes/client-node'
-
 describe("KubernetesClusterProvider", () => {
     const cluster = new KubernetesClusterProvider('./test/config/kube')
 
