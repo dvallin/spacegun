@@ -1,4 +1,5 @@
 export interface ImageProvider {
+    endpoint: string
     images(): Promise<string[]>
     versions(repository: string): Promise<ImageVersion[]>
 }

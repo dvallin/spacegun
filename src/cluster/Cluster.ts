@@ -1,4 +1,4 @@
-import { Image } from "@/images/ImageProvider";
+import { ImageVersion } from "../images/ImageProvider"
 
 export interface ClusterProvider {
     clusters: string[]
@@ -9,13 +9,13 @@ export interface ClusterProvider {
 
 export interface Pod {
     name: string
-    image: Image
+    image: ImageVersion
     restarts: number
 }
 
 export interface Deployment {
     name: string
-    image: Image
+    image: ImageVersion
 }
 
 export interface Scaler {

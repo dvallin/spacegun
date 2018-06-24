@@ -1,20 +1,19 @@
 import * as commandLineArgs from 'command-line-args'
-import { homedir } from 'os'
 
 import { Command } from '@/commands'
 
 export interface Options {
-    kube: string
+    config?: string
     command: Command
 }
 
 function parse(): Options {
     const internalOptions = commandLineArgs([
         { name: 'command', defaultOption: true, defaultValue: "help" },
-        { name: 'kube', alias: 'k', type: String }
+        { name: 'config', alias: 'c', type: String }
     ]) as {
-            kube?: string
-            command?: string
+            command?: string,
+            config?: string
         }
 
     let command: Command = "help"
@@ -28,12 +27,7 @@ function parse(): Options {
         }
     }
 
-    let kube = homedir() + "/.kube/config"
-    if (internalOptions.kube !== undefined) {
-        kube = internalOptions.kube
-    }
-
-    return { kube, command }
+    return { command, config: internalOptions.config }
 }
 
 export { parse }

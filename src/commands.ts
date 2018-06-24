@@ -3,6 +3,7 @@ import { pad } from "./pad"
 import chalk from "chalk"
 
 import * as ora from "ora"
+import { ImageProvider } from "@/images/ImageProvider";
 
 export type Command = "pods" | "deployments" | "scalers" | "help"
 
@@ -66,26 +67,16 @@ async function scalersCommand(clusterProvider: ClusterProvider, cluster: string)
     })
 }
 
-const commands: { [k in Command]: (clusterProvider: ClusterProvider) => Promise<void> } = {
-    "pods": async (clusterProvider: ClusterProvider) => {
-        foreachCluster(clusterProvider, podsCommand)
-    },
-    "deployments": async (clusterProvider: ClusterProvider) => {
-        foreachCluster(clusterProvider, deployementsCommand)
-    },
-    "scalers": async (clusterProvider: ClusterProvider) => {
-        foreachCluster(clusterProvider, scalersCommand)
-    },
-    "help": async (clusterProvider: ClusterProvider) => {
-        const b = chalk.blue;
-        const m = chalk.magenta;
-        const r = chalk.cyan;
-        const CLI_TITLE = chalk.bold.underline('Spacegun-CLI')
-        const CLI_DESCRIPTION = 'Space age deployment manager'
-        const CLI_USAGE = 'Usage: \`spacegun <command> [options ...]\`'
+export function printHelp(clusterProvider?: ClusterProvider, imageProvider?: ImageProvider, invalidConfig: boolean = false) {
+    const b = chalk.blue;
+    const m = chalk.magenta;
+    const c = chalk.cyan;
+    const CLI_TITLE = chalk.bold.underline('Spacegun-CLI')
+    const CLI_DESCRIPTION = 'Space age deployment manager'
+    const CLI_USAGE = 'Usage: \`spacegun <command> [options ...]\`'
 
-        const HELP_HEADER = `
-        ${b('/\\')} ${r('*')}    
+    const HELP_HEADER = `
+        ${b('/\\')} ${c('*')}    
        ${b('/__\\')}     ${CLI_TITLE}
       ${b('/\\  /')}
      ${b('/__\\/')}      ${CLI_DESCRIPTION}
@@ -93,15 +84,47 @@ const commands: { [k in Command]: (clusterProvider: ClusterProvider) => Promise<
    ${ b('/__\\')}${m('/__\\')}     ${CLI_USAGE}
   ${ b('/\\')}  ${m('/')}    ${m('\\')}
 `
-        console.log(HELP_HEADER)
-        console.log('known clusters: ' + m(clusterProvider.clusters.join(", ")))
+    console.log(HELP_HEADER)
+    if (invalidConfig) {
+        console.log(c('no configuration file found!'))
+        console.log(c('A config.yml containing the following line might be sufficient'))
+        console.log(b('docker: http://your.docker.registry/'))
+        console.log("")
+    }
+    if (clusterProvider !== undefined) {
+        console.log('configured clusters: ' + m(clusterProvider.clusters.join(", ")))
+    } else {
+        console.log(c('no clusters configured! (such as your kubernetes)'))
+    }
+    if (imageProvider !== undefined) {
+        console.log('configured image endpoint: ' + m(imageProvider.endpoint))
+    } else {
+        console.log(c('no image registry configured! (such as your docker registry)'))
+    }
 
-        console.log('')
-        console.log(chalk.bold.underline('Avaialable Commands'))
-        console.log(pad("pods", 2) + chalk.bold(pad("a summary of all pods of all known clusters", 10)))
-        console.log(pad("deployments", 2) + chalk.bold(pad("a summary of all deployements of all known clusters", 10)))
-        console.log(pad("scalers", 2) + chalk.bold(pad("a summary of all scalers of all known clusters", 10)))
-        console.log(pad("help", 2) + chalk.bold(pad("renders this summary", 10)))
+    console.log('')
+    console.log(chalk.bold.underline('Available Commands'))
+    console.log(pad("pods", 2) + chalk.bold(pad("a summary of all pods of all known clusters", 10)))
+    console.log(pad("deployments", 2) + chalk.bold(pad("a summary of all deployements of all known clusters", 10)))
+    console.log(pad("scalers", 2) + chalk.bold(pad("a summary of all scalers of all known clusters", 10)))
+    console.log(pad("help", 2) + chalk.bold(pad("renders this summary", 10)))
+    console.log('')
+    console.log(chalk.bold.underline('Available Options'))
+    console.log(pad("config, c", 2) + chalk.bold(pad("path to the config.yml. Default: `config.yml`", 10)))
+}
+
+const commands: { [k in Command]: (clusterProvider: ClusterProvider, imageProvider: ImageProvider) => Promise<void> } = {
+    "pods": async (clusterProvider: ClusterProvider, { }: ImageProvider) => {
+        foreachCluster(clusterProvider, podsCommand)
+    },
+    "deployments": async (clusterProvider: ClusterProvider, { }: ImageProvider) => {
+        foreachCluster(clusterProvider, deployementsCommand)
+    },
+    "scalers": async (clusterProvider: ClusterProvider, { }: ImageProvider) => {
+        foreachCluster(clusterProvider, scalersCommand)
+    },
+    "help": async (clusterProvider: ClusterProvider, imageProvider: ImageProvider) => {
+        printHelp(clusterProvider, imageProvider)
     }
 }
 

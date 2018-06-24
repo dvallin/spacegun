@@ -1,4 +1,4 @@
-import { ImageProvider, ImageVersion } from "@/images/ImageProvider"
+import { ImageProvider, ImageVersion } from "../ImageProvider"
 import axios from "axios"
 
 interface DockerRepositoriesResponse {

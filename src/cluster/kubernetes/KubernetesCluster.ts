@@ -1,4 +1,4 @@
-import { ClusterProvider, Pod, Deployment, Scaler } from "@/cluster/Cluster"
+import { ClusterProvider, Pod, Deployment, Scaler } from "../Cluster"
 const cloneDeep = require("lodash.clonedeep")
 
 import {
