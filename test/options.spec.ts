@@ -1,4 +1,4 @@
-import { parse, Command } from "../src/options"
+import { parse } from "../src/options"
 
 describe("options", () => {
 

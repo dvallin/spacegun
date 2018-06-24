@@ -1,18 +1,14 @@
-import { KubernetesCluster } from "../../../src/cluster/kubernetes/KubernetesCluster"
+import { KubernetesClusterProvider } from "../../../src/cluster/kubernetes/KubernetesCluster"
 import { Pod, Deployment, Scaler } from "../../../src/cluster/Cluster"
 
 import { Autoscaling_v1Api, Apps_v1beta2Api, Core_v1Api } from '@kubernetes/client-node'
 
-describe("KubernetesCluster", () => {
-    const cluster = new KubernetesCluster('./test/config/kube')
+describe("KubernetesClusterProvider", () => {
+    const cluster = new KubernetesClusterProvider('./test/config/kube')
 
     describe("clusters", () => {
         it("returns the names of the clusters", () => {
             expect(cluster.clusters).toEqual(["dev", "pre", "live"])
-        })
-
-        it("exctracs server name from configuration", () => {
-            expect(cluster.getServer("dev")).toEqual("https://localhost:8080/dev")
         })
     })
 
@@ -20,8 +16,8 @@ describe("KubernetesCluster", () => {
         it("returns pods", async () => {
             const pods: Pod[] = await cluster.pods(cluster.clusters[0])
             expect(pods).toEqual([
-                { image: "image1", name: "pod1", restarts: 0 },
-                { image: "image2", name: "pod2", restarts: 1 }
+                { image: { image: "image1:tag", tag: "tag" }, name: "pod1", restarts: 0 },
+                { image: { image: "image2:tag", tag: "tag" }, name: "pod2", restarts: 1 }
             ])
         })
     })
@@ -30,8 +26,8 @@ describe("KubernetesCluster", () => {
         it("returns deployements", async () => {
             const deployements: Deployment[] = await cluster.deployments(cluster.clusters[0])
             expect(deployements).toEqual([
-                { image: "image1", name: "pod1" },
-                { image: "image2", name: "pod2" }
+                { image: { image: "image1:tag", tag: "tag" }, name: "pod1" },
+                { image: { image: "image2:tag", tag: "tag" }, name: "pod2" }
             ])
         })
     })

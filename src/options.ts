@@ -1,7 +1,7 @@
 import * as commandLineArgs from 'command-line-args'
 import { homedir } from 'os'
 
-export type Command = "pods" | "deployments" | "scalers"
+import { Command } from '@/commands'
 
 export interface Options {
     kube: string

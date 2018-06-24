@@ -1,4 +1,4 @@
-export interface Cluster {
+export interface ClusterProvider {
     clusters: string[]
     pods(cluster: string): Promise<Pod[]>
     deployments(cluster: string): Promise<Deployment[]>
@@ -7,13 +7,18 @@ export interface Cluster {
 
 export interface Pod {
     name: string
-    image: string
+    image: Image
     restarts: number
 }
 
 export interface Deployment {
     name: string
+    image: Image
+}
+
+export interface Image {
     image: string
+    tag: string
 }
 
 export interface Scaler {
