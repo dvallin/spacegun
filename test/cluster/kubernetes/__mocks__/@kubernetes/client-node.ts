@@ -1,12 +1,14 @@
 import { Autoscaling_v1Api as api3, Apps_v1beta2Api as api2, Core_v1Api as api1, KubeConfig } from '@kubernetes/client-node'
 
-function mockPod(name: string, image: string, restartCount: number): object {
+function mockPod(name: string, image: string, restartCount: number, ready: boolean = true): object {
+    const readyCondition = ready ? { type: 'Ready', status: 'True' } : { type: 'Ready', status: 'False' }
     return {
         metadata: { name },
         spec: {
             containers: [{ image }]
         },
         status: {
+            conditions: [readyCondition],
             containerStatuses: [{ restartCount }]
         }
     }

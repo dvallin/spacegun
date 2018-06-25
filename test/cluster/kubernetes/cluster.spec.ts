@@ -14,8 +14,8 @@ describe("KubernetesClusterProvider", () => {
         it("returns pods", async () => {
             const pods: Pod[] = await cluster.pods(cluster.clusters[0])
             expect(pods).toEqual([
-                { image: { image: "image1:tag", tag: "tag" }, name: "pod1", restarts: 0 },
-                { image: { image: "image2:tag", tag: "tag" }, name: "pod2", restarts: 1 }
+                { image: { image: "image1:tag", tag: "tag" }, name: "pod1", restarts: 0, ready: true },
+                { image: { image: "image2:tag", tag: "tag" }, name: "pod2", restarts: 1, ready: true },
             ])
         })
     })

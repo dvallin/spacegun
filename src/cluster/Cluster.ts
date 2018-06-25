@@ -9,8 +9,9 @@ export interface ClusterProvider {
 
 export interface Pod {
     name: string
-    image: ImageVersion
+    image?: ImageVersion
     restarts: number
+    ready: boolean
 }
 
 export interface Deployment {

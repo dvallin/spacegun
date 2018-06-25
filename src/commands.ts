@@ -25,17 +25,24 @@ async function foreachCluster(clusterProvider: ClusterProvider, f: (clusterProvi
 
 async function podsCommand(clusterProvider: ClusterProvider, cluster: string) {
     const pods = await load(clusterProvider.pods(cluster))
-    console.log(chalk.bold(pad("pod name", 5) + pad("tag name", 5) + pad("restarts", 2)))
+    console.log(chalk.bold(pad("pod name", 5) + pad("tag name", 5) + pad("starts", 1), pad("status", 1)))
     pods.forEach(pod => {
         let restartText = pod.restarts.toString()
         if (pod.restarts > 30) {
-            restartText = chalk.bold.cyan(pad(restartText + "!", 2))
+            restartText = chalk.bold.cyan(pad(restartText + "!", 1))
         } else if (pod.restarts > 10) {
-            restartText = chalk.bold.magenta(pad(restartText, 2))
+            restartText = chalk.bold.magenta(pad(restartText, 1))
         } else {
-            restartText = pad(restartText, 2)
+            restartText = pad(restartText, 1)
         }
-        console.log(pad(pod.name, 5) + pad(pod.image.tag, 5) + restartText)
+        const statusText = pod.ready ? chalk.bold.magenta(pad("up", 1)) : chalk.bold.cyan(pad("down!", 1))
+        let tagText
+        if (pod.image === undefined) {
+            tagText = chalk.bold.magenta(pad("missing", 5))
+        } else {
+            tagText = pad(pod.image.tag, 5)
+        }
+        console.log(pad(pod.name, 5) + tagText + restartText + statusText)
     })
 }
 

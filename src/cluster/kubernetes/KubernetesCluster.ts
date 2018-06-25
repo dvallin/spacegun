@@ -36,12 +36,19 @@ export class KubernetesClusterProvider implements ClusterProvider {
         const api = this.build(cluster, (server: string) => new Core_v1Api(server))
         const result: V1PodList = await api.listNamespacedPod("default").get("body")
         return result.items.map(item => {
-            const image = item.spec.containers[0].image
-            const tag = image.split(":")[1]
+            let image
+            if (item.spec.containers !== undefined && item.spec.containers.length >= 1) {
+                const imageName = item.spec.containers[0].image
+                const tag = imageName.split(":")[1]
+                image = { image: imageName, tag }
+            }
+            const readyCondition = item.status.conditions.find(c => c.type === 'Ready')
+            const ready = readyCondition !== undefined && readyCondition.status === 'True'
             return {
                 name: item.metadata.name,
-                image: { image, tag },
-                restarts: item.status.containerStatuses[0].restartCount
+                image,
+                restarts: item.status.containerStatuses[0].restartCount,
+                ready
             }
         })
     }
