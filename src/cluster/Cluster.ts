@@ -1,22 +1,21 @@
-import { ImageVersion } from "../images/ImageProvider"
-
 export interface ClusterProvider {
     clusters: string[]
     pods(cluster: string): Promise<Pod[]>
     deployments(cluster: string): Promise<Deployment[]>
+    updateDeployment(cluster: string, deployment: Deployment, targetImage: Image): Promise<Deployment>
     scalers(cluster: string): Promise<Scaler[]>
 }
 
 export interface Pod {
     name: string
-    image?: ImageVersion
-    restarts: number
     ready: boolean
+    image?: Image
+    restarts?: number
 }
 
 export interface Deployment {
     name: string
-    image: ImageVersion
+    image?: Image
 }
 
 export interface Scaler {
@@ -28,4 +27,10 @@ export interface Replicas {
     current: number
     minimum: number
     maximum: number
+}
+
+export interface Image {
+    url: string
+    name: string
+    tag: string
 }

@@ -25,6 +25,10 @@ export class DockerImageProvider implements ImageProvider {
         public endpoint: string
     ) { }
 
+    public get repository(): string {
+        return this.endpoint.split("://")[1]
+    }
+
     public async images(): Promise<string[]> {
         const repositories = await axios.get<DockerRepositoriesResponse>(
             `${this.endpoint}/v2/_catalog`
@@ -32,19 +36,24 @@ export class DockerImageProvider implements ImageProvider {
         return repositories.data.repositories
     }
 
-    public async versions(image: string): Promise<ImageVersion[]> {
+    public async versions(name: string): Promise<ImageVersion[]> {
         const tags = await axios.get<DockerTagsResponse>(
-            `${this.endpoint}/v2/${image}/tags/list`
+            `${this.endpoint}/v2/${name}/tags/list`
         )
         return Promise.all(tags.data.tags.map(async (tag) => {
-            const lastUpdated = await this.lastUpdated(image, tag)
-            return { image, tag, lastUpdated }
+            const lastUpdated = await this.lastUpdated(name, tag)
+            const url = this.createUrl(name, tag)
+            return { url, name, tag, lastUpdated }
         }))
     }
 
-    private async lastUpdated(image: string, tag: string): Promise<Date> {
+    private createUrl(name: string, tag: string): string {
+        return `${this.repository}/${name}:${tag}`
+    }
+
+    private async lastUpdated(name: string, tag: string): Promise<Date> {
         const manifest = await axios.get<DockerManifestsReponse>(
-            `${this.endpoint}/v2/${image}/manifests/${tag}`
+            `${this.endpoint}/v2/${name}/manifests/${tag}`
         )
         return manifest.data.history
             .map(update => JSON.parse(update.v1Compatibility) as DockerV1ManifestLayer)

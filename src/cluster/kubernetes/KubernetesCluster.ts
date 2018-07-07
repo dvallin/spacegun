@@ -1,15 +1,23 @@
-import { ClusterProvider, Pod, Deployment, Scaler } from "../Cluster"
+import { ClusterProvider, Pod, Deployment, Scaler, Image } from "../Cluster"
 const cloneDeep = require("lodash.clonedeep")
 
 import {
     KubeConfig,
     Core_v1Api, V1PodList,
     Apps_v1beta2Api, V1beta2DeploymentList,
-    Autoscaling_v1Api, V1HorizontalPodAutoscalerList
+    Autoscaling_v1Api, V1HorizontalPodAutoscalerList, V1beta2Deployment, V1Container
 } from '@kubernetes/client-node'
 
 interface Api {
     setDefaultAuthentication(config: KubeConfig): void
+}
+
+class UpdateDeploymentApi extends Apps_v1beta2Api {
+    defaultHeaders = { "content-type": "application/merge-patch+json" }
+
+    constructor(server: string) {
+        super(server)
+    }
 }
 
 export class KubernetesClusterProvider implements ClusterProvider {
@@ -36,19 +44,16 @@ export class KubernetesClusterProvider implements ClusterProvider {
         const api = this.build(cluster, (server: string) => new Core_v1Api(server))
         const result: V1PodList = await api.listNamespacedPod("default").get("body")
         return result.items.map(item => {
-            let image
-            if (item.spec.containers !== undefined && item.spec.containers.length >= 1) {
-                const imageName = item.spec.containers[0].image
-                const tag = imageName.split(":")[1]
-                image = { image: imageName, tag }
+            const image = this.createImage(item.spec.containers)
+            let restarts
+            if (item.status.containerStatuses != undefined && item.status.containerStatuses.length >= 1) {
+                restarts = item.status.containerStatuses[0].restartCount
             }
             const readyCondition = item.status.conditions.find(c => c.type === 'Ready')
             const ready = readyCondition !== undefined && readyCondition.status === 'True'
             return {
                 name: item.metadata.name,
-                image,
-                restarts: item.status.containerStatuses[0].restartCount,
-                ready
+                image, restarts, ready
             }
         })
     }
@@ -57,13 +62,47 @@ export class KubernetesClusterProvider implements ClusterProvider {
         const api = this.build(cluster, (server: string) => new Apps_v1beta2Api(server))
         const result: V1beta2DeploymentList = await api.listNamespacedDeployment("default").get("body")
         return result.items.map(item => {
-            const image = item.spec.template.spec.containers[0].image
-            const tag = image.split(":")[1]
+            const image = this.createImage(item.spec.template.spec.containers)
             return {
                 name: item.metadata.name,
-                image: { image, tag }
+                image
             }
         })
+    }
+
+    createImage(containers: Array<V1Container> | undefined): Image | undefined {
+        if (containers !== undefined && containers.length >= 1) {
+            const url = containers[0].image
+            const imageAndTag = url.split(":")
+            const imageParts = imageAndTag[0].split("/")
+            const tag = imageAndTag[1]
+            const name = imageParts[imageParts.length - 1]
+            return { url, name, tag }
+        }
+        return undefined
+    }
+
+    async updateDeployment(cluster: string, deployment: Deployment, targetImage: Image): Promise<Deployment> {
+        const api = this.build(cluster, (server: string) => new UpdateDeploymentApi(server))
+        const patch = {
+            apiVersion: "apps/v1beta2",
+            kind: "Deployment",
+            spec: {
+                template: {
+                    spec: {
+                        containers: [{
+                            name: deployment.name,
+                            image: targetImage.url
+                        }]
+                    }
+                }
+            }
+        }
+        const result: V1beta2Deployment = await api.patchNamespacedDeployment(deployment.name, "default", patch).get("body")
+        return {
+            name: result.metadata.name,
+            image: this.createImage(result.spec.template.spec.containers)
+        }
     }
 
     async scalers(cluster: string): Promise<Scaler[]> {

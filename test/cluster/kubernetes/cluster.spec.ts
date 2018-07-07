@@ -1,6 +1,9 @@
 import { KubernetesClusterProvider } from "../../../src/cluster/kubernetes/KubernetesCluster"
 import { Pod, Deployment, Scaler } from "../../../src/cluster/Cluster"
 
+const image1 = { name: "image1", tag: "tag", url: "repo/image1:tag" }
+const image2 = { name: "image2", tag: "tag", url: "repo/image2:tag" }
+
 describe("KubernetesClusterProvider", () => {
     const cluster = new KubernetesClusterProvider('./test/config/kube')
 
@@ -14,8 +17,8 @@ describe("KubernetesClusterProvider", () => {
         it("returns pods", async () => {
             const pods: Pod[] = await cluster.pods(cluster.clusters[0])
             expect(pods).toEqual([
-                { image: { image: "image1:tag", tag: "tag" }, name: "pod1", restarts: 0, ready: true },
-                { image: { image: "image2:tag", tag: "tag" }, name: "pod2", restarts: 1, ready: true },
+                { image: image1, name: "pod1", restarts: 0, ready: true },
+                { image: image2, name: "pod2", restarts: 1, ready: false },
             ])
         })
     })
@@ -24,9 +27,18 @@ describe("KubernetesClusterProvider", () => {
         it("returns deployements", async () => {
             const deployements: Deployment[] = await cluster.deployments(cluster.clusters[0])
             expect(deployements).toEqual([
-                { image: { image: "image1:tag", tag: "tag" }, name: "pod1" },
-                { image: { image: "image2:tag", tag: "tag" }, name: "pod2" }
+                { image: image1, name: "deployement1" },
+                { image: image2, name: "deployement2" }
             ])
+        })
+
+        it("updates deployments", async () => {
+            const deployement: Deployment = await cluster.updateDeployment(
+                cluster.clusters[0], { image: image1, name: "deployement1" }, image2
+            )
+            expect(deployement).toEqual(
+                { image: { name: "updatedImage", tag: "tag", url: "repo/updatedImage:tag" }, name: "updatedDeployment" }
+            )
         })
     })
 

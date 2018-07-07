@@ -44,7 +44,7 @@ const Core_v1Api = jest.fn<api1>().mockImplementation(function () {
     const mockedApi = new api1()
     mockedApi.listNamespacedPod = jest.fn().mockReturnValue({
         get: () => ({
-            items: [mockPod("pod1", "image1:tag", 0), mockPod("pod2", "image2:tag", 1)]
+            items: [mockPod("pod1", "repo/image1:tag", 0, true), mockPod("pod2", "repo/image2:tag", 1, false)]
         })
     })
     return mockedApi
@@ -54,8 +54,12 @@ const Apps_v1beta2Api = jest.fn<api2>().mockImplementation(function () {
     const mockedApi = new api2()
     mockedApi.listNamespacedDeployment = jest.fn().mockReturnValue({
         get: () => ({
-            items: [mockDeployment("pod1", "image1:tag"), mockDeployment("pod2", "image2:tag")]
+            items: [mockDeployment("deployement1", "repo/image1:tag"), mockDeployment("deployement2", "repo/image2:tag")]
         })
+    })
+    mockedApi.patchNamespacedDeployment = jest.fn().mockReturnValue({
+
+        get: () => mockDeployment("updatedDeployment", "repo/updatedImage:tag")
     })
     return mockedApi
 })

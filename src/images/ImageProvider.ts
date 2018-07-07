@@ -1,10 +1,12 @@
 export interface ImageProvider {
     endpoint: string
     images(): Promise<string[]>
-    versions(repository: string): Promise<ImageVersion[]>
+    versions(name: string): Promise<ImageVersion[]>
 }
 
 export interface ImageVersion {
-    image: string
+    url: string
+    name: string
     tag: string
+    lastUpdated: Date
 }

@@ -1,17 +1,20 @@
 import { DockerImageProvider } from "../../../src/images/docker/DockerImageProvider"
 import axios, { AxiosResponse } from "axios"
-import { AsyncResource } from "async_hooks";
 
 
 describe("DockerImageProvider", () => {
 
-    const provider = new DockerImageProvider("baseUrl")
+    const provider = new DockerImageProvider("http://repo")
 
     it("retrieves images", async () => {
         const images = ["image1", "image2"]
         axios.get = axiosSuccess({ repositories: images })
         expect(provider.images()).resolves.toEqual(images)
-        expect(axios.get).toHaveBeenCalledWith("baseUrl/v2/_catalog")
+        expect(axios.get).toHaveBeenCalledWith("http://repo/v2/_catalog")
+    })
+
+    it("extracts the repository name from the url", () => {
+        expect(provider.repository).toEqual("repo")
     })
 
     it("retrieves image versions", async () => {
@@ -23,13 +26,13 @@ describe("DockerImageProvider", () => {
         )
         const versions = await provider.versions("image1")
         expect(versions).toEqual([
-            { image: "image1", tag: "tag1", lastUpdated: new Date(Date.parse("2018-05-29T11:53:39.318Z")) },
-            { image: "image1", tag: "tag2", lastUpdated: new Date(Date.parse("2018-05-29T11:53:39.318Z")) }
+            { name: "image1", tag: "tag1", url: "repo/image1:tag1", lastUpdated: new Date(Date.parse("2018-05-29T11:53:39.318Z")) },
+            { name: "image1", tag: "tag2", url: "repo/image1:tag2", lastUpdated: new Date(Date.parse("2018-05-29T11:53:39.318Z")) }
         ])
         expect(axios.get).toHaveBeenCalledTimes(3)
-        expect(axios.get).toHaveBeenCalledWith("baseUrl/v2/image1/tags/list")
-        expect(axios.get).toHaveBeenCalledWith("baseUrl/v2/image1/manifests/tag1")
-        expect(axios.get).toHaveBeenCalledWith("baseUrl/v2/image1/manifests/tag2")
+        expect(axios.get).toHaveBeenCalledWith("http://repo/v2/image1/tags/list")
+        expect(axios.get).toHaveBeenCalledWith("http://repo/v2/image1/manifests/tag1")
+        expect(axios.get).toHaveBeenCalledWith("http://repo/v2/image1/manifests/tag2")
     })
 
     it("retrieves last updated of an image version", async () => {
@@ -44,12 +47,10 @@ describe("DockerImageProvider", () => {
                 ]
             })
         const versions = await provider.versions("image1")
-        expect(versions).toEqual([
-            { image: "image1", tag: "tag1", lastUpdated: new Date(Date.parse("2018-05-29T11:53:39.318Z")) },
-        ])
+        expect(versions[0].lastUpdated).toEqual(new Date(Date.parse("2018-05-29T11:53:39.318Z")))
         expect(axios.get).toHaveBeenCalledTimes(2)
-        expect(axios.get).toHaveBeenCalledWith("baseUrl/v2/image1/tags/list")
-        expect(axios.get).toHaveBeenCalledWith("baseUrl/v2/image1/manifests/tag1")
+        expect(axios.get).toHaveBeenCalledWith("http://repo/v2/image1/tags/list")
+        expect(axios.get).toHaveBeenCalledWith("http://repo/v2/image1/manifests/tag1")
     })
 })
 

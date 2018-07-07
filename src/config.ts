@@ -1,6 +1,6 @@
 import { safeLoad } from "js-yaml"
 import { readFileSync } from "fs"
-import { homedir } from "os";
+import { homedir } from "os"
 
 export interface Config {
     kube: string,

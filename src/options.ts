@@ -1,6 +1,6 @@
-import * as commandLineArgs from 'command-line-args'
+import * as commandLineArgs from "command-line-args"
 
-import { Command } from '@/commands'
+import { Command } from "./commands"
 
 export interface Options {
     config?: string
@@ -20,8 +20,10 @@ function parse(): Options {
     if (internalOptions.command !== undefined) {
         switch (internalOptions.command) {
             case "scalers":
+            case "images":
             case "pods":
             case "deployments":
+            case "deploy":
                 command = internalOptions.command
                 break
         }
