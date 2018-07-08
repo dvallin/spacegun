@@ -1,11 +1,13 @@
-import { KubernetesClusterProvider } from "../../../src/cluster/kubernetes/KubernetesCluster"
-import { Pod, Deployment, Scaler } from "../../../src/cluster/Cluster"
+import { KubernetesClusterRepository } from "../../../src/cluster/kubernetes/KubernetesClusterRepository"
+import { Pod } from "../../../src/cluster/model/Pod"
+import { Deployment } from "../../../src/cluster/model/Deployment"
+import { Scaler } from "../../../src/cluster/model/Scaler"
 
 const image1 = { name: "image1", tag: "tag", url: "repo/image1:tag" }
 const image2 = { name: "image2", tag: "tag", url: "repo/image2:tag" }
 
 describe("KubernetesClusterProvider", () => {
-    const cluster = new KubernetesClusterProvider('./test/config/kube')
+    const cluster = new KubernetesClusterRepository('./test/config/kube')
 
     describe("clusters", () => {
         it("returns the names of the clusters", () => {

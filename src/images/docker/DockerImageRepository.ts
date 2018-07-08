@@ -1,5 +1,6 @@
-import { ImageProvider, ImageVersion } from "../ImageProvider"
+import { ImageRepository } from "../ImageRepository"
 import axios from "axios"
+import { Image } from "../model/Image"
 
 interface DockerRepositoriesResponse {
     repositories: string[]
@@ -19,7 +20,7 @@ interface DockerV1ManifestLayer {
     created: string
 }
 
-export class DockerImageProvider implements ImageProvider {
+export class DockerImageRepository implements ImageRepository {
 
     public constructor(
         public endpoint: string
@@ -36,7 +37,7 @@ export class DockerImageProvider implements ImageProvider {
         return repositories.data.repositories
     }
 
-    public async versions(name: string): Promise<ImageVersion[]> {
+    public async versions(name: string): Promise<Image[]> {
         const tags = await axios.get<DockerTagsResponse>(
             `${this.endpoint}/v2/${name}/tags/list`
         )

@@ -1,10 +1,10 @@
-import { DockerImageProvider } from "../../../src/images/docker/DockerImageProvider"
+import { DockerImageRepository } from "../../../src/images/docker/DockerImageRepository"
 import axios, { AxiosResponse } from "axios"
 
 
 describe("DockerImageProvider", () => {
 
-    const provider = new DockerImageProvider("http://repo")
+    const provider = new DockerImageRepository("http://repo")
 
     it("retrieves images", async () => {
         const images = ["image1", "image2"]

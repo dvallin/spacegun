@@ -1,4 +1,8 @@
-import { ClusterProvider, Pod, Deployment, Scaler, Image } from "../Cluster"
+import { Pod } from "../model/Pod"
+import { Image } from "../model/Image"
+import { Deployment } from "../model/Deployment"
+import { Scaler } from "../model/Scaler"
+import { ClusterRepository } from "../ClusterRepository"
 const cloneDeep = require("lodash.clonedeep")
 
 import {
@@ -20,7 +24,7 @@ class UpdateDeploymentApi extends Apps_v1beta2Api {
     }
 }
 
-export class KubernetesClusterProvider implements ClusterProvider {
+export class KubernetesClusterRepository implements ClusterRepository {
 
     private configs: Map<string, KubeConfig>
 

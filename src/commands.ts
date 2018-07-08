@@ -1,5 +1,8 @@
-import { ClusterProvider, Deployment } from "./cluster/Cluster"
-import { ImageProvider } from "./images/ImageProvider"
+import { ClusterRepository } from "./cluster/ClusterRepository"
+import { Deployment } from "./cluster/model/Deployment"
+
+import { ImageRepository } from "./images/ImageRepository"
+
 import { pad } from "./pad"
 import chalk from "chalk"
 
@@ -16,16 +19,16 @@ async function load<T>(p: Promise<T>): Promise<T> {
     return result
 }
 
-async function foreachCluster(clusterProvider: ClusterProvider, f: (clusterProvider: ClusterProvider, cluster: string) => void) {
-    for (const cluster of clusterProvider.clusters) {
+async function foreachCluster(clusterRepository: ClusterRepository, f: (clusterRepository: ClusterRepository, cluster: string) => void) {
+    for (const cluster of clusterRepository.clusters) {
         console.log("")
         console.log(chalk.underline.bold(pad(`${cluster}`)))
-        await f(clusterProvider, cluster)
+        await f(clusterRepository, cluster)
     }
 }
 
-async function podsCommand(clusterProvider: ClusterProvider, cluster: string) {
-    const pods = await load(clusterProvider.pods(cluster))
+async function podsCommand(clusterRepository: ClusterRepository, cluster: string) {
+    const pods = await load(clusterRepository.pods(cluster))
     console.log(chalk.bold(pad("pod name", 5) + pad("tag name", 5) + pad("starts", 1), pad("status", 1)))
     pods.forEach(pod => {
         let restartText
@@ -49,8 +52,8 @@ async function podsCommand(clusterProvider: ClusterProvider, cluster: string) {
     })
 }
 
-async function imagesCommand(imageProvider: ImageProvider) {
-    const images = await imageProvider.images()
+async function imagesCommand(imageRepository: ImageRepository) {
+    const images = await imageRepository.images()
     images.forEach(image =>
         console.log(image)
     )
@@ -70,24 +73,24 @@ function logDeployment(deployment: Deployment) {
     console.log(pad(deployment.name, 5) + tagText)
 }
 
-async function deployementsCommand(clusterProvider: ClusterProvider, cluster: string) {
-    const deployments = await load(clusterProvider.deployments(cluster))
+async function deployementsCommand(clusterRepository: ClusterRepository, cluster: string) {
+    const deployments = await load(clusterRepository.deployments(cluster))
     logDeploymentHeader()
     deployments.forEach(deployment => {
         logDeployment(deployment)
     })
 }
 
-async function deployCommand(clusterProvider: ClusterProvider, imageProvider: ImageProvider) {
+async function deployCommand(clusterRepository: ClusterRepository, imageRepository: ImageRepository) {
     const question = new Question()
     try {
         console.log("Choose the target cluster")
-        clusterProvider.clusters.forEach((cluster, index) => {
+        clusterRepository.clusters.forEach((cluster, index) => {
             console.log(chalk.bold.cyan(index.toString()) + ": " + pad(cluster, 5))
         })
-        const targetCluster = await question.choose('> ', clusterProvider.clusters)
+        const targetCluster = await question.choose('> ', clusterRepository.clusters)
 
-        const deployments = await load(clusterProvider.deployments(targetCluster))
+        const deployments = await load(clusterRepository.deployments(targetCluster))
 
         console.log("Choose the target deployment")
         deployments.forEach((deployment, index) => {
@@ -95,7 +98,7 @@ async function deployCommand(clusterProvider: ClusterProvider, imageProvider: Im
         })
         const targetDeployment = await question.choose('> ', deployments)
 
-        const versions = await imageProvider.versions(targetDeployment.image!.name)
+        const versions = await imageRepository.versions(targetDeployment.image!.name)
         versions.sort((a, b) => b.lastUpdated.getTime() - a.lastUpdated.getTime())
         console.log("Choose the target image")
         versions.forEach((image, index) => {
@@ -111,7 +114,7 @@ async function deployCommand(clusterProvider: ClusterProvider, imageProvider: Im
         console.log("Answer `yes` to apply.")
         const userAgrees = await question.expect('> ', "yes")
         if (userAgrees) {
-            const updated = await clusterProvider.updateDeployment(targetCluster, targetDeployment, targetImage)
+            const updated = await clusterRepository.updateDeployment(targetCluster, targetDeployment, targetImage)
             logDeploymentHeader()
             logDeployment(updated)
         }
@@ -122,8 +125,8 @@ async function deployCommand(clusterProvider: ClusterProvider, imageProvider: Im
     }
 }
 
-async function scalersCommand(clusterProvider: ClusterProvider, cluster: string) {
-    const scalers = await load(clusterProvider.scalers(cluster))
+async function scalersCommand(clusterRepository: ClusterRepository, cluster: string) {
+    const scalers = await load(clusterRepository.scalers(cluster))
     console.log(chalk.bold(pad("scaler name", 5) + pad("replication", 7)))
     console.log(chalk.bold(pad("", 5) + pad("current", 3) + pad("minimum", 2) + pad("maximum", 2)))
     scalers.forEach(scaler => {
@@ -142,7 +145,7 @@ async function scalersCommand(clusterProvider: ClusterProvider, cluster: string)
     })
 }
 
-export function printHelp(clusterProvider?: ClusterProvider, imageProvider?: ImageProvider, invalidConfig: boolean = false) {
+export function printHelp(clusterRepository?: ClusterRepository, imageRepository?: ImageRepository, invalidConfig: boolean = false) {
     const b = chalk.blue;
     const m = chalk.magenta;
     const c = chalk.cyan;
@@ -167,13 +170,13 @@ export function printHelp(clusterProvider?: ClusterProvider, imageProvider?: Ima
         console.log(b('docker: https://your.docker.registry/'))
         console.log("")
     }
-    if (clusterProvider !== undefined) {
-        console.log('configured clusters: ' + m(clusterProvider.clusters.join(", ")))
+    if (clusterRepository !== undefined) {
+        console.log('configured clusters: ' + m(clusterRepository.clusters.join(", ")))
     } else {
         console.log(c('no clusters configured! (such as your kubernetes)'))
     }
-    if (imageProvider !== undefined) {
-        console.log('configured image endpoint: ' + m(imageProvider.endpoint))
+    if (imageRepository !== undefined) {
+        console.log('configured image endpoint: ' + m(imageRepository.endpoint))
     } else {
         console.log(c('no image registry configured! (such as your docker registry)'))
     }
@@ -191,24 +194,24 @@ export function printHelp(clusterProvider?: ClusterProvider, imageProvider?: Ima
     console.log(pad("config, c", 2) + chalk.bold(pad("path to the config.yml. Default: `config.yml`", 10)))
 }
 
-const commands: { [k in Command]: (clusterProvider: ClusterProvider, imageProvider: ImageProvider) => Promise<void> } = {
-    "pods": async (clusterProvider: ClusterProvider, { }: ImageProvider) => {
-        foreachCluster(clusterProvider, podsCommand)
+const commands: { [k in Command]: (clusterRepository: ClusterRepository, imageRepository: ImageRepository) => Promise<void> } = {
+    "pods": async (clusterRepository: ClusterRepository, { }: ImageRepository) => {
+        foreachCluster(clusterRepository, podsCommand)
     },
-    "images": async ({ }: ClusterProvider, imageProvider: ImageProvider) => {
-        imagesCommand(imageProvider)
+    "images": async ({ }: ClusterRepository, imageRepository: ImageRepository) => {
+        imagesCommand(imageRepository)
     },
-    "deployments": async (clusterProvider: ClusterProvider, { }: ImageProvider) => {
-        foreachCluster(clusterProvider, deployementsCommand)
+    "deployments": async (clusterRepository: ClusterRepository, { }: ImageRepository) => {
+        foreachCluster(clusterRepository, deployementsCommand)
     },
-    "scalers": async (clusterProvider: ClusterProvider, { }: ImageProvider) => {
-        foreachCluster(clusterProvider, scalersCommand)
+    "scalers": async (clusterRepository: ClusterRepository, { }: ImageRepository) => {
+        foreachCluster(clusterRepository, scalersCommand)
     },
-    "deploy": async (clusterProvider: ClusterProvider, imageProvider: ImageProvider) => {
-        deployCommand(clusterProvider, imageProvider)
+    "deploy": async (clusterRepository: ClusterRepository, imageRepository: ImageRepository) => {
+        deployCommand(clusterRepository, imageRepository)
     },
-    "help": async (clusterProvider: ClusterProvider, imageProvider: ImageProvider) => {
-        printHelp(clusterProvider, imageProvider)
+    "help": async (clusterRepository: ClusterRepository, imageRepository: ImageRepository) => {
+        printHelp(clusterRepository, imageRepository)
     }
 }
 
