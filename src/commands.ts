@@ -1,13 +1,13 @@
-import { ClusterRepository } from "./cluster/ClusterRepository"
-import { Deployment } from "./cluster/model/Deployment"
+import { ClusterRepository } from "@/cluster/ClusterRepository"
+import { Deployment } from "@/cluster/model/Deployment"
 
-import { ImageRepository } from "./images/ImageRepository"
+import { ImageRepository } from "@/images/ImageRepository"
 
-import { pad } from "./pad"
+import { pad } from "@/pad"
 import chalk from "chalk"
 
 import * as ora from "ora"
-import { Question } from "./Question"
+import { Question } from "@/Question"
 
 export type Command = "pods" | "images" | "deployments" | "deploy" | "scalers" | "help"
 

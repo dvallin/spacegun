@@ -1,4 +1,4 @@
-import { Image } from "./Image"
+import { Image } from "@/cluster/model/Image"
 
 export interface Pod {
     name: string

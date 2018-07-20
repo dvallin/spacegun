@@ -1,7 +1,7 @@
-import { Pod } from "./model/Pod"
-import { Image } from "./model/Image"
-import { Deployment } from "./model/Deployment"
-import { Scaler } from "./model/Scaler"
+import { Pod } from "@/cluster/model/Pod"
+import { Image } from "@/cluster/model/Image"
+import { Deployment } from "@/cluster/model/Deployment"
+import { Scaler } from "@/cluster/model/Scaler"
 
 export interface ClusterRepository {
     clusters: string[]

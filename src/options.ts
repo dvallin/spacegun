@@ -1,6 +1,6 @@
 import * as commandLineArgs from "command-line-args"
 
-import { Command } from "./commands"
+import { Command } from "@/commands"
 
 export interface Options {
     config?: string

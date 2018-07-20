@@ -1,4 +1,4 @@
-import { Image } from "./model/Image"
+import { Image } from "@/images/model/Image"
 
 export interface ImageRepository {
     endpoint: string

@@ -1,7 +1,7 @@
 import axios from "axios"
 
-import { ImageRepository } from "../ImageRepository"
-import { Image } from "../model/Image"
+import { ImageRepository } from "@/images/ImageRepository"
+import { Image } from "@/images/model/Image"
 
 interface DockerRepositoriesResponse {
     repositories: string[]

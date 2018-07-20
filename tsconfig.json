@@ -1,16 +1,8 @@
 {
     "compilerOptions": {
-        "target": "es6",
-        "module": "commonjs",
-        "plugins": [
-            {
-                "name": "tslint-language-service"
-            }
-        ],
-        "lib": [
-            "es2015",
-            "dom"
-        ],
+        "target": "esnext",
+        "module": "esnext",
+        "moduleResolution": "node",
         "outDir": "dist",
         "declaration": true,
         "sourceMap": true,

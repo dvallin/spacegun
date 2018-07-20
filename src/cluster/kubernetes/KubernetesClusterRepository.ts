@@ -1,8 +1,8 @@
-import { Pod } from "../model/Pod"
-import { Image } from "../model/Image"
-import { Deployment } from "../model/Deployment"
-import { Scaler } from "../model/Scaler"
-import { ClusterRepository } from "../ClusterRepository"
+import { Pod } from "@/cluster/model/Pod"
+import { Image } from "@/cluster/model/Image"
+import { Deployment } from "@/cluster/model/Deployment"
+import { Scaler } from "@/cluster/model/Scaler"
+import { ClusterRepository } from "@/cluster/ClusterRepository"
 const cloneDeep = require("lodash.clonedeep")
 
 import {
