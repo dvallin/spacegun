@@ -1,5 +1,6 @@
-import { ImageRepository } from "../ImageRepository"
 import axios from "axios"
+
+import { ImageRepository } from "../ImageRepository"
 import { Image } from "../model/Image"
 
 interface DockerRepositoriesResponse {
