@@ -26,6 +26,7 @@ export class DockerImageRepository implements ImageRepository {
 
     private imageCache: Cache<null, string[]> = new Cache(60)
     private versionsCache: Cache<string, Image[]> = new Cache(60)
+    private lastUpdatedCache: Cache<string, number> = new Cache()
 
     public constructor(
         public endpoint: string
@@ -65,12 +66,14 @@ export class DockerImageRepository implements ImageRepository {
     }
 
     private async lastUpdated(name: string, tag: string): Promise<number> {
-        const manifest = await axios.get<DockerManifestsReponse>(
-            `${this.endpoint}/v2/${name}/manifests/${tag}`
-        )
-        return manifest.data.history
-            .map(update => JSON.parse(update.v1Compatibility) as DockerV1ManifestLayer)
-            .map(layer => Date.parse(layer.created))
-            .reduce((a, b) => a > b ? a : b)
+        return this.lastUpdatedCache.calculate(`${name}/${tag}`, async () => {
+            const manifest = await axios.get<DockerManifestsReponse>(
+                `${this.endpoint}/v2/${name}/manifests/${tag}`
+            )
+            return manifest.data.history
+                .map(update => JSON.parse(update.v1Compatibility) as DockerV1ManifestLayer)
+                .map(layer => Date.parse(layer.created))
+                .reduce((a, b) => a > b ? a : b)
+        })
     }
 }

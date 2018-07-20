@@ -3,7 +3,6 @@ import { Image } from "@/cluster/model/Image"
 import { Deployment } from "@/cluster/model/Deployment"
 import { Scaler } from "@/cluster/model/Scaler"
 import { ClusterRepository } from "@/cluster/ClusterRepository"
-import { Cache } from "@/Cache"
 
 const cloneDeep = require("lodash.clonedeep")
 
@@ -30,10 +29,6 @@ export class KubernetesClusterRepository implements ClusterRepository {
 
     private configs: Map<string, KubeConfig>
 
-    private podsCache: Cache<string, Pod[]> = new Cache(60)
-    private deploymentsCache: Cache<string, Deployment[]> = new Cache(60)
-    private scalersCache: Cache<string, Scaler[]> = new Cache(60)
-
     public constructor(configFile: string) {
         const config = new KubeConfig()
         config.loadFromFile(configFile)
@@ -51,52 +46,46 @@ export class KubernetesClusterRepository implements ClusterRepository {
     }
 
     async pods(cluster: string): Promise<Pod[]> {
-        return this.podsCache.calculate(cluster, async () => {
-            const api = this.build(cluster, (server: string) => new Core_v1Api(server))
-            const result: V1PodList = await api.listNamespacedPod("default").get("body")
-            return result.items.map(item => {
-                const image = this.createImage(item.spec.containers)
-                let restarts
-                if (item.status.containerStatuses != undefined && item.status.containerStatuses.length >= 1) {
-                    restarts = item.status.containerStatuses[0].restartCount
-                }
-                const readyCondition = item.status.conditions.find(c => c.type === 'Ready')
-                const ready = readyCondition !== undefined && readyCondition.status === 'True'
-                return {
-                    name: item.metadata.name,
-                    image, restarts, ready
-                }
-            })
+        const api = this.build(cluster, (server: string) => new Core_v1Api(server))
+        const result: V1PodList = await api.listNamespacedPod("default").get("body")
+        return result.items.map(item => {
+            const image = this.createImage(item.spec.containers)
+            let restarts
+            if (item.status.containerStatuses != undefined && item.status.containerStatuses.length >= 1) {
+                restarts = item.status.containerStatuses[0].restartCount
+            }
+            const readyCondition = item.status.conditions.find(c => c.type === 'Ready')
+            const ready = readyCondition !== undefined && readyCondition.status === 'True'
+            return {
+                name: item.metadata.name,
+                image, restarts, ready
+            }
         })
     }
 
     async deployments(cluster: string): Promise<Deployment[]> {
-        return this.deploymentsCache.calculate(cluster, async () => {
-            const api = this.build(cluster, (server: string) => new Apps_v1beta2Api(server))
-            const result: V1beta2DeploymentList = await api.listNamespacedDeployment("default").get("body")
-            return result.items.map(item => {
-                const image = this.createImage(item.spec.template.spec.containers)
-                return {
-                    name: item.metadata.name,
-                    image
-                }
-            })
+        const api = this.build(cluster, (server: string) => new Apps_v1beta2Api(server))
+        const result: V1beta2DeploymentList = await api.listNamespacedDeployment("default").get("body")
+        return result.items.map(item => {
+            const image = this.createImage(item.spec.template.spec.containers)
+            return {
+                name: item.metadata.name,
+                image
+            }
         })
     }
 
     async scalers(cluster: string): Promise<Scaler[]> {
-        return this.scalersCache.calculate(cluster, async () => {
-            const api = this.build(cluster, (server: string) => new Autoscaling_v1Api(server))
-            const result: V1HorizontalPodAutoscalerList = await api.listNamespacedHorizontalPodAutoscaler("default").get("body")
-            return result.items.map(item => ({
-                name: item.metadata.name,
-                replicas: {
-                    current: item.status.currentReplicas,
-                    minimum: item.spec.minReplicas,
-                    maximum: item.spec.maxReplicas
-                }
-            }))
-        })
+        const api = this.build(cluster, (server: string) => new Autoscaling_v1Api(server))
+        const result: V1HorizontalPodAutoscalerList = await api.listNamespacedHorizontalPodAutoscaler("default").get("body")
+        return result.items.map(item => ({
+            name: item.metadata.name,
+            replicas: {
+                current: item.status.currentReplicas,
+                minimum: item.spec.minReplicas,
+                maximum: item.spec.maxReplicas
+            }
+        }))
     }
 
     async updateDeployment(cluster: string, deployment: Deployment, targetImage: Image): Promise<Deployment> {

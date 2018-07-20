@@ -4,35 +4,62 @@ import axios, { AxiosResponse } from "axios"
 
 describe("DockerImageProvider", () => {
 
-    const provider = new DockerImageRepository("http://repo")
+    let provider
+    beforeEach(() => {
+        provider = new DockerImageRepository("http://repo")
+    })
 
-    it("retrieves images", async () => {
+    describe("images", () => {
         const images = ["image1", "image2"]
-        axios.get = axiosSuccess({ repositories: images })
-        expect(provider.images()).resolves.toEqual(images)
-        expect(axios.get).toHaveBeenCalledWith("http://repo/v2/_catalog")
+
+        beforeEach(() => {
+            axios.get = axiosSuccess({ repositories: images })
+        })
+
+        it("retrieves images", async () => {
+            expect(provider.images()).resolves.toEqual(images)
+            expect(axios.get).toHaveBeenCalledWith("http://repo/v2/_catalog")
+        })
+
+        it("caches images", async () => {
+            await provider.images()
+            await provider.images()
+            expect(axios.get).toHaveBeenCalledTimes(1)
+        })
     })
 
     it("extracts the repository name from the url", () => {
         expect(provider.repository).toEqual("repo")
     })
 
-    it("retrieves image versions", async () => {
-        const layer = { v1Compatibility: "{\"created\":\"2018-05-29T11:53:39.318928398Z\"}" }
-        axios.get = axiosSuccess(
-            { name: "image1", tags: ["tag1", "tag2"] },
-            { name: "image1", tag: "tag1", history: [layer] },
-            { name: "image1", tag: "tag2", history: [layer] }
-        )
-        const versions = await provider.versions("image1")
-        expect(versions).toEqual([
-            { name: "image1", tag: "tag1", url: "repo/image1:tag1", lastUpdated: new Date(Date.parse("2018-05-29T11:53:39.318Z")) },
-            { name: "image1", tag: "tag2", url: "repo/image1:tag2", lastUpdated: new Date(Date.parse("2018-05-29T11:53:39.318Z")) }
-        ])
-        expect(axios.get).toHaveBeenCalledTimes(3)
-        expect(axios.get).toHaveBeenCalledWith("http://repo/v2/image1/tags/list")
-        expect(axios.get).toHaveBeenCalledWith("http://repo/v2/image1/manifests/tag1")
-        expect(axios.get).toHaveBeenCalledWith("http://repo/v2/image1/manifests/tag2")
+    describe("versions", () => {
+
+        beforeEach(() => {
+            const layer = { v1Compatibility: "{\"created\":\"2018-05-29T11:53:39.318928398Z\"}" }
+            axios.get = axiosSuccess(
+                { name: "image1", tags: ["tag1", "tag2"] },
+                { name: "image1", tag: "tag1", history: [layer] },
+                { name: "image1", tag: "tag2", history: [layer] }
+            )
+        })
+
+        it("retrieves image versions", async () => {
+            const versions = await provider.versions("image1")
+            expect(versions).toEqual([
+                { name: "image1", tag: "tag1", url: "repo/image1:tag1", lastUpdated: Date.parse("2018-05-29T11:53:39.318Z") },
+                { name: "image1", tag: "tag2", url: "repo/image1:tag2", lastUpdated: Date.parse("2018-05-29T11:53:39.318Z") }
+            ])
+            expect(axios.get).toHaveBeenCalledTimes(3)
+            expect(axios.get).toHaveBeenCalledWith("http://repo/v2/image1/tags/list")
+            expect(axios.get).toHaveBeenCalledWith("http://repo/v2/image1/manifests/tag1")
+            expect(axios.get).toHaveBeenCalledWith("http://repo/v2/image1/manifests/tag2")
+        })
+
+        it("caches versions", async () => {
+            await provider.versions("image1")
+            await provider.versions("image1")
+            expect(axios.get).toHaveBeenCalledTimes(3)
+        })
     })
 
     it("retrieves last updated of an image version", async () => {
@@ -47,7 +74,7 @@ describe("DockerImageProvider", () => {
                 ]
             })
         const versions = await provider.versions("image1")
-        expect(versions[0].lastUpdated).toEqual(new Date(Date.parse("2018-05-29T11:53:39.318Z")))
+        expect(versions[0].lastUpdated).toEqual(Date.parse("2018-05-29T11:53:39.318Z"))
         expect(axios.get).toHaveBeenCalledTimes(2)
         expect(axios.get).toHaveBeenCalledWith("http://repo/v2/image1/tags/list")
         expect(axios.get).toHaveBeenCalledWith("http://repo/v2/image1/manifests/tag1")
