@@ -15,50 +15,67 @@ export function init(config: string) {
     repo = new KubernetesClusterRepository(config)
 }
 
+export const moduleName = "cluster"
+export const functions = {
+    clusters: "clusters",
+    pods: "pods",
+    updateDeployment: "updateDeployment",
+    deployments: "deployements",
+    scalers: "scalers"
+}
+
+export interface UpdateDeploymentParameters {
+    cluster: string, deployment: Deployment, image: Image
+}
+
 export class Module {
 
     @Component({
+        moduleName,
         layer: Layers.Server
     })
-    async clusters(): Promise<string[]> {
+    async [functions.clusters](): Promise<string[]> {
         return repo!.clusters
     }
 
     @Component({
+        moduleName,
         layer: Layers.Server,
         mapper: (p: RequestInput) => p.params!["cluster"]
     })
-    async pods(cluster: string): Promise<Pod[]> {
+    async [functions.pods](cluster: string): Promise<Pod[]> {
         return repo!.pods(cluster)
     }
 
     @Component({
+        moduleName,
         layer: Layers.Server,
         mapper: (p: RequestInput) => ({
             cluster: p.params!["cluster"],
             deployment: p.data.deployment as Deployment,
-            targetImage: p.data.targetImage as Image
+            image: p.data.image as Image
         }),
         method: Methods.Put
     })
-    async updateDeployment(input: { cluster: string, deployment: Deployment, targetImage: Image }): Promise<Deployment> {
-        console.log(input)
-        return repo!.updateDeployment(input.cluster, input.deployment, input.targetImage)
+    async [functions.updateDeployment](input: UpdateDeploymentParameters): Promise<Deployment> {
+        return repo!.updateDeployment(input.cluster, input.deployment, input.image)
     }
 
     @Component({
+        moduleName,
         layer: Layers.Server,
         mapper: (p: RequestInput) => p.params!["cluster"]
     })
-    async deployments(cluster: string): Promise<Deployment[]> {
+    async [functions.deployments](cluster: string): Promise<Deployment[]> {
         return repo!.deployments(cluster)
     }
 
     @Component({
+        moduleName,
         layer: Layers.Server,
         mapper: (p: RequestInput) => p.params!["cluster"]
     })
-    async scalers(cluster: string): Promise<Scaler[]> {
+    async [functions.scalers](cluster: string): Promise<Scaler[]> {
         return repo!.scalers(cluster)
     }
 }

@@ -1,5 +1,3 @@
-
-
 import { path } from "@/dispatcher"
 import { createServer, Context, Next, MiddleWare, createRouter } from "@/dispatcher/server"
 import { PromiseProvider } from "@/dispatcher/model/PromiseProvider"
@@ -39,12 +37,13 @@ export function register<S, T>(
     procedure: PromiseProvider<S, T>,
     configuration: ComponentConfiguration<S>
 ) {
+    const url = `/${path(configuration.moduleName, procedureName)}`
     if (configuration.method === Methods.Post) {
-        router.post(path(procedureName), handle(procedure, configuration))
+        router.post(url, handle(procedure, configuration))
     } else if (configuration.method === Methods.Put) {
-        router.put(path(procedureName), handle(procedure, configuration))
+        router.put(url, handle(procedure, configuration))
     } else {
-        router.get(path(procedureName), handle(procedure, configuration))
+        router.get(url, handle(procedure, configuration))
     }
 }
 

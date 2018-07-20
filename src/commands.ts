@@ -1,13 +1,20 @@
-import { ClusterRepository } from "@/cluster/ClusterRepository"
 import { Deployment } from "@/cluster/model/Deployment"
 
-import { ImageRepository } from "@/images/ImageRepository"
+import { get } from "@/dispatcher"
 
 import { pad } from "@/pad"
 import chalk from "chalk"
 
 import * as ora from "ora"
 import { Question } from "@/Question"
+
+import * as clusterModule from "@/cluster/ClusterModule"
+import { Pod } from "@/cluster/model/Pod"
+
+import * as imageModule from "@/images/ImageModule"
+import { Image } from "@/images/model/Image"
+import { Scaler } from "@/cluster/model/Scaler";
+import { RequestInput } from "@/dispatcher/model/RequestInput";
 
 export type Command = "pods" | "images" | "deployments" | "deploy" | "scalers" | "help"
 
@@ -19,16 +26,19 @@ async function load<T>(p: Promise<T>): Promise<T> {
     return result
 }
 
-async function foreachCluster(clusterRepository: ClusterRepository, f: (clusterRepository: ClusterRepository, cluster: string) => void) {
-    for (const cluster of clusterRepository.clusters) {
+async function foreachCluster(f: (cluster: string) => void) {
+    const clusters = await get<string[]>(clusterModule.moduleName, clusterModule.functions.clusters)()
+    for (const cluster of clusters) {
         console.log("")
         console.log(chalk.underline.bold(pad(`${cluster}`)))
-        await f(clusterRepository, cluster)
+        await f(cluster)
     }
 }
 
-async function podsCommand(clusterRepository: ClusterRepository, cluster: string) {
-    const pods = await load(clusterRepository.pods(cluster))
+async function podsCommand(cluster: string) {
+    const pods = await get<Pod[]>(clusterModule.moduleName, clusterModule.functions.pods)(
+        RequestInput.of(["cluster", cluster])
+    )
     console.log(chalk.bold(pad("pod name", 5) + pad("tag name", 5) + pad("starts", 1), pad("status", 1)))
     pods.forEach(pod => {
         let restartText
@@ -52,8 +62,8 @@ async function podsCommand(clusterRepository: ClusterRepository, cluster: string
     })
 }
 
-async function imagesCommand(imageRepository: ImageRepository) {
-    const images = await imageRepository.images()
+async function imagesCommand() {
+    const images = await get<string[]>(imageModule.moduleName, imageModule.functions.images)()
     images.forEach(image =>
         console.log(image)
     )
@@ -73,48 +83,63 @@ function logDeployment(deployment: Deployment) {
     console.log(pad(deployment.name, 5) + tagText)
 }
 
-async function deployementsCommand(clusterRepository: ClusterRepository, cluster: string) {
-    const deployments = await load(clusterRepository.deployments(cluster))
+async function deployementsCommand(cluster: string) {
+    const deployments = await load(
+        get<Deployment[]>(clusterModule.moduleName, clusterModule.functions.deployments)(
+            RequestInput.of(["cluster", cluster])
+        )
+    )
     logDeploymentHeader()
     deployments.forEach(deployment => {
         logDeployment(deployment)
     })
 }
 
-async function deployCommand(clusterRepository: ClusterRepository, imageRepository: ImageRepository) {
+async function deployCommand() {
     const question = new Question()
     try {
         console.log("Choose the target cluster")
-        clusterRepository.clusters.forEach((cluster, index) => {
+        const clusters = await get<string[]>(clusterModule.moduleName, clusterModule.functions.clusters)()
+        clusters.forEach((cluster, index) => {
             console.log(chalk.bold.cyan(index.toString()) + ": " + pad(cluster, 5))
         })
-        const targetCluster = await question.choose('> ', clusterRepository.clusters)
+        const cluster = await question.choose('> ', clusters)
 
-        const deployments = await load(clusterRepository.deployments(targetCluster))
+        const deployments = await load(
+            get<Deployment[]>(clusterModule.moduleName, clusterModule.functions.deployments)(
+                RequestInput.of(["cluster", cluster])
+            )
+        )
 
         console.log("Choose the target deployment")
         deployments.forEach((deployment, index) => {
             console.log(chalk.bold.cyan(index.toString()) + ": " + pad(deployment.name, 5))
         })
-        const targetDeployment = await question.choose('> ', deployments)
+        const deployment = await question.choose('> ', deployments)
 
-        const versions = await imageRepository.versions(targetDeployment.image!.name)
-        versions.sort((a, b) => b.lastUpdated.getTime() - a.lastUpdated.getTime())
+        const versions = await load(
+            get<Image[]>(imageModule.moduleName, imageModule.functions.versions)(
+                RequestInput.of(["name", deployment.image!.name])
+            )
+        )
+        versions.sort((a, b) => b.lastUpdated - a.lastUpdated)
         console.log("Choose the target image")
         versions.forEach((image, index) => {
-            if (image.tag === targetDeployment.image!.tag) {
+            if (image.tag === deployment.image!.tag) {
                 console.log(chalk.italic.magenta(index.toString()) + ": " + chalk.italic.magenta(pad(image.tag, 5)))
             } else {
                 console.log(chalk.bold.cyan(index.toString()) + ": " + pad(image.tag, 5))
             }
         })
-        const targetImage = await question.choose('> ', versions)
+        const image = await question.choose('> ', versions)
 
-        console.log("deploy " + chalk.cyan(targetImage.url) + " into " + chalk.cyan(targetCluster + "::" + targetDeployment.name))
+        console.log("deploy " + chalk.cyan(image.url) + " into " + chalk.cyan(cluster + "::" + deployment.name))
         console.log("Answer `yes` to apply.")
         const userAgrees = await question.expect('> ', "yes")
         if (userAgrees) {
-            const updated = await clusterRepository.updateDeployment(targetCluster, targetDeployment, targetImage)
+            const updated = await get<Deployment>(clusterModule.moduleName, clusterModule.functions.updateDeployment)(
+                RequestInput.ofData({ cluster, deployment, image })
+            )
             logDeploymentHeader()
             logDeployment(updated)
         }
@@ -125,8 +150,10 @@ async function deployCommand(clusterRepository: ClusterRepository, imageReposito
     }
 }
 
-async function scalersCommand(clusterRepository: ClusterRepository, cluster: string) {
-    const scalers = await load(clusterRepository.scalers(cluster))
+async function scalersCommand(cluster: string) {
+    const scalers = await load(get<Scaler[]>(clusterModule.moduleName, clusterModule.functions.scalers)(
+        RequestInput.of(["cluster", cluster])
+    ))
     console.log(chalk.bold(pad("scaler name", 5) + pad("replication", 7)))
     console.log(chalk.bold(pad("", 5) + pad("current", 3) + pad("minimum", 2) + pad("maximum", 2)))
     scalers.forEach(scaler => {
@@ -145,7 +172,7 @@ async function scalersCommand(clusterRepository: ClusterRepository, cluster: str
     })
 }
 
-export function printHelp(clusterRepository?: ClusterRepository, imageRepository?: ImageRepository, invalidConfig: boolean = false) {
+export async function printHelp(invalidConfig: boolean = false) {
     const b = chalk.blue;
     const m = chalk.magenta;
     const c = chalk.cyan;
@@ -170,16 +197,11 @@ export function printHelp(clusterRepository?: ClusterRepository, imageRepository
         console.log(b('docker: https://your.docker.registry/'))
         console.log("")
     }
-    if (clusterRepository !== undefined) {
-        console.log('configured clusters: ' + m(clusterRepository.clusters.join(", ")))
-    } else {
-        console.log(c('no clusters configured! (such as your kubernetes)'))
-    }
-    if (imageRepository !== undefined) {
-        console.log('configured image endpoint: ' + m(imageRepository.endpoint))
-    } else {
-        console.log(c('no image registry configured! (such as your docker registry)'))
-    }
+    const clusters = await get<string[]>(clusterModule.moduleName, clusterModule.functions.clusters)()
+    console.log('configured clusters: ' + m(clusters.join(", ")))
+
+    const endpoint = await get<string>(imageModule.moduleName, imageModule.functions.endpoint)()
+    console.log('configured image endpoint: ' + m(endpoint))
 
     console.log('')
     console.log(chalk.bold.underline('Available Commands'))
@@ -194,25 +216,13 @@ export function printHelp(clusterRepository?: ClusterRepository, imageRepository
     console.log(pad("config, c", 2) + chalk.bold(pad("path to the config.yml. Default: `config.yml`", 10)))
 }
 
-const commands: { [k in Command]: (clusterRepository: ClusterRepository, imageRepository: ImageRepository) => Promise<void> } = {
-    "pods": async (clusterRepository: ClusterRepository, { }: ImageRepository) => {
-        foreachCluster(clusterRepository, podsCommand)
-    },
-    "images": async ({ }: ClusterRepository, imageRepository: ImageRepository) => {
-        imagesCommand(imageRepository)
-    },
-    "deployments": async (clusterRepository: ClusterRepository, { }: ImageRepository) => {
-        foreachCluster(clusterRepository, deployementsCommand)
-    },
-    "scalers": async (clusterRepository: ClusterRepository, { }: ImageRepository) => {
-        foreachCluster(clusterRepository, scalersCommand)
-    },
-    "deploy": async (clusterRepository: ClusterRepository, imageRepository: ImageRepository) => {
-        deployCommand(clusterRepository, imageRepository)
-    },
-    "help": async (clusterRepository: ClusterRepository, imageRepository: ImageRepository) => {
-        printHelp(clusterRepository, imageRepository)
-    }
+const commands: { [k in Command]: () => Promise<void> } = {
+    "pods": async () => foreachCluster(podsCommand),
+    "images": async () => imagesCommand(),
+    "deployments": async () => foreachCluster(deployementsCommand),
+    "scalers": async () => foreachCluster(scalersCommand),
+    "deploy": async () => deployCommand(),
+    "help": async () => printHelp()
 }
 
 export { commands }

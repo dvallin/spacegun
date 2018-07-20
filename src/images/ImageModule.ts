@@ -11,20 +11,37 @@ export function init(config: string) {
     repo = new DockerImageRepository(config)
 }
 
+export const moduleName = "images"
+export const functions = {
+    images: "images",
+    versions: "versions",
+    endpoint: "endpoint"
+}
+
 export class Module {
 
     @Component({
+        moduleName,
         layer: Layers.Server
     })
-    async images(): Promise<string[]> {
+    async [functions.endpoint](): Promise<string> {
+        return repo!.endpoint
+    }
+
+    @Component({
+        moduleName,
+        layer: Layers.Server
+    })
+    async [functions.images](): Promise<string[]> {
         return repo!.images()
     }
 
     @Component({
+        moduleName,
         layer: Layers.Server,
         mapper: (p: RequestInput) => p.params!["name"]
     })
-    async versions(name: string): Promise<Image[]> {
+    async [functions.versions](name: string): Promise<Image[]> {
         return repo!.versions(name)
     }
 }

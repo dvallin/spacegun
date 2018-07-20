@@ -22,14 +22,10 @@ export async function put<T>(procedureName: string, input: RequestInput = {}): P
 }
 
 function buildConfig(input: RequestInput): AxiosRequestConfig {
-    if (input.params !== undefined) {
-        return {
-            baseURL: `http://${process.env.SERVER_HOST}:${process.env.SERVER_PORT}`,
-            params: input.params,
-            paramsSerializer: (params: any) => stringify(params)
-        }
-    } else {
-        return {}
+    return {
+        baseURL: `http://${process.env.SERVER_HOST}:${process.env.SERVER_PORT}`,
+        params: input.params,
+        paramsSerializer: (params: any) => stringify(params)
     }
 }
 
