@@ -125,6 +125,7 @@ export class KubernetesClusterRepository implements ClusterRepository {
     private getConfig(cluster: string): KubeConfig {
         const config: KubeConfig | undefined = this.configs.get(cluster)
         if (config === undefined) {
+            console.log()
             throw new Error(`Config for cluster ${cluster} could not be found`)
         }
         return config

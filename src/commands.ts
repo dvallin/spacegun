@@ -8,15 +8,18 @@ import chalk from "chalk"
 import * as ora from "ora"
 import { Question } from "@/Question"
 
+import * as jobsModule from "@/jobs/JobsModule"
+
 import * as clusterModule from "@/cluster/ClusterModule"
 import { Pod } from "@/cluster/model/Pod"
 
 import * as imageModule from "@/images/ImageModule"
 import { Image } from "@/images/model/Image"
-import { Scaler } from "@/cluster/model/Scaler";
-import { RequestInput } from "@/dispatcher/model/RequestInput";
+import { Scaler } from "@/cluster/model/Scaler"
+import { RequestInput } from "@/dispatcher/model/RequestInput"
+import { JobPlan } from "@/jobs/model/JobPlan"
 
-export type Command = "pods" | "images" | "deployments" | "deploy" | "scalers" | "help"
+export type Command = "pods" | "images" | "jobs" | "run" | "deployments" | "deploy" | "scalers" | "help"
 
 async function load<T>(p: Promise<T>): Promise<T> {
     const progress = ora()
@@ -67,6 +70,54 @@ async function imagesCommand() {
     images.forEach(image =>
         console.log(image)
     )
+}
+
+async function jobsCommand() {
+    const jobs = await get<string[]>(jobsModule.moduleName, jobsModule.functions.jobs)()
+    jobs.forEach(job =>
+        console.log(job)
+    )
+}
+
+async function runCommand() {
+    const question = new Question()
+    try {
+        console.log("Choose the target job")
+        const jobs = await get<string[]>(jobsModule.moduleName, jobsModule.functions.jobs)()
+        jobs.forEach((job, index) => {
+            console.log(chalk.bold.cyan(index.toString()) + ": " + pad(job, 5))
+        })
+        const job = await question.choose('> ', jobs)
+
+        const plan = await get<JobPlan>(jobsModule.moduleName, jobsModule.functions.plan)(
+            RequestInput.of(["name", job])
+        )
+
+        console.log(chalk.bold(`planned deployment ${plan.name}`))
+        plan.deployments.forEach(deployment => {
+            let previousTag = "none"
+            if (deployment.deployment.image !== undefined) {
+                previousTag = deployment.deployment.image.tag
+            }
+            console.log(
+                pad(`${deployment.deployment.name}`, 3) +
+                chalk.bold(pad(`${previousTag}`, 5))
+                + chalk.magenta(pad("=>", 1))
+                + chalk.bold(pad(`${deployment.image.tag}`, 5)))
+        })
+
+        console.log("Answer `yes` to apply.")
+        const userAgrees = await question.expect('> ', "yes")
+        if (userAgrees) {
+            await get<void>(jobsModule.moduleName, jobsModule.functions.run)(
+                RequestInput.ofData(plan, ["name", job])
+            )
+        }
+    } catch (error) {
+        console.error(error)
+    } finally {
+        question.close()
+    }
 }
 
 function logDeploymentHeader() {
@@ -219,6 +270,8 @@ export async function printHelp(invalidConfig: boolean = false) {
 const commands: { [k in Command]: () => Promise<void> } = {
     "pods": async () => foreachCluster(podsCommand),
     "images": async () => imagesCommand(),
+    "jobs": async () => jobsCommand(),
+    "run": async () => runCommand(),
     "deployments": async () => foreachCluster(deployementsCommand),
     "scalers": async () => foreachCluster(scalersCommand),
     "deploy": async () => deployCommand(),

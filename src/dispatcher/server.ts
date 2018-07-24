@@ -30,12 +30,7 @@ export interface Router {
 
 export function createServer(): Server {
     let server: Server
-    if (process.env.LAYER === Layers.Client) {
-        server = {
-            use: () => server,
-            listen: () => { }
-        }
-    } else {
+    if (process.env.LAYER === Layers.Server) {
         const koa = require("koa")
         const koaBody = require("koa-body")
         const app = new koa()
@@ -43,6 +38,11 @@ export function createServer(): Server {
             jsonLimit: "1kb"
         }))
         server = app as Server
+    } else {
+        server = {
+            use: () => server,
+            listen: () => { }
+        }
     }
     return server
 }

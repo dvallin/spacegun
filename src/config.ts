@@ -4,7 +4,8 @@ import { homedir } from "os"
 
 export interface Config {
     kube: string,
-    docker: string
+    docker: string,
+    jobPath?: string,
 }
 
 export function load(path: string = "./config.yml"): Config | Error {

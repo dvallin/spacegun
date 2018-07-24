@@ -23,6 +23,8 @@ function parse(): Options {
             case "images":
             case "pods":
             case "deployments":
+            case "jobs":
+            case "run":
             case "deploy":
                 command = internalOptions.command
                 break

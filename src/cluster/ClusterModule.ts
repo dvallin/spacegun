@@ -50,7 +50,7 @@ export class Module {
     @Component({
         moduleName,
         layer: Layers.Server,
-        mapper: (p: RequestInput) => ({
+        mapper: (p: RequestInput): UpdateDeploymentParameters => ({
             cluster: p.params!["cluster"],
             deployment: p.data.deployment as Deployment,
             image: p.data.image as Image
