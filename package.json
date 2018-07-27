@@ -11,7 +11,7 @@
         "build:client": "LAYER=client webpack -p",
         "build:standalone": "LAYER=standalone webpack -p",
         "build:server": "LAYER=server webpack -p",
-        "test": "jest --config=jest.conf.js",
+        "test": "tsc --noEmit && jest --config=jest.conf.js",
         "test:watch": "jest --config=jest.conf.js --watch"
     },
     "bin": {

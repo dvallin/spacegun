@@ -1,1 +1,1 @@
-export type Params = { [key: string]: string }
+export type Params = { [key: string]: any[] }

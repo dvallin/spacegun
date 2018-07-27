@@ -51,12 +51,12 @@ function addPromiseProvider<T>(
         }
     } else {
         procedure = (input: RequestInput = {}) => {
-            throw new Error(`a call to ${procedurePath} with input ${input} in layer ${configuration.layer} from ${process.env.LAYER} is not possible`)
+            throw new Error(`a call to ${procedurePath} with input ${JSON.stringify(input)} in layer ${configuration.layer} from ${process.env.LAYER} is not possible`)
         }
     }
     add(configuration.moduleName, procedureName, procedure)
 }
 
 function isLocalCallable(layer: Layers) {
-    return layer === process.env.LAYER || process.env.LAYER === Layers.Standalone
+    return layer === process.env.LAYER || layer === Layers.Standalone || process.env.LAYER === Layers.Standalone
 }

@@ -4,7 +4,6 @@ import { readFileSync, readdirSync } from "fs"
 import { Job } from "@/jobs/model/Job"
 import { JobSource } from "@/jobs/model/JobSource";
 
-
 export function load(path: string = "./jobs"): Map<string, Job> {
     const files = readdirSync(path)
     const jobs: Map<string, Job> = new Map()

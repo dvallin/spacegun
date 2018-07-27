@@ -1,6 +1,6 @@
 import * as readline from "readline"
 
-export class Question {
+export class IO {
 
     private readline: readline.ReadLine
 
@@ -34,6 +34,10 @@ export class Question {
                 resolve(answer === expected)
             })
         })
+    }
+
+    public out(text: string) {
+        console.log(text)
     }
 
     public close() {

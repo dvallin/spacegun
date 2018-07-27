@@ -20,7 +20,7 @@ export const functions = {
     clusters: "clusters",
     pods: "pods",
     updateDeployment: "updateDeployment",
-    deployments: "deployements",
+    deployments: "deployments",
     scalers: "scalers"
 }
 
@@ -51,7 +51,7 @@ export class Module {
         moduleName,
         layer: Layers.Server,
         mapper: (p: RequestInput): UpdateDeploymentParameters => ({
-            cluster: p.params!["cluster"],
+            cluster: p.params!["cluster"][0],
             deployment: p.data.deployment as Deployment,
             image: p.data.image as Image
         }),

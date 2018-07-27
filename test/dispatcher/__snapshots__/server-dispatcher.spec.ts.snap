@@ -1,0 +1,5 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`server dispatcher throws error on calls to local functions 1`] = `"a call to clientModule/local with input {} in layer client from server is not possible"`;
+
+exports[`server dispatcher throws error on calls to local functions with parameters 1`] = `"a call to clientModule/local with input {\\"params\\":{\\"param\\":[1]}} in layer client from server is not possible"`;

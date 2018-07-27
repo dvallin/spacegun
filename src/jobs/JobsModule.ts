@@ -42,7 +42,7 @@ export class Module {
         moduleName,
         layer: Layers.Server,
         mapper: (p: RequestInput): JobPlan => ({
-            name: p.params!["name"],
+            name: p.params!["name"][0],
             deployments: p.data.deployments as DeploymentPlan[],
         }),
     })

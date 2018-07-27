@@ -32,6 +32,9 @@ server.use(async (context, next) => {
     }
 })
 
+export const serverPort = Number.parseInt(process.env.SERVER_PORT || "3000")
+export const serverHost = process.env.SERVER_HOST || "localhost"
+
 export function register<S, T>(
     procedureName: string,
     procedure: PromiseProvider<S, T>,
@@ -54,5 +57,5 @@ export function build() {
 }
 
 export function listen() {
-    server.listen(Number.parseInt(process.env.SERVER_PORT || "3000"))
+    server.listen(serverPort)
 }

@@ -6,7 +6,7 @@ import { pad } from "@/pad"
 import chalk from "chalk"
 
 import * as ora from "ora"
-import { Question } from "@/Question"
+import { IO } from "@/IO"
 
 import * as jobsModule from "@/jobs/JobsModule"
 
@@ -29,20 +29,20 @@ async function load<T>(p: Promise<T>): Promise<T> {
     return result
 }
 
-async function foreachCluster(f: (cluster: string) => void) {
+async function foreachCluster(io: IO, f: (io: IO, cluster: string) => void) {
     const clusters = await get<string[]>(clusterModule.moduleName, clusterModule.functions.clusters)()
     for (const cluster of clusters) {
-        console.log("")
-        console.log(chalk.underline.bold(pad(`${cluster}`)))
-        await f(cluster)
+        io.out("")
+        io.out(chalk.underline.bold(pad(`${cluster}`)))
+        await f(io, cluster)
     }
 }
 
-async function podsCommand(cluster: string) {
+async function podsCommand(io: IO, cluster: string) {
     const pods = await get<Pod[]>(clusterModule.moduleName, clusterModule.functions.pods)(
         RequestInput.of(["cluster", cluster])
     )
-    console.log(chalk.bold(pad("pod name", 5) + pad("tag name", 5) + pad("starts", 1), pad("status", 1)))
+    io.out(chalk.bold(pad("pod name", 5) + pad("tag name", 5) + pad("starts", 1), pad("status", 1)))
     pods.forEach(pod => {
         let restartText
         if (pod.restarts === undefined) {
@@ -61,152 +61,137 @@ async function podsCommand(cluster: string) {
         } else {
             tagText = pad(pod.image.tag, 5)
         }
-        console.log(pad(pod.name, 5) + tagText + restartText + statusText)
+        io.out(pad(pod.name, 5) + tagText + restartText + statusText)
     })
 }
 
-async function imagesCommand() {
+async function imagesCommand(io: IO) {
     const images = await get<string[]>(imageModule.moduleName, imageModule.functions.images)()
     images.forEach(image =>
-        console.log(image)
+        io.out(image)
     )
 }
 
-async function jobsCommand() {
+async function jobsCommand(io: IO) {
     const jobs = await get<string[]>(jobsModule.moduleName, jobsModule.functions.jobs)()
     jobs.forEach(job =>
-        console.log(job)
+        io.out(job)
     )
 }
 
-async function runCommand() {
-    const question = new Question()
-    try {
-        console.log("Choose the target job")
-        const jobs = await get<string[]>(jobsModule.moduleName, jobsModule.functions.jobs)()
-        jobs.forEach((job, index) => {
-            console.log(chalk.bold.cyan(index.toString()) + ": " + pad(job, 5))
-        })
-        const job = await question.choose('> ', jobs)
+async function runCommand(io: IO) {
+    io.out("Choose the target job")
+    const jobs = await get<string[]>(jobsModule.moduleName, jobsModule.functions.jobs)()
+    jobs.forEach((job, index) => {
+        io.out(chalk.bold.cyan(index.toString()) + ": " + pad(job, 5))
+    })
+    const job = await io.choose('> ', jobs)
+    const plan = await get<JobPlan>(jobsModule.moduleName, jobsModule.functions.plan)(
+        RequestInput.of(["name", job])
+    )
 
-        const plan = await get<JobPlan>(jobsModule.moduleName, jobsModule.functions.plan)(
-            RequestInput.of(["name", job])
-        )
-
-        console.log(chalk.bold(`planned deployment ${plan.name}`))
-        plan.deployments.forEach(deployment => {
-            let previousTag = "none"
-            if (deployment.deployment.image !== undefined) {
-                previousTag = deployment.deployment.image.tag
-            }
-            console.log(
-                pad(`${deployment.deployment.name}`, 3) +
-                chalk.bold(pad(`${previousTag}`, 5))
-                + chalk.magenta(pad("=>", 1))
-                + chalk.bold(pad(`${deployment.image.tag}`, 5)))
-        })
-
-        console.log("Answer `yes` to apply.")
-        const userAgrees = await question.expect('> ', "yes")
-        if (userAgrees) {
-            await get<void>(jobsModule.moduleName, jobsModule.functions.run)(
-                RequestInput.ofData(plan, ["name", job])
-            )
+    io.out(chalk.bold(`planned deployment ${plan.name}`))
+    plan.deployments.forEach(deploymentPlan => {
+        let previousTag = "none"
+        if (deploymentPlan.deployment.image !== undefined) {
+            previousTag = deploymentPlan.deployment.image.tag
         }
-    } catch (error) {
-        console.error(error)
-    } finally {
-        question.close()
+        io.out(
+            pad(`${deploymentPlan.deployment.name}`, 3) +
+            chalk.bold(pad(`${previousTag}`, 5))
+            + chalk.magenta(pad("=>", 1))
+            + chalk.bold(pad(`${deploymentPlan.image.tag}`, 5)))
+    })
+
+    io.out("Answer `yes` to apply.")
+    const userAgrees = await io.expect('> ', "yes")
+    if (userAgrees) {
+        await get<void>(jobsModule.moduleName, jobsModule.functions.run)(
+            RequestInput.ofData(plan, ["name", job])
+        )
     }
 }
 
-function logDeploymentHeader() {
-    console.log(chalk.bold(pad("deployment name", 5) + pad("tag name", 7)))
+function logDeploymentHeader(io: IO) {
+    io.out(chalk.bold(pad("deployment name", 5) + pad("tag name", 7)))
 }
 
-function logDeployment(deployment: Deployment) {
+function logDeployment(io: IO, deployment: Deployment) {
     let tagText
     if (deployment.image === undefined) {
         tagText = chalk.bold.magenta(pad("missing", 7))
     } else {
         tagText = pad(deployment.image.tag, 7)
     }
-    console.log(pad(deployment.name, 5) + tagText)
+    io.out(pad(deployment.name, 5) + tagText)
 }
 
-async function deployementsCommand(cluster: string) {
+async function deployementsCommand(io: IO, cluster: string) {
     const deployments = await load(
         get<Deployment[]>(clusterModule.moduleName, clusterModule.functions.deployments)(
             RequestInput.of(["cluster", cluster])
         )
     )
-    logDeploymentHeader()
+    logDeploymentHeader(io)
     deployments.forEach(deployment => {
-        logDeployment(deployment)
+        logDeployment(io, deployment)
     })
 }
 
-async function deployCommand() {
-    const question = new Question()
-    try {
-        console.log("Choose the target cluster")
-        const clusters = await get<string[]>(clusterModule.moduleName, clusterModule.functions.clusters)()
-        clusters.forEach((cluster, index) => {
-            console.log(chalk.bold.cyan(index.toString()) + ": " + pad(cluster, 5))
-        })
-        const cluster = await question.choose('> ', clusters)
+async function deployCommand(io: IO) {
+    io.out("Choose the target cluster")
+    const clusters = await get<string[]>(clusterModule.moduleName, clusterModule.functions.clusters)()
+    clusters.forEach((cluster, index) => {
+        io.out(chalk.bold.cyan(index.toString()) + ": " + pad(cluster, 5))
+    })
+    const cluster = await io.choose('> ', clusters)
 
-        const deployments = await load(
-            get<Deployment[]>(clusterModule.moduleName, clusterModule.functions.deployments)(
-                RequestInput.of(["cluster", cluster])
-            )
+    const deployments = await load(
+        get<Deployment[]>(clusterModule.moduleName, clusterModule.functions.deployments)(
+            RequestInput.of(["cluster", cluster])
         )
+    )
 
-        console.log("Choose the target deployment")
-        deployments.forEach((deployment, index) => {
-            console.log(chalk.bold.cyan(index.toString()) + ": " + pad(deployment.name, 5))
-        })
-        const deployment = await question.choose('> ', deployments)
+    io.out("Choose the target deployment")
+    deployments.forEach((deployment, index) => {
+        io.out(chalk.bold.cyan(index.toString()) + ": " + pad(deployment.name, 5))
+    })
+    const deployment = await io.choose('> ', deployments)
 
-        const versions = await load(
-            get<Image[]>(imageModule.moduleName, imageModule.functions.versions)(
-                RequestInput.of(["name", deployment.image!.name])
-            )
+    const versions = await load(
+        get<Image[]>(imageModule.moduleName, imageModule.functions.versions)(
+            RequestInput.of(["name", deployment.image!.name])
         )
-        versions.sort((a, b) => b.lastUpdated - a.lastUpdated)
-        console.log("Choose the target image")
-        versions.forEach((image, index) => {
-            if (image.tag === deployment.image!.tag) {
-                console.log(chalk.italic.magenta(index.toString()) + ": " + chalk.italic.magenta(pad(image.tag, 5)))
-            } else {
-                console.log(chalk.bold.cyan(index.toString()) + ": " + pad(image.tag, 5))
-            }
-        })
-        const image = await question.choose('> ', versions)
-
-        console.log("deploy " + chalk.cyan(image.url) + " into " + chalk.cyan(cluster + "::" + deployment.name))
-        console.log("Answer `yes` to apply.")
-        const userAgrees = await question.expect('> ', "yes")
-        if (userAgrees) {
-            const updated = await get<Deployment>(clusterModule.moduleName, clusterModule.functions.updateDeployment)(
-                RequestInput.ofData({ cluster, deployment, image })
-            )
-            logDeploymentHeader()
-            logDeployment(updated)
+    )
+    versions.sort((a, b) => b.lastUpdated - a.lastUpdated)
+    io.out("Choose the target image")
+    versions.forEach((image, index) => {
+        if (image.tag === deployment.image!.tag) {
+            io.out(chalk.italic.magenta(index.toString()) + ": " + chalk.italic.magenta(pad(image.tag, 5)))
+        } else {
+            io.out(chalk.bold.cyan(index.toString()) + ": " + pad(image.tag, 5))
         }
-    } catch (error) {
-        console.error(error)
-    } finally {
-        question.close()
+    })
+    const image = await io.choose('> ', versions)
+
+    io.out("deploy " + chalk.cyan(image.url) + " into " + chalk.cyan(cluster + "::" + deployment.name))
+    io.out("Answer `yes` to apply.")
+    const userAgrees = await io.expect('> ', "yes")
+    if (userAgrees) {
+        const updated = await get<Deployment>(clusterModule.moduleName, clusterModule.functions.updateDeployment)(
+            RequestInput.ofData({ cluster, deployment, image })
+        )
+        logDeploymentHeader(io)
+        logDeployment(io, updated)
     }
 }
 
-async function scalersCommand(cluster: string) {
+async function scalersCommand(io: IO, cluster: string) {
     const scalers = await load(get<Scaler[]>(clusterModule.moduleName, clusterModule.functions.scalers)(
         RequestInput.of(["cluster", cluster])
     ))
-    console.log(chalk.bold(pad("scaler name", 5) + pad("replication", 7)))
-    console.log(chalk.bold(pad("", 5) + pad("current", 3) + pad("minimum", 2) + pad("maximum", 2)))
+    io.out(chalk.bold(pad("scaler name", 5) + pad("replication", 7)))
+    io.out(chalk.bold(pad("", 5) + pad("current", 3) + pad("minimum", 2) + pad("maximum", 2)))
     scalers.forEach(scaler => {
         let line = pad(scaler.name, 5)
         let currentText = scaler.replicas.current.toString()
@@ -219,11 +204,11 @@ async function scalersCommand(cluster: string) {
         }
         line += currentText
         line += pad(scaler.replicas.minimum.toString(), 2) + pad(scaler.replicas.maximum.toString(), 2)
-        console.log(line)
+        io.out(line)
     })
 }
 
-export async function printHelp(invalidConfig: boolean = false) {
+export async function printHelp(io: IO, invalidConfig: boolean = false) {
     const b = chalk.blue;
     const m = chalk.magenta;
     const c = chalk.cyan;
@@ -240,42 +225,42 @@ export async function printHelp(invalidConfig: boolean = false) {
    ${b('/__\\')}${m('/__\\')}     ${CLI_USAGE}
   ${b('/\\')}  ${m('/')}    ${m('\\')}
 `
-    console.log(HELP_HEADER)
+    io.out(HELP_HEADER)
 
     if (invalidConfig) {
-        console.log(c('no configuration file found!'))
-        console.log(c('A config.yml containing the following line might be sufficient'))
-        console.log(b('docker: https://your.docker.registry/'))
-        console.log("")
+        io.out(c('no configuration file found!'))
+        io.out(c('A config.yml containing the following line might be sufficient'))
+        io.out(b('docker: https://your.docker.registry/'))
+        io.out("")
     }
     const clusters = await get<string[]>(clusterModule.moduleName, clusterModule.functions.clusters)()
-    console.log('configured clusters: ' + m(clusters.join(", ")))
+    io.out('configured clusters: ' + m(clusters.join(", ")))
 
     const endpoint = await get<string>(imageModule.moduleName, imageModule.functions.endpoint)()
-    console.log('configured image endpoint: ' + m(endpoint))
+    io.out('configured image endpoint: ' + m(endpoint))
 
-    console.log('')
-    console.log(chalk.bold.underline('Available Commands'))
-    console.log(pad("pods", 2) + chalk.bold(pad("a summary of all pods of all known clusters", 10)))
-    console.log(pad("images", 2) + chalk.bold(pad("a list of all images in the docker registry", 10)))
-    console.log(pad("deployments", 2) + chalk.bold(pad("a summary of all deployements of all known clusters", 10)))
-    console.log(pad("deploy", 2) + chalk.bold(pad("opens an interactive dialog to deploy an image", 10)))
-    console.log(pad("scalers", 2) + chalk.bold(pad("a summary of all scalers of all known clusters", 10)))
-    console.log(pad("help", 2) + chalk.bold(pad("renders this summary", 10)))
-    console.log('')
-    console.log(chalk.bold.underline('Available Options'))
-    console.log(pad("config, c", 2) + chalk.bold(pad("path to the config.yml. Default: `config.yml`", 10)))
+    io.out('')
+    io.out(chalk.bold.underline('Available Commands'))
+    io.out(pad("pods", 2) + chalk.bold(pad("a summary of all pods of all known clusters", 10)))
+    io.out(pad("images", 2) + chalk.bold(pad("a list of all images in the docker registry", 10)))
+    io.out(pad("deployments", 2) + chalk.bold(pad("a summary of all deployements of all known clusters", 10)))
+    io.out(pad("deploy", 2) + chalk.bold(pad("opens an interactive dialog to deploy an image", 10)))
+    io.out(pad("scalers", 2) + chalk.bold(pad("a summary of all scalers of all known clusters", 10)))
+    io.out(pad("help", 2) + chalk.bold(pad("renders this summary", 10)))
+    io.out('')
+    io.out(chalk.bold.underline('Available Options'))
+    io.out(pad("config, c", 2) + chalk.bold(pad("path to the config.yml. Default: `config.yml`", 10)))
 }
 
-const commands: { [k in Command]: () => Promise<void> } = {
-    "pods": async () => foreachCluster(podsCommand),
-    "images": async () => imagesCommand(),
-    "jobs": async () => jobsCommand(),
-    "run": async () => runCommand(),
-    "deployments": async () => foreachCluster(deployementsCommand),
-    "scalers": async () => foreachCluster(scalersCommand),
-    "deploy": async () => deployCommand(),
-    "help": async () => printHelp()
+const commands: { [k in Command]: (io: IO) => Promise<void> } = {
+    "pods": async (io: IO) => foreachCluster(io, podsCommand),
+    "images": async (io: IO) => imagesCommand(io),
+    "jobs": async (io: IO) => jobsCommand(io),
+    "run": async (io: IO) => runCommand(io),
+    "deployments": async (io: IO) => foreachCluster(io, deployementsCommand),
+    "scalers": async (io: IO) => foreachCluster(io, scalersCommand),
+    "deploy": async (io: IO) => deployCommand(io),
+    "help": async (io: IO) => printHelp(io)
 }
 
 export { commands }
