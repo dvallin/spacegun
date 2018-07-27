@@ -1,15 +1,14 @@
 import { Component } from "@/dispatcher/Component"
 import { Layers } from "@/dispatcher/model/Layers"
 
-import { load } from "@/jobs"
 import { JobsRepository } from "@/jobs/JobsRepository"
 import { JobPlan } from "@/jobs/model/JobPlan"
 import { RequestInput } from "@/dispatcher/model/RequestInput"
 import { DeploymentPlan } from "@/jobs/model/DeploymentPlan"
 
 let repo: JobsRepository | undefined = undefined
-export function init(path: string = "./jobs") {
-    repo = new JobsRepository(load(path))
+export function init(jobs: JobsRepository) {
+    repo = jobs
 }
 
 export const moduleName = "jobs"
@@ -32,7 +31,7 @@ export class Module {
     @Component({
         moduleName,
         layer: Layers.Server,
-        mapper: (p: RequestInput) => p.params!["name"]
+        mapper: (p: RequestInput) => p.params!["name"][0]
     })
     async [functions.plan](name: string): Promise<JobPlan> {
         return repo!.plan(name)

@@ -39,12 +39,12 @@ dispatcher.get = (moduleName: string, procedureName: string) => {
     }
 }
 
-import { JobsRepository } from "../../src/jobs/JobsRepository"
+import { JobsRepositoryImpl } from "../../src/jobs/JobsRepositoryImpl"
 import { RequestInput } from "../../src/dispatcher/model/RequestInput"
 
-describe("JobsRepository", () => {
+describe("JobsRepositoryImpl", () => {
 
-    let repo: JobsRepository
+    let repo: JobsRepositoryImpl
 
     beforeEach(() => {
         const jobs = new Map()
@@ -55,11 +55,15 @@ describe("JobsRepository", () => {
             get: jest.fn()
         }))
 
-        repo = new JobsRepository(jobs)
+        repo = new JobsRepositoryImpl(jobs)
     })
 
     it("registers the job names", () => {
         expect(repo.list).toEqual(["1->2", "i->1"])
+    })
+
+    it("registers cron jobs", () => {
+        expect(repo.cronJobs).toHaveLength(2)
     })
 
     it("plans a cluster job", async () => {

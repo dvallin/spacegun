@@ -1,0 +1,11 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`validateJob cluster source needs a cluster expression 1`] = `"the source of job jobName must have a cluster expression"`;
+
+exports[`validateJob cluster source needs a cluster expression not equal to its cluster 1`] = `"the source of job jobName cannot be its target"`;
+
+exports[`validateJob ensures cluster exists 1`] = `"job jobName must contain a cluster"`;
+
+exports[`validateJob ensures source exists 1`] = `"job jobName must contain a source"`;
+
+exports[`validateJob ensures source type is correct 1`] = `"undefined of job jobName is not a valid source type"`;

@@ -1,4 +1,3 @@
-import { KubernetesClusterRepository } from "@/cluster/kubernetes/KubernetesClusterRepository"
 import { ClusterRepository } from "@/cluster/ClusterRepository"
 import { Pod } from "@/cluster/model/Pod"
 import { Deployment } from "@/cluster/model/Deployment"
@@ -11,8 +10,8 @@ import { Layers } from "@/dispatcher/model/Layers"
 import { Methods } from "@/dispatcher/model/Methods"
 
 let repo: ClusterRepository | undefined = undefined
-export function init(config: string) {
-    repo = new KubernetesClusterRepository(config)
+export function init(clusterRepository: ClusterRepository) {
+    repo = clusterRepository
 }
 
 export const moduleName = "cluster"
@@ -41,7 +40,7 @@ export class Module {
     @Component({
         moduleName,
         layer: Layers.Server,
-        mapper: (p: RequestInput) => p.params!["cluster"]
+        mapper: (p: RequestInput) => p.params!["cluster"][0]
     })
     async [functions.pods](cluster: string): Promise<Pod[]> {
         return repo!.pods(cluster)
@@ -64,7 +63,7 @@ export class Module {
     @Component({
         moduleName,
         layer: Layers.Server,
-        mapper: (p: RequestInput) => p.params!["cluster"]
+        mapper: (p: RequestInput) => p.params!["cluster"][0]
     })
     async [functions.deployments](cluster: string): Promise<Deployment[]> {
         return repo!.deployments(cluster)
@@ -73,7 +72,7 @@ export class Module {
     @Component({
         moduleName,
         layer: Layers.Server,
-        mapper: (p: RequestInput) => p.params!["cluster"]
+        mapper: (p: RequestInput) => p.params!["cluster"][0]
     })
     async [functions.scalers](cluster: string): Promise<Scaler[]> {
         return repo!.scalers(cluster)

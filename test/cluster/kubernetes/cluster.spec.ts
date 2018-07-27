@@ -7,7 +7,7 @@ const image1 = { name: "image1", tag: "tag", url: "repo/image1:tag" }
 const image2 = { name: "image2", tag: "tag", url: "repo/image2:tag" }
 
 describe("KubernetesClusterProvider", () => {
-    const cluster = new KubernetesClusterRepository('./test/config/kube')
+    const cluster = KubernetesClusterRepository.fromConfig('./test/config/kube')
 
     describe("clusters", () => {
         it("returns the names of the clusters", () => {

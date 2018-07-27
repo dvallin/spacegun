@@ -28,8 +28,12 @@ export class DockerImageRepository implements ImageRepository {
     private versionsCache: Cache<string, Image[]> = new Cache(60)
     private lastUpdatedCache: Cache<string, number> = new Cache()
 
+    public static fromConfig(endpoint: string): DockerImageRepository {
+        return new DockerImageRepository(endpoint)
+    }
+
     public constructor(
-        public endpoint: string
+        public readonly endpoint: string
     ) { }
 
     public get repository(): string {

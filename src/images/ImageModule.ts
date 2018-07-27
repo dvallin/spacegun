@@ -2,13 +2,12 @@ import { RequestInput } from "@/dispatcher/model/RequestInput"
 import { Component } from "@/dispatcher/Component"
 import { Layers } from "@/dispatcher/model/Layers"
 
-import { DockerImageRepository } from "@/images/docker/DockerImageRepository"
 import { ImageRepository } from "@/images/ImageRepository"
 import { Image } from "@/cluster/model/Image"
 
 let repo: ImageRepository | undefined = undefined
-export function init(config: string) {
-    repo = new DockerImageRepository(config)
+export function init(repository: ImageRepository) {
+    repo = repository
 }
 
 export const moduleName = "images"
@@ -39,7 +38,7 @@ export class Module {
     @Component({
         moduleName,
         layer: Layers.Server,
-        mapper: (p: RequestInput) => p.params!["name"]
+        mapper: (p: RequestInput) => p.params!["name"][0]
     })
     async [functions.versions](name: string): Promise<Image[]> {
         return repo!.versions(name)

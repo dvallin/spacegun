@@ -27,19 +27,23 @@ class UpdateDeploymentApi extends Apps_v1beta2Api {
 
 export class KubernetesClusterRepository implements ClusterRepository {
 
-    private configs: Map<string, KubeConfig>
 
-    public constructor(configFile: string) {
+
+    public static fromConfig(configFile: string): KubernetesClusterRepository {
         const config = new KubeConfig()
         config.loadFromFile(configFile)
-
-        this.configs = new Map()
+        const configs = new Map()
         for (const contexts of config.getContexts()) {
             const clusterConfig = cloneDeep(config)
             clusterConfig.setCurrentContext(contexts.name)
-            this.configs.set(contexts.name, clusterConfig)
+            configs.set(contexts.name, clusterConfig)
         }
+        return new KubernetesClusterRepository(configs)
     }
+
+    public constructor(
+        public readonly configs: Map<string, KubeConfig>
+    ) { }
 
     get clusters(): string[] {
         return Array.from(this.configs.keys())
@@ -125,7 +129,6 @@ export class KubernetesClusterRepository implements ClusterRepository {
     private getConfig(cluster: string): KubeConfig {
         const config: KubeConfig | undefined = this.configs.get(cluster)
         if (config === undefined) {
-            console.log()
             throw new Error(`Config for cluster ${cluster} could not be found`)
         }
         return config

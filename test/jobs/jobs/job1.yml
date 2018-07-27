@@ -1,0 +1,5 @@
+cluster: someCluster
+cron: "* * * * 1"
+from: 
+  type: image
+  expression: "^(?!.*latest).*$"
