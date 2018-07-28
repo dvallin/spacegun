@@ -1,10 +1,13 @@
 import { JobPlan } from "@/jobs/model/JobPlan"
+import { Cron } from "@/jobs/model/Cron"
+import { Job } from "@/jobs/model/Job"
 
 export interface JobsRepository {
 
-    list: string[]
+    list: Job[]
+    crons: Cron[]
 
-    planAndApply(name: string): Promise<void>
     plan(name: string): Promise<JobPlan>
+    schedules(name: string): Promise<Cron>
     apply(plan: JobPlan): Promise<void>
 }

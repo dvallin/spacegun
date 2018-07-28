@@ -1,4 +1,5 @@
 import { CronJob } from "cron"
+import * as moment from "moment"
 
 import { load } from "@/jobs"
 import { Job } from "@/jobs/model/Job"
@@ -13,11 +14,12 @@ import { Deployment } from "@/cluster/model/Deployment"
 
 import * as imageModule from "@/images/ImageModule"
 import { Image } from "@/images/model/Image"
-import { JobsRepository } from "@/jobs/JobsRepository";
+import { JobsRepository } from "@/jobs/JobsRepository"
+import { Cron } from "@/jobs/model/Cron"
 
 export class JobsRepositoryImpl implements JobsRepository {
 
-    public readonly cronJobs: CronJob[] = []
+    public readonly cronJobs: Map<string, CronJob> = new Map()
 
     public static fromConfig(jobsPath: string): JobsRepositoryImpl {
         const jobs = load(jobsPath)
@@ -30,16 +32,48 @@ export class JobsRepositoryImpl implements JobsRepository {
         Array.from(this.jobs.keys()).forEach(name => {
             const job = this.jobs.get(name)
             if (job !== undefined && job.cron !== undefined) {
-                this.cronJobs.push(new CronJob(job.cron, () => this.planAndApply(name)))
+                const cron = new CronJob(
+                    job.cron,
+                    async () => await this.planAndApply(name),
+                    () => { },
+                    false,
+                    "UTC"
+                )
+                this.cronJobs.set(name, cron)
             }
         })
     }
 
-    get list(): string[] {
-        return Array.from(this.jobs.keys())
+    public get list(): Job[] {
+        return Array.from(this.jobs.values())
+    }
+
+    public async schedules(name: string): Promise<Cron> {
+        const cron = this.crons.find(c => c.name === name)
+        if (cron !== undefined) {
+            return Promise.resolve(cron)
+        }
+        return Promise.reject(`job ${name} not found.`)
+    }
+
+    public get crons(): Cron[] {
+        const crons: Cron[] = []
+        for (const [name, cron] of this.cronJobs.entries()) {
+            const dates = cron.nextDates(5) as any
+            const lastDate = cron.lastDate() as any
+            const lastRun = lastDate ? moment(lastDate).valueOf() : undefined
+            const nextRuns: number[] = dates.map((d: moment.Moment) => moment(d).valueOf())
+            crons.push({
+                name,
+                lastRun,
+                nextRuns
+            })
+        }
+        return crons
     }
 
     async planAndApply(name: string): Promise<void> {
+        console.log("lsakdfjlaksdf")
         const plan = await this.plan(name)
         if (plan.deployments.length > 0) {
             await this.apply(plan)

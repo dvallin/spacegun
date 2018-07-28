@@ -39,7 +39,7 @@ describe("commands", () => {
 
         it("calls the jobs backend and prints jobs", async () => {
             // given
-            const job = { jobName: "someJob" }
+            const job = { name: "someJob", from: {}, cluster: "cluster" }
             dispatchFn.mockReturnValue([job])
 
             // when
@@ -48,9 +48,6 @@ describe("commands", () => {
             // then
             expect(dispatched).toHaveBeenCalledTimes(1)
             expect(dispatched).toBeCalledWith("jobs", "jobs")
-
-            expect(out).toHaveBeenCalledTimes(1)
-            expect(out).toHaveBeenCalledWith(job)
         })
     })
 
@@ -135,7 +132,7 @@ describe("commands", () => {
         it("runs a job if user agrees", async () => {
             // given
             dispatchFn
-                .mockReturnValueOnce(["job1", "job2"])
+                .mockReturnValueOnce([{ name: "job1" }, { name: "job2" }])
                 .mockReturnValueOnce({
                     name: "plan", deployments: [
                         { name: "deployment1", deployment: {}, image: {} }
@@ -158,7 +155,7 @@ describe("commands", () => {
         it("does not run a job if user disagrees", async () => {
             // given
             dispatchFn
-                .mockReturnValueOnce(["job1", "job2"])
+                .mockReturnValueOnce([{ name: "job1" }, { name: "job2" }])
                 .mockReturnValueOnce({
                     name: "plan", deployments: [
                         { name: "deployment1", deployment: {}, image: {} }

@@ -7,6 +7,7 @@ import chalk from "chalk"
 
 import * as ora from "ora"
 import { IO } from "@/IO"
+import * as moment from "moment"
 
 import * as jobsModule from "@/jobs/JobsModule"
 
@@ -18,8 +19,10 @@ import { Image } from "@/images/model/Image"
 import { Scaler } from "@/cluster/model/Scaler"
 import { RequestInput } from "@/dispatcher/model/RequestInput"
 import { JobPlan } from "@/jobs/model/JobPlan"
+import { Job } from "@/jobs/model/Job"
+import { Cron } from "@/jobs/model/Cron"
 
-export type Command = "pods" | "images" | "jobs" | "run" | "deployments" | "deploy" | "scalers" | "help"
+export type Command = "pods" | "images" | "jobs" | "jobSchedules" | "run" | "deployments" | "deploy" | "scalers" | "help"
 
 async function load<T>(p: Promise<T>): Promise<T> {
     const progress = ora()
@@ -72,22 +75,60 @@ async function imagesCommand(io: IO) {
     )
 }
 
+function logJobHeader(io: IO) {
+    io.out(chalk.bold(pad("name", 2) + pad("from", 4) + pad("to", 2)))
+}
+
 async function jobsCommand(io: IO) {
-    const jobs = await get<string[]>(jobsModule.moduleName, jobsModule.functions.jobs)()
-    jobs.forEach(job =>
-        io.out(job)
+    const jobs = await get<Job[]>(jobsModule.moduleName, jobsModule.functions.jobs)()
+    logJobHeader(io)
+    jobs.forEach(job => {
+        io.out(
+            chalk.bold(pad(job.name, 2))
+            + pad(`${job.from.type} (${job.from.expression})`, 4)
+            + pad(job.cluster, 2)
+        )
+    })
+}
+
+async function jobSchedulesCommand(io: IO) {
+    io.out("Choose the target job")
+    const jobs = await get<Job[]>(jobsModule.moduleName, jobsModule.functions.jobs)()
+    jobs.forEach((job, index) => {
+        io.out(chalk.bold.cyan(index.toString()) + ": " + pad(job.name, 5))
+    })
+    const job = await io.choose('> ', jobs)
+    const schedules = await get<Cron>(jobsModule.moduleName, jobsModule.functions.schedules)(
+        RequestInput.of(["name", job.name])
     )
+    logJobHeader(io)
+    io.out(
+        chalk.bold(pad(job.name, 2))
+        + pad(`${job.from.type} (${job.from.expression})`, 4)
+        + pad(job.cluster, 2)
+    )
+    io.out("")
+    if (schedules.lastRun !== undefined) {
+        io.out(chalk.magenta("last run") + moment(schedules.lastRun).toISOString())
+    } else {
+        io.out(chalk.magenta.bold("not run yet!"))
+    }
+    io.out("")
+    io.out(chalk.underline.bold(pad("scheduled runs", 8)))
+    schedules.nextRuns.forEach(run => {
+        io.out(moment(run).toISOString())
+    })
 }
 
 async function runCommand(io: IO) {
     io.out("Choose the target job")
-    const jobs = await get<string[]>(jobsModule.moduleName, jobsModule.functions.jobs)()
+    const jobs = await get<Job[]>(jobsModule.moduleName, jobsModule.functions.jobs)()
     jobs.forEach((job, index) => {
-        io.out(chalk.bold.cyan(index.toString()) + ": " + pad(job, 5))
+        io.out(chalk.bold.cyan(index.toString()) + ": " + pad(job.name, 5))
     })
     const job = await io.choose('> ', jobs)
     const plan = await get<JobPlan>(jobsModule.moduleName, jobsModule.functions.plan)(
-        RequestInput.of(["name", job])
+        RequestInput.of(["name", job.name])
     )
 
     io.out(chalk.bold(`planned deployment ${plan.name}`))
@@ -256,6 +297,7 @@ const commands: { [k in Command]: (io: IO) => Promise<void> } = {
     "pods": async (io: IO) => foreachCluster(io, podsCommand),
     "images": async (io: IO) => imagesCommand(io),
     "jobs": async (io: IO) => jobsCommand(io),
+    "jobSchedules": async (io: IO) => jobSchedulesCommand(io),
     "run": async (io: IO) => runCommand(io),
     "deployments": async (io: IO) => foreachCluster(io, deployementsCommand),
     "scalers": async (io: IO) => foreachCluster(io, scalersCommand),

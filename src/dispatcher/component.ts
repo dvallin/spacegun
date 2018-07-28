@@ -37,17 +37,11 @@ function addPromiseProvider<T>(
         }
     } else if (process.env.LAYER === Layers.Client) {
         if (configuration.method === Methods.Post) {
-            procedure = (input: RequestInput = {}) => {
-                return post(procedurePath, input)
-            }
+            procedure = (input: RequestInput = {}) => post(procedurePath, input)
         } else if (configuration.method === Methods.Put) {
-            procedure = (input: RequestInput = {}) => {
-                return put(procedurePath, input)
-            }
+            procedure = (input: RequestInput = {}) => put(procedurePath, input)
         } else {
-            procedure = (input: RequestInput = {}) => {
-                return get(procedurePath, input)
-            }
+            procedure = (input: RequestInput = {}) => get(procedurePath, input)
         }
     } else {
         procedure = (input: RequestInput = {}) => {

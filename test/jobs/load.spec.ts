@@ -9,7 +9,7 @@ describe("job loading", () => {
         expect(jobs.get("job1")).toEqual({
             name: "job1",
             cluster: "someCluster",
-            cron: "* * * * 1",
+            cron: "0 */5 * * * MON-FRI",
             from: {
                 type: "image",
                 expression: "^(?!.*latest).*$"

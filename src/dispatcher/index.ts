@@ -7,7 +7,6 @@ let procedures: {
     [name: string]: PromiseProvider<any, any>
 } = {}
 
-
 export function add<T>(moduleName: string, procedureName: string, procedure: PromiseProvider<RequestInput, T>) {
     const p = path(moduleName, procedureName)
     if (procedures[p] === undefined) {

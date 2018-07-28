@@ -31,6 +31,6 @@ try {
 
         }
     }
-} finally {
-    io.close()
+} catch (e) {
+    console.error(e)
 }
