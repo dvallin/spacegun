@@ -18,10 +18,15 @@ export class RequestInput {
         if (p.length > 0) {
             const params: Params = {}
             p.forEach(([key, value]) => {
-                if (!params[key]) {
-                    params[key] = []
+                const current = params[key]
+                const v = value.toString()
+                if (current === undefined) {
+                    params[key] = v
+                } else if (typeof current === "string") {
+                    params[key] = [current, v]
+                } else {
+                    current.push(v)
                 }
-                params[key].push(value)
             })
             return params
         } else {

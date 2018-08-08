@@ -9,14 +9,29 @@ function handle<S, T>(procedure: PromiseProvider<S, T>, configuration: Component
     return async (context: Context, next: Next) => {
         let mappedInput = undefined
         if (configuration.mapper) {
-            mappedInput = configuration.mapper({ params: context.query as Params, data: context.request.body })
+            mappedInput = configuration.mapper({ params: queryToParams(context.query), data: context.request.body })
         }
+        console.log("mapped params ", context.query)
+        console.log("mapped data ", context.request.body)
+        console.log("to ", mappedInput)
         const output = await procedure(mappedInput)
         context.body = JSON.stringify(output)
         context.status = 200
         context.type = 'application/json'
         return await next()
     }
+}
+
+function queryToParams(query: any): Params {
+    let p: Params = {}
+    Object.keys(query).forEach(k => {
+        let v = query[k]
+        if (!Array.isArray(v)) {
+            v = [v]
+        }
+        p[k] = v
+    })
+    return p
 }
 
 const server = createServer()
@@ -32,8 +47,13 @@ server.use(async (context, next) => {
     }
 })
 
-export const serverPort = Number.parseInt(process.env.SERVER_PORT || "3000")
-export const serverHost = process.env.SERVER_HOST || "localhost"
+export let serverPort: number | undefined
+export let serverHost: string | undefined
+
+export function init(host: string, port: number) {
+    serverHost = host
+    serverPort = port
+}
 
 export function register<S, T>(
     procedureName: string,
@@ -57,5 +77,5 @@ export function build() {
 }
 
 export function listen() {
-    server.listen(serverPort)
+    server.listen(serverPort!)
 }

@@ -3,6 +3,7 @@ import axios, { AxiosRequestConfig } from "axios"
 import { axiosSuccess, axiosFailure } from "../test-utils/axios"
 import { callParameters } from "../test-utils/jest"
 
+import { init } from "../../src/dispatcher/api"
 import { get, post, put } from "../../src/dispatcher/caller"
 import { RequestInput } from "../../src/dispatcher/model/RequestInput"
 
@@ -11,6 +12,10 @@ describe("caller", () => {
     const getParams = { sut: get, backend: "get" }
     const postParams = { sut: post, backend: "post" }
     const putParams = { sut: put, backend: "put" }
+
+    beforeEach(() => {
+        init("localhost", 3000)
+    })
 
     const regularTestCases = [getParams, postParams, putParams]
     regularTestCases.forEach(({ sut, backend }) =>

@@ -1,5 +1,4 @@
 jest.useFakeTimers()
-import * as moment from "moment"
 
 import { Layers } from "../../src/dispatcher/model/Layers"
 process.env.LAYER = Layers.Standalone
@@ -30,14 +29,14 @@ dispatcher.get = (moduleName: string, procedureName: string) => {
         case clusterModule.moduleName: {
             switch (procedureName) {
                 case clusterModule.functions.deployments: {
-                    return (input: RequestInput) => (deployments[input.params["cluster"][0]])
+                    return (input: RequestInput) => (deployments[input.params["cluster"]])
                 }
             }
         }
         case imageModule.moduleName: {
             switch (procedureName) {
                 case imageModule.functions.versions: {
-                    return (input: RequestInput) => (versions[input.params["name"][0]])
+                    return (input: RequestInput) => (versions[input.params["name"]])
                 }
             }
         }

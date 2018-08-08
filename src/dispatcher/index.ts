@@ -1,7 +1,7 @@
 
 import { PromiseProvider } from "@/dispatcher/model/PromiseProvider"
 import { RequestInput } from "@/dispatcher/model/RequestInput"
-import { build, listen } from "@/dispatcher/api"
+import { build, listen, init } from "@/dispatcher/api"
 
 let procedures: {
     [name: string]: PromiseProvider<any, any>
@@ -28,7 +28,8 @@ export function path(moduleName: string, procedureName: string): string {
     return `${moduleName}/${procedureName}`
 }
 
-export function run(): void {
+export function run(serverHost: string, serverPort: number): void {
+    init(serverHost, serverPort)
     build()
     listen()
 }

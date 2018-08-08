@@ -5,17 +5,21 @@
     "license": "MIT",
     "repository": "github:dvallin/spacegun",
     "scripts": {
-        "start": "webpack-dev-server",
         "develop": "LAYER=client webpack --mode development --watch",
         "build": "npm run build:server; npm run build:client; npm run build:standalone",
         "build:client": "LAYER=client webpack -p",
         "build:standalone": "LAYER=standalone webpack -p",
         "build:server": "LAYER=server webpack -p",
         "test": "tsc --noEmit && jest --config=jest.conf.js",
-        "test:watch": "jest --config=jest.conf.js --watch"
+        "test:watch": "jest --config=jest.conf.js --watch",
+        "spg": "bin/spg",
+        "spacegun": "bin/spacegun",
+        "spacegun-server": "bin/spacegun-server"
     },
     "bin": {
-        "spacegun": "bin/spacegun"
+        "spg": "bin/spg",
+        "spacegun": "bin/spacegun",
+        "spacegun-server": "bin/spacegun-server"
     },
     "dependencies": {
         "@kubernetes/client-node": "^0.3.0",

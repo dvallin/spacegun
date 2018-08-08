@@ -34,7 +34,7 @@ export class Module {
     @Component({
         moduleName,
         layer: Layers.Server,
-        mapper: (p: RequestInput) => p.params!["name"][0]
+        mapper: (p: RequestInput) => p.params!["name"]
     })
     async [functions.schedules](name: string): Promise<Cron> {
         return repo!.schedules(name)
@@ -43,7 +43,7 @@ export class Module {
     @Component({
         moduleName,
         layer: Layers.Server,
-        mapper: (p: RequestInput) => p.params!["name"][0]
+        mapper: (p: RequestInput) => p.params!["name"]
     })
     async [functions.plan](name: string): Promise<JobPlan> {
         return repo!.plan(name)
@@ -53,7 +53,7 @@ export class Module {
         moduleName,
         layer: Layers.Server,
         mapper: (p: RequestInput): JobPlan => ({
-            name: p.params!["name"][0],
+            name: p.params!["name"] as string,
             deployments: p.data.deployments as DeploymentPlan[],
         }),
     })

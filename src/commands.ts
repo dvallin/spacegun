@@ -273,12 +273,13 @@ export async function printHelp(io: IO, invalidConfig: boolean = false) {
         io.out(c('A config.yml containing the following line might be sufficient'))
         io.out(b('docker: https://your.docker.registry/'))
         io.out("")
-    }
-    const clusters = await get<string[]>(clusterModule.moduleName, clusterModule.functions.clusters)()
-    io.out('configured clusters: ' + m(clusters.join(", ")))
+    } else {
+        const clusters = await get<string[]>(clusterModule.moduleName, clusterModule.functions.clusters)()
+        io.out('configured clusters: ' + m(clusters.join(", ")))
 
-    const endpoint = await get<string>(imageModule.moduleName, imageModule.functions.endpoint)()
-    io.out('configured image endpoint: ' + m(endpoint))
+        const endpoint = await get<string>(imageModule.moduleName, imageModule.functions.endpoint)()
+        io.out('configured image endpoint: ' + m(endpoint))
+    }
 
     io.out('')
     io.out(chalk.bold.underline('Available Commands'))

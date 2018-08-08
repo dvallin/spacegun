@@ -40,7 +40,7 @@ export class Module {
     @Component({
         moduleName,
         layer: Layers.Server,
-        mapper: (p: RequestInput) => p.params!["cluster"][0]
+        mapper: (p: RequestInput) => p.params!["cluster"]
     })
     async [functions.pods](cluster: string): Promise<Pod[]> {
         return repo!.pods(cluster)
@@ -50,7 +50,7 @@ export class Module {
         moduleName,
         layer: Layers.Server,
         mapper: (p: RequestInput): UpdateDeploymentParameters => ({
-            cluster: p.params!["cluster"][0],
+            cluster: p.params!["cluster"] as string,
             deployment: p.data.deployment as Deployment,
             image: p.data.image as Image
         }),
@@ -63,7 +63,7 @@ export class Module {
     @Component({
         moduleName,
         layer: Layers.Server,
-        mapper: (p: RequestInput) => p.params!["cluster"][0]
+        mapper: (p: RequestInput) => p.params!["cluster"]
     })
     async [functions.deployments](cluster: string): Promise<Deployment[]> {
         return repo!.deployments(cluster)
@@ -72,7 +72,7 @@ export class Module {
     @Component({
         moduleName,
         layer: Layers.Server,
-        mapper: (p: RequestInput) => p.params!["cluster"][0]
+        mapper: (p: RequestInput) => p.params!["cluster"]
     })
     async [functions.scalers](cluster: string): Promise<Scaler[]> {
         return repo!.scalers(cluster)

@@ -38,7 +38,7 @@ export class Module {
     @Component({
         moduleName,
         layer: Layers.Server,
-        mapper: (p: RequestInput) => p.params!["name"][0]
+        mapper: (p: RequestInput) => p.params!["name"]
     })
     async [functions.versions](name: string): Promise<Image[]> {
         return repo!.versions(name)
