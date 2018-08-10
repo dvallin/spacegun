@@ -1,4 +1,4 @@
-import { Component } from "@/dispatcher/Component"
+import { Component } from "@/dispatcher/component"
 import { Layers } from "@/dispatcher/model/Layers"
 
 import { JobsRepository } from "@/jobs/JobsRepository"
