@@ -62,9 +62,6 @@ export class DockerImageRepository implements ImageRepository {
         })
     }
 
-    public async fillCache(): Promise<void> {
-    }
-
     private createUrl(name: string, tag: string): string {
         return `${this.repository}/${name}:${tag}`
     }

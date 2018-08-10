@@ -5,6 +5,7 @@ process.env.LAYER = Layers.Standalone
 
 import { Job } from "../../src/jobs/model/Job"
 
+import { CronRegistry } from "../../src/crons/CronRegistry"
 import * as clusterModule from "../../src/cluster/ClusterModule"
 import * as imageModule from "../../src/images/ImageModule"
 
@@ -49,12 +50,14 @@ import { RequestInput } from "../../src/dispatcher/model/RequestInput"
 describe("JobsRepositoryImpl", () => {
 
     let repo: JobsRepositoryImpl
+    let crons: CronRegistry
     const twelvePMEveryWorkday = "0 0 0 12 * * MON-FRI"
     const everyMinuteEveryWorkday = "0 */5 * * * MON-FRI"
     const job1: Job = { name: "1->2", cluster: "cluster2", from: { type: "cluster", expression: "cluster1" }, cron: twelvePMEveryWorkday }
     const job2: Job = { name: "i->1", cluster: "cluster1", from: { type: "image", expression: "^(?!.*latest).*$" }, cron: everyMinuteEveryWorkday }
 
     beforeEach(() => {
+
         const jobs = new Map()
         jobs.set("1->2", job1)
         jobs.set("i->1", job2)
@@ -63,7 +66,8 @@ describe("JobsRepositoryImpl", () => {
             get: jest.fn()
         }))
 
-        repo = new JobsRepositoryImpl(jobs)
+        crons = new CronRegistry()
+        repo = new JobsRepositoryImpl(jobs, crons)
     })
 
     it("registers the job names", () => {
@@ -75,7 +79,7 @@ describe("JobsRepositoryImpl", () => {
         it("updates lastRun", () => {
             expect(repo.crons[0].lastRun).toBeUndefined()
             expect(repo.crons[1].lastRun).toBeUndefined()
-            repo.cronJobs.get("1->2").start()
+            crons.cronJobs.get("1->2").start()
             jest.runOnlyPendingTimers()
             expect(repo.crons[0].lastRun).toBeDefined()
             expect(repo.crons[1].lastRun).toBeUndefined()

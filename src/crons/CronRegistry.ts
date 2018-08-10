@@ -1,0 +1,73 @@
+import * as moment from "moment"
+import { CronJob } from "cron"
+
+import { IO } from "@/IO"
+import { Cron } from "@/crons/model/Cron"
+
+export class CronRegistry {
+    public readonly cronJobs: Map<string, CronJob> = new Map()
+    public readonly running: Map<string, Promise<void>> = new Map()
+    private readonly io: IO = new IO()
+
+    public register(name: string, cronTab: string, promiseProvider: () => Promise<void>) {
+        const cron = new CronJob(
+            cronTab,
+            () => this.executeTask(name, promiseProvider),
+            () => { },
+            false,
+            "UTC"
+        )
+        this.cronJobs.set(name, cron)
+    }
+
+    public get(name: string): Cron | undefined {
+        return this.crons.find(c => c.name === name)
+    }
+
+    public get crons(): Cron[] {
+        const crons: Cron[] = []
+        for (const [name, cron] of this.cronJobs.entries()) {
+            const dates = cron.nextDates(5) as any
+            const lastDate = cron.lastDate() as any
+            const lastRun = lastDate ? moment(lastDate).valueOf() : undefined
+            const nextRuns: number[] = dates.map((d: moment.Moment) => moment(d).valueOf())
+            const isRunning = this.running.has(name)
+            const isStarted = cron.running === true
+            crons.push({ name, lastRun, nextRuns, isRunning, isStarted })
+        }
+        return crons
+    }
+
+    public startAllCrons(): void {
+        this.cronJobs.forEach((cronJob, name) => {
+            if (!cronJob.running) {
+                this.io.out(`starting ${name}`)
+                cronJob.start()
+            } else {
+                this.io.out(`job ${name} already started`)
+            }
+        })
+    }
+
+    public stopAllCrons(): void {
+        this.cronJobs.forEach(c => c.stop())
+        // not waiting for running jobs to finish. because this is how you get deadlocks.
+    }
+
+    public removeAllCrons(): void {
+        this.stopAllCrons()
+        this.cronJobs.clear()
+    }
+
+    private async executeTask(name: string, promiseProvider: () => Promise<void>): Promise<void> {
+        const currentTask = this.running.get(name)
+        if (currentTask !== undefined) {
+            this.io.out(`${name} is already running!`)
+        } else {
+            const task = promiseProvider()
+            this.running.set(name, task)
+            await task
+            this.running.delete(name)
+        }
+    }
+}

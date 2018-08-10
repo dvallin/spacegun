@@ -1,6 +1,3 @@
-import { CronJob } from "cron"
-import * as moment from "moment"
-
 import { load } from "@/jobs"
 import { Job } from "@/jobs/model/Job"
 import { JobPlan } from "@/jobs/model/JobPlan"
@@ -17,31 +14,25 @@ import { Image } from "@/images/model/Image"
 import { JobsRepository } from "@/jobs/JobsRepository"
 import { Cron } from "@/jobs/model/Cron"
 import { IO } from "@/IO"
+import { CronRegistry } from "@/crons/CronRegistry"
 
 export class JobsRepositoryImpl implements JobsRepository {
 
-    public readonly cronJobs: Map<string, CronJob> = new Map()
     private readonly io: IO = new IO()
 
-    public static fromConfig(jobsPath: string): JobsRepositoryImpl {
+    public static fromConfig(jobsPath: string, cronRegistry: CronRegistry): JobsRepositoryImpl {
         const jobs = load(jobsPath)
-        return new JobsRepositoryImpl(jobs)
+        return new JobsRepositoryImpl(jobs, cronRegistry)
     }
 
     public constructor(
-        public readonly jobs: Map<string, Job>
+        public readonly jobs: Map<string, Job>,
+        private readonly cronRegistry: CronRegistry
     ) {
         Array.from(this.jobs.keys()).forEach(name => {
             const job = this.jobs.get(name)
             if (job !== undefined && job.cron !== undefined) {
-                const cron = new CronJob(
-                    job.cron,
-                    async () => await this.planAndApply(name),
-                    () => { },
-                    false,
-                    "UTC"
-                )
-                this.cronJobs.set(name, cron)
+                cronRegistry.register(name, job.cron, () => this.planAndApply(name))
             }
         })
     }
@@ -51,7 +42,7 @@ export class JobsRepositoryImpl implements JobsRepository {
     }
 
     public async schedules(name: string): Promise<Cron> {
-        const cron = this.crons.find(c => c.name === name)
+        const cron = this.cronRegistry.get(name)
         if (cron !== undefined) {
             return Promise.resolve(cron)
         }
@@ -59,30 +50,11 @@ export class JobsRepositoryImpl implements JobsRepository {
     }
 
     public async start(): Promise<void> {
-        this.cronJobs.forEach((cronJob, name) => {
-            if (!cronJob.running) {
-                this.io.out(`starting ${name}`)
-                cronJob.start()
-            } else {
-                this.io.out(`job ${name} already started`)
-            }
-        })
+        this.cronRegistry.startAllCrons()
     }
 
     public get crons(): Cron[] {
-        const crons: Cron[] = []
-        for (const [name, cron] of this.cronJobs.entries()) {
-            const dates = cron.nextDates(5) as any
-            const lastDate = cron.lastDate() as any
-            const lastRun = lastDate ? moment(lastDate).valueOf() : undefined
-            const nextRuns: number[] = dates.map((d: moment.Moment) => moment(d).valueOf())
-            crons.push({
-                name,
-                lastRun,
-                nextRuns
-            })
-        }
-        return crons
+        return this.cronRegistry.crons
     }
 
     async planAndApply(name: string): Promise<void> {
@@ -178,5 +150,4 @@ export class JobsRepositoryImpl implements JobsRepository {
         )
         this.io.out(`sucessfully updated ${plan.deployment.name} with image ${plan.image.name} in cluster ${plan.cluster}`)
     }
-
 }
