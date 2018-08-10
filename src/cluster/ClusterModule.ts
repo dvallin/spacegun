@@ -5,7 +5,7 @@ import { Scaler } from "@/cluster/model/Scaler"
 import { Image } from "@/images/model/Image"
 
 import { RequestInput } from "@/dispatcher/model/RequestInput"
-import { Component } from "@/dispatcher/Component"
+import { Component } from "@/dispatcher/component"
 import { Layers } from "@/dispatcher/model/Layers"
 import { Methods } from "@/dispatcher/model/Methods"
 

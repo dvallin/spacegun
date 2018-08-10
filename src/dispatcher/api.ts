@@ -1,7 +1,7 @@
 import { path } from "@/dispatcher"
 import { createServer, Context, Next, MiddleWare, createRouter } from "@/dispatcher/server"
 import { PromiseProvider } from "@/dispatcher/model/PromiseProvider"
-import { ComponentConfiguration } from "@/dispatcher/Component"
+import { ComponentConfiguration } from "@/dispatcher/component"
 import { Params } from "@/dispatcher/model/Params"
 import { Methods } from "@/dispatcher/model/Methods"
 
