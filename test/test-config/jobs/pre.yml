@@ -1,0 +1,5 @@
+cluster: cluster2
+cron: "0 0 0 12 * * MON-FRI"
+from:
+  type: cluster
+  expression: cluster1

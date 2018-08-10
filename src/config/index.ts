@@ -8,25 +8,25 @@ export interface ServerConfig {
     port: number
 }
 
+export interface GitConfig {
+    remote: string
+    cron: string
+}
+
 export interface Config {
     kube: string
     docker: string
     jobs: string
+    git?: GitConfig
     server: ServerConfig
     namespaces?: string[]
 }
 
-export function load(filePath: string = "./config.yml"): Config | Error {
+export function load(filePath: string = "./config.yml"): Config {
     const path = parse(filePath)
     process.chdir(path.dir)
-
-    try {
-        const doc = safeLoad(readFileSync(path.base, 'utf8')) as Partial<Config>
-        return validateConfig(doc)
-    } catch (e) {
-        console.error(e)
-        return e
-    }
+    const doc = safeLoad(readFileSync(path.base, 'utf8')) as Partial<Config>
+    return validateConfig(doc)
 }
 
 export function validateConfig(partial: Partial<Config>): Config {
@@ -36,13 +36,14 @@ export function validateConfig(partial: Partial<Config>): Config {
         jobs = "./jobs",
         server = {},
         docker,
+        git
     } = partial
 
     if (docker === undefined) {
         throw new Error(`a docker endpoint is needed`)
     }
 
-    return { kube, jobs, namespaces, server: validateServerConfig(server), docker }
+    return { kube, jobs, namespaces, git, server: validateServerConfig(server), docker }
 }
 
 export function validateServerConfig(partial: Partial<ServerConfig>): ServerConfig {

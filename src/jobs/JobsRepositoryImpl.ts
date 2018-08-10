@@ -15,7 +15,8 @@ import { JobsRepository } from "@/jobs/JobsRepository"
 import { Cron } from "@/jobs/model/Cron"
 import { IO } from "@/IO"
 import { CronRegistry } from "@/crons/CronRegistry"
-import { ServerGroup } from "@/cluster/model/ServerGroup";
+import { ServerGroup } from "@/cluster/model/ServerGroup"
+import { Layers } from "@/dispatcher/model/Layers"
 
 export class JobsRepositoryImpl implements JobsRepository {
 
@@ -30,12 +31,14 @@ export class JobsRepositoryImpl implements JobsRepository {
         public readonly jobs: Map<string, Job>,
         private readonly cronRegistry: CronRegistry
     ) {
-        Array.from(this.jobs.keys()).forEach(name => {
-            const job = this.jobs.get(name)
-            if (job !== undefined && job.cron !== undefined) {
-                cronRegistry.register(name, job.cron, () => this.planAndApply(name))
-            }
-        })
+        if (process.env.LAYER === Layers.Server) {
+            Array.from(this.jobs.keys()).forEach(name => {
+                const job = this.jobs.get(name)
+                if (job !== undefined && job.cron !== undefined) {
+                    cronRegistry.register(name, job.cron, () => this.planAndApply(name))
+                }
+            })
+        }
     }
 
     public get list(): Job[] {
