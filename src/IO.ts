@@ -2,7 +2,7 @@ import * as readline from "readline"
 
 export class IO {
 
-    choose<T>(question: string, options: T[]): Promise<T> {
+    public choose<T>(question: string, options: T[]): Promise<T> {
         return new Promise((resolve, reject) => {
             this.readlineContext(question, (answer) => {
                 let index
@@ -19,7 +19,7 @@ export class IO {
         })
     }
 
-    expect(question: string, expected: string): Promise<boolean> {
+    public expect(question: string, expected: string): Promise<boolean> {
         return new Promise((resolve) => {
             this.readlineContext(question, (answer) => resolve(answer === expected))
         })

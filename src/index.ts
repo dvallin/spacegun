@@ -28,7 +28,6 @@ try {
         runDispatcher(config.server.host, config.server.port)
         if (process.env.LAYER === Layers.Standalone || process.env.LAYER === Layers.Client) {
             commands[options.command](io)
-
         }
     }
 } catch (e) {

@@ -16,10 +16,12 @@ import * as imageModule from "@/images/ImageModule"
 import { Image } from "@/images/model/Image"
 import { JobsRepository } from "@/jobs/JobsRepository"
 import { Cron } from "@/jobs/model/Cron"
+import { IO } from "@/IO"
 
 export class JobsRepositoryImpl implements JobsRepository {
 
     public readonly cronJobs: Map<string, CronJob> = new Map()
+    private readonly io: IO = new IO()
 
     public static fromConfig(jobsPath: string): JobsRepositoryImpl {
         const jobs = load(jobsPath)
@@ -56,6 +58,17 @@ export class JobsRepositoryImpl implements JobsRepository {
         return Promise.reject(`job ${name} not found.`)
     }
 
+    public async start(): Promise<void> {
+        this.cronJobs.forEach((cronJob, name) => {
+            if (!cronJob.running) {
+                this.io.out(`starting ${name}`)
+                cronJob.start()
+            } else {
+                this.io.out(`job ${name} already started`)
+            }
+        })
+    }
+
     public get crons(): Cron[] {
         const crons: Cron[] = []
         for (const [name, cron] of this.cronJobs.entries()) {
@@ -73,7 +86,6 @@ export class JobsRepositoryImpl implements JobsRepository {
     }
 
     async planAndApply(name: string): Promise<void> {
-        console.log("lsakdfjlaksdf")
         const plan = await this.plan(name)
         if (plan.deployments.length > 0) {
             await this.apply(plan)
@@ -164,7 +176,7 @@ export class JobsRepositoryImpl implements JobsRepository {
                 image: plan.image
             })
         )
-        console.log(`sucessfully updated ${plan.deployment.name} with image ${plan.image.name} in cluster ${plan.cluster}`)
+        this.io.out(`sucessfully updated ${plan.deployment.name} with image ${plan.image.name} in cluster ${plan.cluster}`)
     }
 
 }

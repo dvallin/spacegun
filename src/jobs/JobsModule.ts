@@ -5,12 +5,16 @@ import { JobsRepository } from "@/jobs/JobsRepository"
 import { JobPlan } from "@/jobs/model/JobPlan"
 import { RequestInput } from "@/dispatcher/model/RequestInput"
 import { DeploymentPlan } from "@/jobs/model/DeploymentPlan"
-import { Job } from "@/jobs/model/Job";
-import { Cron } from "@/jobs/model/Cron";
+import { Job } from "@/jobs/model/Job"
+import { Cron } from "@/jobs/model/Cron"
 
 let repo: JobsRepository | undefined = undefined
 export function init(jobs: JobsRepository) {
     repo = jobs
+
+    if (process.env.LAYER === Layers.Server) {
+        repo.start()
+    }
 }
 
 export const moduleName = "jobs"
