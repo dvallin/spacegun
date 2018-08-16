@@ -10,8 +10,9 @@ import {
     KubeConfig,
     Core_v1Api, V1PodList,
     Apps_v1beta2Api, V1beta2DeploymentList,
-    Autoscaling_v1Api, V1HorizontalPodAutoscalerList, V1beta2Deployment, V1Container
+    Autoscaling_v1Api, V1HorizontalPodAutoscalerList, V1beta2Deployment, V1Container, V1NamespaceList
 } from '@kubernetes/client-node'
+import { ServerGroup } from "@/cluster/model/ServerGroup"
 
 interface Api {
     setDefaultAuthentication(config: KubeConfig): void
@@ -27,9 +28,7 @@ class UpdateDeploymentApi extends Apps_v1beta2Api {
 
 export class KubernetesClusterRepository implements ClusterRepository {
 
-
-
-    public static fromConfig(configFile: string): KubernetesClusterRepository {
+    public static fromConfig(configFile: string, namespaces?: string[]): KubernetesClusterRepository {
         const config = new KubeConfig()
         config.loadFromFile(configFile)
         const configs = new Map()
@@ -38,20 +37,30 @@ export class KubernetesClusterRepository implements ClusterRepository {
             clusterConfig.setCurrentContext(contexts.name)
             configs.set(contexts.name, clusterConfig)
         }
-        return new KubernetesClusterRepository(configs)
+        return new KubernetesClusterRepository(configs, namespaces)
     }
 
     public constructor(
-        public readonly configs: Map<string, KubeConfig>
+        public readonly configs: Map<string, KubeConfig>,
+        private readonly allowedNamespaces: string[] | undefined
     ) { }
 
     get clusters(): string[] {
         return Array.from(this.configs.keys())
     }
 
-    async pods(cluster: string): Promise<Pod[]> {
-        const api = this.build(cluster, (server: string) => new Core_v1Api(server))
-        const result: V1PodList = await api.listNamespacedPod("default").get("body")
+    async namespaces(context: string): Promise<string[]> {
+        const api = this.build(context, (server: string) => new Core_v1Api(server))
+        const result: V1NamespaceList = await api.listNamespace().get("body")
+        return result.items
+            .map(namespace => namespace.metadata.name)
+            .filter(namespace => this.isNamespaceAllowed(namespace))
+    }
+
+    async pods(group: ServerGroup): Promise<Pod[]> {
+        const api = this.build(group.cluster, (server: string) => new Core_v1Api(server))
+        const namespace = this.getNamespace(group)
+        const result: V1PodList = await api.listNamespacedPod(namespace).get("body")
         return result.items.map(item => {
             const image = this.createImage(item.spec.containers)
             let restarts
@@ -67,9 +76,10 @@ export class KubernetesClusterRepository implements ClusterRepository {
         })
     }
 
-    async deployments(cluster: string): Promise<Deployment[]> {
-        const api = this.build(cluster, (server: string) => new Apps_v1beta2Api(server))
-        const result: V1beta2DeploymentList = await api.listNamespacedDeployment("default").get("body")
+    async deployments(cluster: ServerGroup): Promise<Deployment[]> {
+        const api = this.build(cluster.cluster, (server: string) => new Apps_v1beta2Api(server))
+        const namespace = this.getNamespace(cluster)
+        const result: V1beta2DeploymentList = await api.listNamespacedDeployment(namespace).get("body")
         return result.items.map(item => {
             const image = this.createImage(item.spec.template.spec.containers)
             return {
@@ -79,9 +89,10 @@ export class KubernetesClusterRepository implements ClusterRepository {
         })
     }
 
-    async scalers(cluster: string): Promise<Scaler[]> {
-        const api = this.build(cluster, (server: string) => new Autoscaling_v1Api(server))
-        const result: V1HorizontalPodAutoscalerList = await api.listNamespacedHorizontalPodAutoscaler("default").get("body")
+    async scalers(group: ServerGroup): Promise<Scaler[]> {
+        const api = this.build(group.cluster, (server: string) => new Autoscaling_v1Api(server))
+        const namespace = this.getNamespace(group)
+        const result: V1HorizontalPodAutoscalerList = await api.listNamespacedHorizontalPodAutoscaler(namespace).get("body")
         return result.items.map(item => ({
             name: item.metadata.name,
             replicas: {
@@ -92,8 +103,9 @@ export class KubernetesClusterRepository implements ClusterRepository {
         }))
     }
 
-    async updateDeployment(cluster: string, deployment: Deployment, targetImage: Image): Promise<Deployment> {
-        const api = this.build(cluster, (server: string) => new UpdateDeploymentApi(server))
+    async updateDeployment(group: ServerGroup, deployment: Deployment, targetImage: Image): Promise<Deployment> {
+        const api = this.build(group.cluster, (server: string) => new UpdateDeploymentApi(server))
+        const namespace = this.getNamespace(group)
         const patch = {
             apiVersion: "apps/v1beta2",
             kind: "Deployment",
@@ -108,12 +120,22 @@ export class KubernetesClusterRepository implements ClusterRepository {
                 }
             }
         }
-        const result: V1beta2Deployment = await api.patchNamespacedDeployment(deployment.name, "default", patch).get("body")
+        const result: V1beta2Deployment = await api.patchNamespacedDeployment(deployment.name, namespace, patch).get("body")
         return {
             name: result.metadata.name,
             image: this.createImage(result.spec.template.spec.containers)
         }
     }
+
+    private getNamespace(group: ServerGroup): string {
+        return group.namespace || "default"
+    }
+
+    private isNamespaceAllowed(namespace: string): boolean {
+        return this.allowedNamespaces === undefined
+            || this.allowedNamespaces.find(n => n === namespace) !== undefined
+    }
+
     private createImage(containers: Array<V1Container> | undefined): Image | undefined {
         if (containers !== undefined && containers.length >= 1) {
             const url = containers[0].image

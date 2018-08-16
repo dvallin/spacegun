@@ -13,6 +13,7 @@ export interface Config {
     docker: string
     jobs: string
     server: ServerConfig
+    namespaces?: string[]
 }
 
 export function load(filePath: string = "./config.yml"): Config | Error {
@@ -31,6 +32,7 @@ export function load(filePath: string = "./config.yml"): Config | Error {
 export function validateConfig(partial: Partial<Config>): Config {
     const {
         kube = homedir() + "/.kube/config",
+        namespaces,
         jobs = "./jobs",
         server = {},
         docker,
@@ -40,7 +42,7 @@ export function validateConfig(partial: Partial<Config>): Config {
         throw new Error(`a docker endpoint is needed`)
     }
 
-    return { kube, jobs, server: validateServerConfig(server), docker }
+    return { kube, jobs, namespaces, server: validateServerConfig(server), docker }
 }
 
 export function validateServerConfig(partial: Partial<ServerConfig>): ServerConfig {

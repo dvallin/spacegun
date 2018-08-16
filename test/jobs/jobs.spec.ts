@@ -9,6 +9,8 @@ import { CronRegistry } from "../../src/crons/CronRegistry"
 import * as clusterModule from "../../src/cluster/ClusterModule"
 import * as imageModule from "../../src/images/ImageModule"
 
+import { callParameters } from "../test-utils/jest"
+
 const deployments = {
     "cluster1": [
         { name: "service1", image: { name: "image1", tag: "tag2" } }
@@ -17,12 +19,18 @@ const deployments = {
         { name: "service1", image: { name: "image1", tag: "tag1" } }
     ],
 }
+const namespaces = {
+    "cluster1": [],
+    "cluster2": ["service1"]
+}
 
 const versions = {
     "image1": [
-        { tag: "tag3" }
+        { name: "image1", tag: "tag3" }
     ]
 }
+
+const updateDeployment = jest.fn()
 
 import * as dispatcher from "../../src/dispatcher"
 dispatcher.get = (moduleName: string, procedureName: string) => {
@@ -31,6 +39,12 @@ dispatcher.get = (moduleName: string, procedureName: string) => {
             switch (procedureName) {
                 case clusterModule.functions.deployments: {
                     return (input: RequestInput) => (deployments[input.params["cluster"]])
+                }
+                case clusterModule.functions.namespaces: {
+                    return (input: RequestInput) => (namespaces[input.params["cluster"]])
+                }
+                case clusterModule.functions.updateDeployment: {
+                    return updateDeployment
                 }
             }
         }
@@ -96,10 +110,9 @@ describe("JobsRepositoryImpl", () => {
 
     })
 
-    it("plans a cluster job", async () => {
+    it("plans a cluster job with namespacing", async () => {
         // when
         const plan = await repo.plan("1->2")
-
         // then
         expect(plan.name).toEqual("1->2")
         expect(plan.deployments).toHaveLength(1)
@@ -107,7 +120,8 @@ describe("JobsRepositoryImpl", () => {
         const deploymentPlan = plan.deployments[0]
 
         // deploy into cluster2
-        expect(deploymentPlan.cluster).toBe("cluster2")
+        expect(deploymentPlan.group.cluster).toBe("cluster2")
+        expect(deploymentPlan.group.namespace).toEqual("service1")
 
         // service1 gets from tag1 to tag2
         expect(deploymentPlan.image.tag).toBe("tag2")
@@ -126,11 +140,49 @@ describe("JobsRepositoryImpl", () => {
         const deploymentPlan = plan.deployments[0]
 
         // deploy into cluster1
-        expect(deploymentPlan.cluster).toBe("cluster1")
+        expect(deploymentPlan.group.cluster).toBe("cluster1")
+        expect(deploymentPlan.group.namespace).toBeUndefined()
 
         // service1 gets from tag2 to tag3
         expect(deploymentPlan.image.tag).toBe("tag3")
         expect(deploymentPlan.deployment.name).toBe("service1")
         expect(deploymentPlan.deployment.image.tag).toBe("tag2")
+    })
+
+    it("applies plans", async () => {
+        // when
+        await repo.planAndApply("1->2")
+
+        // then
+        expect(callParameters(updateDeployment)[0].data).toEqual({
+            deployment: {
+                image: { name: "image1", tag: "tag1" },
+                name: "service1"
+            },
+            image: { name: "image1", tag: "tag2" }
+        })
+        expect(callParameters(updateDeployment)[0].params).toEqual({
+            cluster: "cluster2", namespace: "service1"
+        })
+    })
+
+    it("returns scheduled cron jobs", async () => {
+        // when
+        const crons = await repo.schedules("i->1")
+
+        // then
+        expect(crons.isRunning).toBeFalsy()
+        expect(crons.isStarted).toBeFalsy()
+        expect(crons.name).toEqual("i->1")
+        expect(crons.nextRuns).toHaveLength(5)
+    })
+
+    it("starts scheduled cron jobs", async () => {
+        // when
+        await repo.start()
+
+        // then
+        const crons = await repo.schedules("i->1")
+        expect(crons.isStarted).toBeTruthy()
     })
 })

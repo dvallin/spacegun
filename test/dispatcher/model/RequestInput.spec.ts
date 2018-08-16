@@ -10,6 +10,11 @@ describe("RequestInput", () => {
         })
     })
 
+    it("filters undefined params", () => {
+        const input = RequestInput.of(["param", undefined])
+        expect(input.params).toEqual({})
+    })
+
     it("can be constructed with data", () => {
         const input = RequestInput.ofData("Some data", ["param", 1], ["param", 2], ["another", "param"])
         expect(input.data).toEqual("Some data")

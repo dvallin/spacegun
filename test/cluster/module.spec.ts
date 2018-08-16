@@ -8,11 +8,12 @@ import { RequestInput } from "../../src/dispatcher/model/RequestInput"
 
 const clusters = ["cluster1", "cluster2"]
 const pods = jest.fn()
+const namespaces = jest.fn()
 const deployments = jest.fn()
 const updateDeployment = jest.fn()
 const scalers = jest.fn()
 const repo: ClusterRepository = {
-    clusters, pods, deployments, updateDeployment, scalers
+    clusters, namespaces, pods, deployments, updateDeployment, scalers
 }
 
 init(repo)
@@ -39,7 +40,7 @@ describe("cluster module", () => {
         // then
         expect(call).resolves.toEqual({})
         expect(pods).toHaveBeenCalledTimes(1)
-        expect(pods).toHaveBeenCalledWith("clusterName")
+        expect(pods).toHaveBeenCalledWith({ cluster: "clusterName" })
     })
 
     it("calls scalers", () => {
@@ -54,7 +55,7 @@ describe("cluster module", () => {
         // then
         expect(call).resolves.toEqual({})
         expect(scalers).toHaveBeenCalledTimes(1)
-        expect(scalers).toHaveBeenCalledWith("clusterName")
+        expect(scalers).toHaveBeenCalledWith({ cluster: "clusterName" })
     })
 
     it("calls deployments", () => {
@@ -69,7 +70,7 @@ describe("cluster module", () => {
         // then
         expect(call).resolves.toEqual({})
         expect(deployments).toHaveBeenCalledTimes(1)
-        expect(deployments).toHaveBeenCalledWith("clusterName")
+        expect(deployments).toHaveBeenCalledWith({ cluster: "clusterName" })
     })
 
     it("calls deployments", () => {
@@ -88,6 +89,6 @@ describe("cluster module", () => {
         // then
         expect(call).resolves.toEqual({})
         expect(updateDeployment).toHaveBeenCalledTimes(1)
-        expect(updateDeployment).toHaveBeenCalledWith("clusterName", deployment, image)
+        expect(updateDeployment).toHaveBeenCalledWith({ cluster: "clusterName" }, deployment, image)
     })
 })

@@ -17,7 +17,7 @@ export class RequestInput {
     private static buildParams(p: [string, any][]): Params | undefined {
         if (p.length > 0) {
             const params: Params = {}
-            p.forEach(([key, value]) => {
+            p.filter(([{ }, value]) => value !== undefined).forEach(([key, value]) => {
                 const current = params[key]
                 const v = value.toString()
                 if (current === undefined) {
