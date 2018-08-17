@@ -1,4 +1,6 @@
 # Spacegun
+[![Build Status](https://travis-ci.org/dvallin/spacegun.svg?branch=master)](https://travis-ci.org/dvallin/spacegun)
+[![codecov](https://codecov.io/gh/dvallin/spacegun/branch/master/graph/badge.svg)](https://codecov.io/gh/dvallin/spacegun)
 
 Space age deployment manager to get your docker images to kubernetes, without the headaches of fancy ui.
 
