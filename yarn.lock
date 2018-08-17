@@ -16,9 +16,9 @@
     esutils "^2.0.2"
     js-tokens "^3.0.0"
 
-"@kubernetes/client-node@^0.3.0":
-  version "0.3.0"
-  resolved "https://registry.yarnpkg.com/@kubernetes/client-node/-/client-node-0.3.0.tgz#78a6fc55a3600c943b110dfc1e1950d6fa2b41f5"
+"@kubernetes/client-node@^0.5.2":
+  version "0.5.2"
+  resolved "https://registry.yarnpkg.com/@kubernetes/client-node/-/client-node-0.5.2.tgz#51aa90437d2a7891b09198f092b4386a698f7b7a"
   dependencies:
     "@types/base-64" "^0.1.2"
     "@types/bluebird" "^3.5.7"
