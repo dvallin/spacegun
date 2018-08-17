@@ -55,12 +55,16 @@ namespaces: ["service1", "service2"]
 server:
   host: localhost
   port: 8080
+git:
+  remote: https://some.git
+  cron: "0 */5 * * * MON-FRI"
 ```
 
 `docker` gives a url of a docker repository  
 `kube` gives a path to a kubernetes config file (relative to the config.yml)  
-`namespaces` gives a list of namespaces for spacegun to operate on.
-`server` gives hostname and port of the server (client uses both, server uses the port)
+`namespaces` gives a list of namespaces for spacegun to operate on.  
+`server` gives hostname and port of the server (client uses both, server uses the port)  
+`git` contains the path to the remote git where all configurations are kept. And the (optional) crontab configures how often the service should poll for configuration changes.
 
 #### Jobs
 
@@ -89,6 +93,22 @@ from:
 `from` is defined as cluster. In this mode, Spacegun deploys only those images that are newer on develop than on prelive.
 
 If `cron` is not present the server will not create a cronjob and the deployment needs to be manually run by a client.
+
+### Git
+All configuration files can be maintained in a git repository. Spacegun can be configured to poll for changes and will automatically load them while runing.
+
+A git repository could have such a folder structure
+
+```
+.
+├── config.yml  
+├── jobs  
+│   ├── dev.yml
+│   ├── live.yml
+│   └── pre.yml
+└── kube
+    └── config
+```
 
 ## Running the tests
 

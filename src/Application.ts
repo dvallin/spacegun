@@ -38,15 +38,6 @@ export class Application {
     public async run() {
         try {
             const config = loadConfig(this.options.config)
-            const git = GitConfigRepository.fromConfig(config)
-            if (git !== undefined) {
-                this.crons.register(
-                    "config-reload",
-                    config.git!.cron,
-                    () => this.checkForConfigChange(git)
-                )
-            }
-
             this.initialize(config)
 
             runDispatcher(config.server.host, config.server.port)
@@ -56,7 +47,7 @@ export class Application {
         } catch (e) {
             printHelp(this.io, e)
         } finally {
-            this.crons.stopAllCrons()
+            this.crons.removeAllCrons()
         }
     }
 
@@ -64,7 +55,7 @@ export class Application {
         const hasNewConfig = await git.hasNewConfig()
         if (hasNewConfig) {
             await git.fetchNewConfig()
-            this.crons.stopAllCrons()
+            this.crons.removeAllCrons()
             this.reload()
         }
     }
@@ -79,6 +70,15 @@ export class Application {
     }
 
     private initialize(config: Config) {
+        const git = GitConfigRepository.fromConfig(config)
+        if (git !== undefined) {
+            this.crons.register(
+                "config-reload",
+                config.git!.cron,
+                () => this.checkForConfigChange(git)
+            )
+        }
+
         initCluster(KubernetesClusterRepository.fromConfig(config.kube, config.namespaces))
         initImages(DockerImageRepository.fromConfig(config.docker))
         initJobs(JobsRepositoryImpl.fromConfig(config.jobs, this.crons))

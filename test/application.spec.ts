@@ -14,7 +14,7 @@ describe("Application", () => {
         jest.resetAllMocks()
         process.chdir(__dirname)
         const io = new IO()
-        const crons = { register: jest.fn(), stopAllCrons: jest.fn() }
+        const crons = { register: jest.fn(), removeAllCrons: jest.fn() }
         const options = {}
         app = new Application(io, crons, options)
     })
@@ -32,7 +32,7 @@ describe("Application", () => {
         expect(callParameters(app.crons.register, 0)[0]).toEqual("config-reload")
         expect(callParameters(app.crons.register, 1)[0]).toEqual("dev")
         expect(callParameters(app.crons.register, 2)[0]).toEqual("pre")
-        expect(app.crons.stopAllCrons).toHaveBeenCalledTimes(1)
+        expect(app.crons.removeAllCrons).toHaveBeenCalledTimes(1)
     })
 
     it("registers the cronjobs", async () => {
@@ -40,7 +40,7 @@ describe("Application", () => {
         process.env.LAYER = Layers.Standalone
         await app.run()
         expect(app.crons.register).toHaveBeenCalledTimes(0)
-        expect(app.crons.stopAllCrons).toHaveBeenCalledTimes(1)
+        expect(app.crons.removeAllCrons).toHaveBeenCalledTimes(1)
     })
 
     it("reloads the cronjobs", async () => {
@@ -49,9 +49,10 @@ describe("Application", () => {
         const hasNewConfig = () => (Promise.resolve(true))
         const fetchNewConfig = () => (Promise.resolve())
         await app.checkForConfigChange({ hasNewConfig, fetchNewConfig })
-        expect(app.crons.register).toHaveBeenCalledTimes(2)
-        expect(callParameters(app.crons.register, 0)[0]).toEqual("dev")
-        expect(callParameters(app.crons.register, 1)[0]).toEqual("pre")
-        expect(app.crons.stopAllCrons).toHaveBeenCalledTimes(1)
+        expect(app.crons.register).toHaveBeenCalledTimes(3)
+        expect(callParameters(app.crons.register, 0)[0]).toEqual("config-reload")
+        expect(callParameters(app.crons.register, 1)[0]).toEqual("dev")
+        expect(callParameters(app.crons.register, 2)[0]).toEqual("pre")
+        expect(app.crons.removeAllCrons).toHaveBeenCalledTimes(1)
     })
 })
