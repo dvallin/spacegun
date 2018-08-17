@@ -71,6 +71,7 @@ describe("JobsRepositoryImpl", () => {
     const job2: Job = { name: "i->1", cluster: "cluster1", from: { type: "image", expression: "^(?!.*latest).*$" }, cron: everyMinuteEveryWorkday }
 
     beforeEach(() => {
+        process.env.LAYER = Layers.Server
 
         const jobs = new Map()
         jobs.set("1->2", job1)

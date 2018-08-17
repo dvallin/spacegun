@@ -1,0 +1,8 @@
+docker: https://docker.com
+kube: kube/config
+namespaces: ["service1", "service2"]
+git:
+    remote: https://some.git
+server:
+  host: localhost
+  port: 8080

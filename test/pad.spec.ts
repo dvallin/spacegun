@@ -1,14 +1,15 @@
 import { pad } from "../src/pad"
-import chalk from "chalk"
 
 describe("pad", () => {
 
+    const padColumns = 8
+
     it("pads empty string", () => {
-        expect(pad("")).toHaveLength(7 * 12)
+        expect(pad("")).toHaveLength(padColumns * 12)
     })
 
     it("pads text by columns", () => {
-        expect(pad("abc", 1)).toHaveLength(7)
-        expect(pad("abc", 2)).toHaveLength(14)
+        expect(pad("abc", 1)).toHaveLength(padColumns)
+        expect(pad("abc", 2)).toHaveLength(2 * padColumns)
     })
 })

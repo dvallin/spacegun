@@ -8,7 +8,7 @@ const image2 = { name: "image2", tag: "tag", url: "repo/image2:tag" }
 
 describe("KubernetesClusterProvider", () => {
 
-    const cluster = KubernetesClusterRepository.fromConfig('./test/config/kube')
+    const cluster = KubernetesClusterRepository.fromConfig("./test/test-config/kube/config")
 
     describe("clusters", () => {
 
@@ -25,7 +25,7 @@ describe("KubernetesClusterProvider", () => {
         })
 
         it("returns only namespaces thate are allowed namespaces", async () => {
-            const cluster2 = KubernetesClusterRepository.fromConfig('./test/config/kube', ["namespace2"])
+            const cluster2 = KubernetesClusterRepository.fromConfig("./test/test-config/kube/config", ["namespace2"])
             const namespaces: string[] = await cluster2.namespaces("dev")
             expect(namespaces).toEqual(["namespace2"])
         })

@@ -60,7 +60,7 @@ async function podsCommand(io: IO, cluster: string, namespace?: string) {
     const pods = await get<Pod[]>(clusterModule.moduleName, clusterModule.functions.pods)(
         RequestInput.of(["cluster", cluster], ["namespace", namespace])
     )
-    io.out(chalk.bold(pad("pod name", 5) + pad("tag name", 5) + pad("starts", 1), pad("status", 1)))
+    io.out(chalk.bold(pad("pod name", 5) + pad("tag name", 5) + pad("starts", 1) + pad("status", 1)))
     pods.forEach(pod => {
         let restartText
         if (pod.restarts === undefined) {
@@ -285,7 +285,7 @@ async function scalersCommand(io: IO, cluster: string, namespace?: string) {
     })
 }
 
-export async function printHelp(io: IO, invalidConfig: boolean = false) {
+export async function printHelp(io: IO, error?: Error) {
     const b = chalk.blue;
     const m = chalk.magenta;
     const c = chalk.cyan;
@@ -304,10 +304,9 @@ export async function printHelp(io: IO, invalidConfig: boolean = false) {
 `
     io.out(HELP_HEADER)
 
-    if (invalidConfig) {
-        io.out(c('no configuration file found!'))
-        io.out(c('A config.yml containing the following line might be sufficient'))
-        io.out(b('docker: https://your.docker.registry/'))
+    if (error !== undefined) {
+        io.out(c("An error occured during startup"))
+        io.out(c(error.message))
         io.out("")
     } else {
         const clusters = await get<string[]>(clusterModule.moduleName, clusterModule.functions.clusters)()

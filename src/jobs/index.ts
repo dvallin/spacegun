@@ -2,7 +2,7 @@ import { safeLoad } from "js-yaml"
 import { readFileSync, readdirSync } from "fs"
 
 import { Job } from "@/jobs/model/Job"
-import { JobSource } from "@/jobs/model/JobSource";
+import { JobSource } from "@/jobs/model/JobSource"
 
 export function load(path: string = "./jobs"): Map<string, Job> {
     const files = readdirSync(path)
@@ -10,14 +10,14 @@ export function load(path: string = "./jobs"): Map<string, Job> {
     for (const file of files) {
         const name = file.split(".")[0]
         const filePath = `${path}/${file}`
-        const partial = safeLoad(readFileSync(filePath, 'utf8')) as Partial<Job>
+        const fileContent = readFileSync(filePath, 'utf8')
+        const partial = safeLoad(fileContent) as Partial<Job>
         jobs.set(name, validateJob(partial, name))
     }
     return jobs
 }
 
 export function validateJob(partial: Partial<Job>, name: string): Job {
-
     if (partial.cluster === undefined) {
         throw new Error(`job ${name} must contain a cluster`)
     }
