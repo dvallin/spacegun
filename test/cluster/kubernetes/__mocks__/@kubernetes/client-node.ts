@@ -14,6 +14,12 @@ function mockPod(name: string, image: string, restartCount: number, ready: boole
     }
 }
 
+function mockNamespace(name: string): object {
+    return {
+        metadata: { name }
+    }
+}
+
 function mockDeployment(name: string, image: string): object {
     return {
         metadata: { name },
@@ -45,6 +51,11 @@ const Core_v1Api = jest.fn<api1>().mockImplementation(function () {
     mockedApi.listNamespacedPod = jest.fn().mockReturnValue({
         get: () => ({
             items: [mockPod("pod1", "repo/image1:tag", 0, true), mockPod("pod2", "repo/image2:tag", 1, false)]
+        })
+    })
+    mockedApi.listNamespace = jest.fn().mockReturnValue({
+        get: () => ({
+            items: [mockNamespace("namespace1"), mockNamespace("namespace2")]
         })
     })
     return mockedApi

@@ -13,7 +13,7 @@ import { init as initImages } from "@/images/ImageModule"
 import { KubernetesClusterRepository } from "@/cluster/kubernetes/KubernetesClusterRepository"
 import { DockerImageRepository } from "@/images/docker/DockerImageRepository"
 import { JobsRepositoryImpl } from "@/jobs/JobsRepositoryImpl"
-import { CronRegistry } from "@/crons/CronRegistry";
+import { CronRegistry } from "@/crons/CronRegistry"
 
 const options = parse()
 const config = loadConfig(options.config)
@@ -24,7 +24,7 @@ try {
     } else {
         const crons = new CronRegistry()
         initJobs(JobsRepositoryImpl.fromConfig(config.jobs, crons))
-        initCluster(KubernetesClusterRepository.fromConfig(config.kube))
+        initCluster(KubernetesClusterRepository.fromConfig(config.kube, config.namespaces))
         initImages(DockerImageRepository.fromConfig(config.docker))
 
         runDispatcher(config.server.host, config.server.port)

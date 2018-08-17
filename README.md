@@ -51,6 +51,7 @@ A configuraiton may look like this
 ```
 docker: https://my.docker.repository.com
 kube: kube/config
+namespaces: ["service1", "service2"]
 server:
   host: localhost
   port: 8080
@@ -58,6 +59,7 @@ server:
 
 `docker` gives a url of a docker repository  
 `kube` gives a path to a kubernetes config file (relative to the config.yml)  
+`namespaces` gives a list of namespaces for spacegun to operate on.
 `server` gives hostname and port of the server (client uses both, server uses the port)
 
 #### Jobs

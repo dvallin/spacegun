@@ -2,11 +2,14 @@ import { Pod } from "@/cluster/model/Pod"
 import { Image } from "@/cluster/model/Image"
 import { Deployment } from "@/cluster/model/Deployment"
 import { Scaler } from "@/cluster/model/Scaler"
+import { ServerGroup } from "@/cluster/model/ServerGroup"
 
 export interface ClusterRepository {
     clusters: string[]
-    pods(cluster: string): Promise<Pod[]>
-    deployments(cluster: string): Promise<Deployment[]>
-    updateDeployment(cluster: string, deployment: Deployment, targetImage: Image): Promise<Deployment>
-    scalers(cluster: string): Promise<Scaler[]>
+
+    namespaces(context: string): Promise<string[]>
+    pods(group: ServerGroup): Promise<Pod[]>
+    deployments(group: ServerGroup): Promise<Deployment[]>
+    updateDeployment(group: ServerGroup, deployment: Deployment, targetImage: Image): Promise<Deployment>
+    scalers(group: ServerGroup): Promise<Scaler[]>
 }

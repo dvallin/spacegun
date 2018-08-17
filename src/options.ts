@@ -20,6 +20,7 @@ function parse(): Options {
     if (internalOptions.command !== undefined) {
         switch (internalOptions.command) {
             case "scalers":
+            case "namespaces":
             case "images":
             case "pods":
             case "deployments":
