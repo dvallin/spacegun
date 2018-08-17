@@ -2,7 +2,7 @@ import { path } from "@/dispatcher"
 import { createServer, Context, Next, MiddleWare, createRouter } from "@/dispatcher/server"
 import { PromiseProvider } from "@/dispatcher/model/PromiseProvider"
 import { ComponentConfiguration } from "@/dispatcher/component"
-import { Params } from "@/dispatcher/model/Params"
+import { queryToParams } from "@/dispatcher/model/Params"
 import { Methods } from "@/dispatcher/model/Methods"
 
 function handle<S, T>(procedure: PromiseProvider<S, T>, configuration: ComponentConfiguration<S>): MiddleWare {
@@ -11,9 +11,6 @@ function handle<S, T>(procedure: PromiseProvider<S, T>, configuration: Component
         if (configuration.mapper) {
             mappedInput = configuration.mapper({ params: queryToParams(context.query), data: context.request.body })
         }
-        console.log("mapped params ", context.query)
-        console.log("mapped data ", context.request.body)
-        console.log("to ", mappedInput)
         const output = await procedure(mappedInput)
         context.body = JSON.stringify(output)
         context.status = 200
@@ -22,20 +19,8 @@ function handle<S, T>(procedure: PromiseProvider<S, T>, configuration: Component
     }
 }
 
-function queryToParams(query: any): Params {
-    let p: Params = {}
-    Object.keys(query).forEach(k => {
-        let v = query[k]
-        if (!Array.isArray(v)) {
-            v = [v]
-        }
-        p[k] = v
-    })
-    return p
-}
-
-const server = createServer()
-const router = createRouter()
+export const server = createServer()
+export const router = createRouter()
 server.use(async (context, next) => {
     try {
         await next()

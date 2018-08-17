@@ -5,12 +5,11 @@ export interface Next {
 }
 
 export interface Context {
-    params: any
-    body: any
     request: { body: any }
     query: object
-    type: string
-    status: number
+    body?: any
+    type?: string
+    status?: number
 }
 
 export type MiddleWare = (context: Context, next: Next) => void
