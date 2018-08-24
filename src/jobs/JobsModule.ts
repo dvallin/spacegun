@@ -1,9 +1,10 @@
 import { Component } from "@/dispatcher/component"
+import { RequestInput } from "@/dispatcher/model/RequestInput"
+import { Request } from "@/dispatcher/model/Request"
 import { Layers } from "@/dispatcher/model/Layers"
 
 import { JobsRepository } from "@/jobs/JobsRepository"
 import { JobPlan } from "@/jobs/model/JobPlan"
-import { RequestInput } from "@/dispatcher/model/RequestInput"
 import { DeploymentPlan } from "@/jobs/model/DeploymentPlan"
 import { Job } from "@/jobs/model/Job"
 import { Cron } from "@/jobs/model/Cron"
@@ -17,51 +18,69 @@ export function init(jobs: JobsRepository) {
     }
 }
 
-export const moduleName = "jobs"
-export const functions = {
-    jobs: "jobs",
-    schedules: "schedules",
-    plan: "plan",
-    run: "run"
+export const jobs: Request<void, Job[]> = {
+    module: "jobs",
+    procedure: "jobs"
+}
+
+export const schedules: Request<{ name: string }, Cron> = {
+    module: "jobs",
+    procedure: "schedules",
+    input: (input: { name: string } | undefined) => RequestInput.of(["name", input!.name]),
+    mapper: (input: RequestInput) => ({ name: input.params!["name"] as string })
+}
+
+export const plan: Request<{ name: string }, JobPlan> = {
+    module: "jobs",
+    procedure: "plan",
+    input: (input: { name: string } | undefined) => RequestInput.of(["name", input!.name]),
+    mapper: (input: RequestInput) => ({ name: input.params!["name"] as string })
+}
+
+export const run: Request<JobPlan, void> = {
+    module: "jobs",
+    procedure: "run",
+    input: (input: JobPlan | undefined) => RequestInput.ofData({ deployments: input!.deployments }, ["name", input!.name]),
+    mapper: (input: RequestInput) => ({
+        name: input.params!["name"] as string,
+        deployments: input.data.deployments as DeploymentPlan[],
+    } as JobPlan)
 }
 
 export class Module {
 
     @Component({
-        moduleName,
+        moduleName: jobs.module,
         layer: Layers.Server
     })
-    async [functions.jobs](): Promise<Job[]> {
+    async [jobs.procedure](): Promise<Job[]> {
         return repo!.list
     }
 
     @Component({
-        moduleName,
+        moduleName: schedules.module,
         layer: Layers.Server,
-        mapper: (p: RequestInput) => p.params!["name"]
+        mapper: schedules.mapper
     })
-    async [functions.schedules](name: string): Promise<Cron> {
-        return repo!.schedules(name)
+    async [schedules.procedure](params: { name: string }): Promise<Cron> {
+        return repo!.schedules(params.name)
     }
 
     @Component({
-        moduleName,
+        moduleName: plan.module,
         layer: Layers.Server,
-        mapper: (p: RequestInput) => p.params!["name"]
+        mapper: plan.mapper
     })
-    async [functions.plan](name: string): Promise<JobPlan> {
-        return repo!.plan(name)
+    async [plan.procedure](params: { name: string }): Promise<JobPlan> {
+        return repo!.plan(params.name)
     }
 
     @Component({
-        moduleName,
+        moduleName: run.module,
         layer: Layers.Server,
-        mapper: (p: RequestInput): JobPlan => ({
-            name: p.params!["name"] as string,
-            deployments: p.data.deployments as DeploymentPlan[],
-        }),
+        mapper: run.mapper,
     })
-    async [functions.run](plan: JobPlan): Promise<void> {
+    async [run.procedure](plan: JobPlan): Promise<void> {
         return repo!.apply(plan)
     }
 }

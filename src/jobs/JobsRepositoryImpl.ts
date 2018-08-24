@@ -3,14 +3,12 @@ import { Job } from "@/jobs/model/Job"
 import { JobPlan } from "@/jobs/model/JobPlan"
 import { DeploymentPlan } from "@/jobs/model/DeploymentPlan"
 
-import { get } from "@/dispatcher"
-import { RequestInput } from "@/dispatcher/model/RequestInput"
+import { call } from "@/dispatcher"
 
 import * as clusterModule from "@/cluster/ClusterModule"
 import { Deployment } from "@/cluster/model/Deployment"
 
 import * as imageModule from "@/images/ImageModule"
-import { Image } from "@/images/model/Image"
 import { JobsRepository } from "@/jobs/JobsRepository"
 import { Cron } from "@/jobs/model/Cron"
 import { IO } from "@/IO"
@@ -73,9 +71,7 @@ export class JobsRepositoryImpl implements JobsRepository {
         if (job === undefined) {
             throw new Error(`could not find job ${name}`)
         }
-        const namespaces = await get<string[]>(clusterModule.moduleName, clusterModule.functions.namespaces)(
-            RequestInput.of(["cluster", job.cluster])
-        )
+        const namespaces = await call(clusterModule.namespaces)(job)
         const deployments = await this.planDeploymentForNamespaces(job, namespaces)
         return {
             name,
@@ -104,9 +100,7 @@ export class JobsRepositoryImpl implements JobsRepository {
     }
 
     async planDeployments(job: Job, namespace?: string): Promise<DeploymentPlan[]> {
-        const targetDeployments = await get<Deployment[]>(clusterModule.moduleName, clusterModule.functions.deployments)(
-            RequestInput.of(["cluster", job.cluster], ["namespace", namespace])
-        )
+        const targetDeployments = await call(clusterModule.deployments)({ cluster: job.cluster, namespace })
         const group: ServerGroup = { cluster: job.cluster, namespace }
         switch (job.from.type) {
             case "cluster": return this.planClusterDeployment(job, targetDeployments, group)
@@ -116,9 +110,10 @@ export class JobsRepositoryImpl implements JobsRepository {
 
     async planClusterDeployment(job: Job, targetDeployments: Deployment[], group: ServerGroup): Promise<DeploymentPlan[]> {
         const deployments: DeploymentPlan[] = []
-        const sourceDeployments = await get<Deployment[]>(clusterModule.moduleName, clusterModule.functions.deployments)(
-            RequestInput.of(["cluster", job.from.expression])
-        )
+        const sourceDeployments = await call(clusterModule.deployments)({
+            cluster: job.from.expression,
+            namespace: group.namespace
+        })
         for (const targetDeployment of targetDeployments) {
             const sourceDeployment = sourceDeployments.find(d => d.name === targetDeployment.name)
             if (sourceDeployment === undefined) {
@@ -149,9 +144,7 @@ export class JobsRepositoryImpl implements JobsRepository {
                 console.error(`${targetDeployment.name} in cluster ${group.cluster} has no image, so spacegun cannot determine the right image source`)
                 continue
             }
-            const versions = await get<Image[]>(imageModule.moduleName, imageModule.functions.versions)(
-                RequestInput.of(["name", targetDeployment.image.name])
-            )
+            const versions = await call(imageModule.versions)(targetDeployment.image)
             const newestImage = versions
                 .filter(image => image.tag.match(tagMatcher))
                 .reduce((a, b) => a.lastUpdated > b.lastUpdated ? a : b)
@@ -167,12 +160,7 @@ export class JobsRepositoryImpl implements JobsRepository {
     }
 
     async applyDeployment(plan: DeploymentPlan) {
-        await get<Deployment>(clusterModule.moduleName, clusterModule.functions.updateDeployment)(
-            RequestInput.ofData({
-                deployment: plan.deployment,
-                image: plan.image
-            }, ["cluster", plan.group.cluster], ["namespace", plan.group.namespace])
-        )
+        await call(clusterModule.updateDeployment)(plan)
         this.io.out(`sucessfully updated ${plan.deployment.name} with image ${plan.image.name} in cluster ${plan.group.cluster}`)
     }
 }
