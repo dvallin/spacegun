@@ -5,12 +5,7 @@ import { Layers } from "../../src/dispatcher/model/Layers"
 process.env.LAYER = Layers.Standalone
 
 import { Job } from "../../src/jobs/model/Job"
-
 import { CronRegistry } from "../../src/crons/CronRegistry"
-import * as clusterModule from "../../src/cluster/ClusterModule"
-import * as imageModule from "../../src/images/ImageModule"
-
-import { callParameters } from "../test-utils/jest"
 
 const deployments = {
     "cluster1": [
@@ -31,28 +26,30 @@ const versions = {
     ]
 }
 
-const updateDeployment = jest.fn()
+const updateDeploymentMock = jest.fn()
 
 import * as dispatcher from "../../src/dispatcher"
-dispatcher.get = (moduleName: string, procedureName: string) => {
-    switch (moduleName) {
-        case clusterModule.moduleName: {
-            switch (procedureName) {
-                case clusterModule.functions.deployments: {
-                    return (input: RequestInput) => (deployments[input.params["cluster"]])
+dispatcher.call = (request: Request<any, any>) => {
+    switch (request.module) {
+        case "cluster": {
+            switch (request.procedure) {
+                case "deployments": {
+                    return (input: { cluster: string }) => (deployments[input.cluster])
                 }
-                case clusterModule.functions.namespaces: {
-                    return (input: RequestInput) => (namespaces[input.params["cluster"]])
+                case "deployments": {
+                    return (input: { cluster: string }) => (deployments[input.cluster])
                 }
-                case clusterModule.functions.updateDeployment: {
-                    return updateDeployment
+                case "namespaces": {
+                    return (input: { cluster: string }) => (namespaces[input.cluster])
+                }
+                case "updateDeployment": {
+                    return (input: any) => {
+                        updateDeploymentMock(input)
+                        return deployments[input.group.cluster]
+                    }
                 }
             }
         }
-    }
-}
-dispatcher.call = (request: Request<any, any>) => {
-    switch (request.module) {
         case "images": {
             switch (request.procedure) {
                 case "versions": {
@@ -64,7 +61,6 @@ dispatcher.call = (request: Request<any, any>) => {
 }
 
 import { JobsRepositoryImpl } from "../../src/jobs/JobsRepositoryImpl"
-import { RequestInput } from "../../src/dispatcher/model/RequestInput"
 
 describe("JobsRepositoryImpl", () => {
 
@@ -160,15 +156,13 @@ describe("JobsRepositoryImpl", () => {
         await repo.planAndApply("1->2")
 
         // then
-        expect(callParameters(updateDeployment)[0].data).toEqual({
+        expect(updateDeploymentMock).toHaveBeenCalledWith({
             deployment: {
                 image: { name: "image1", tag: "tag1" },
                 name: "service1"
             },
-            image: { name: "image1", tag: "tag2" }
-        })
-        expect(callParameters(updateDeployment)[0].params).toEqual({
-            cluster: "cluster2", namespace: "service1"
+            image: { name: "image1", tag: "tag2" },
+            group: { cluster: "cluster2", namespace: "service1" }
         })
     })
 

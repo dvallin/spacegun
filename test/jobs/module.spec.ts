@@ -1,59 +1,71 @@
 import { Layers } from "../../src/dispatcher/model/Layers"
 process.env.LAYER = Layers.Standalone
 
-import { init, moduleName, functions } from "../../src/jobs/JobsModule"
-import { get } from "../../src/dispatcher"
-import { RequestInput } from "../../src/dispatcher/model/RequestInput"
+import { init, jobs, plan, run, schedules } from "../../src/jobs/JobsModule"
+import { call } from "../../src/dispatcher"
 import { JobsRepository } from "../../src/jobs/JobsRepository"
 
-const list = ["job1", "job2"]
-const planAndApply = jest.fn()
-const plan = jest.fn()
-const apply = jest.fn()
+const planMock = jest.fn()
+const applyMock = jest.fn()
+const startMock = jest.fn()
+const schedulesMock = jest.fn()
 const repo: JobsRepository = {
-    list, planAndApply, plan, apply
+    list: ["job1", "job2"],
+    crons: [],
+
+    plan: planMock,
+    schedules: schedulesMock,
+    apply: applyMock,
+    start: startMock,
 }
 
 init(repo)
 
 describe("image module", () => {
 
-    it("calls list", () => {
+    it("calls list", async () => {
         // when
-        const call = get(moduleName, functions.jobs)()
+        const result = await call(jobs)()
 
         // then
-        expect(call).resolves.toEqual(list)
+        expect(result).toEqual(["job1", "job2"])
     })
 
-    it("calls plan", () => {
+    it("calls plan", async () => {
         // given
-        plan.mockReturnValueOnce({})
+        planMock.mockReturnValueOnce({})
 
         // when
-        const call = get(moduleName, functions.plan)(
-            RequestInput.of(["name", "jobName"])
-        )
+        const result = await call(plan)({ name: "jobName" })
 
         // then
-        expect(call).resolves.toEqual({})
-        expect(plan).toHaveBeenCalledTimes(1)
-        expect(plan).toHaveBeenCalledWith("jobName")
+        expect(result).toEqual({})
+        expect(planMock).toHaveBeenCalledTimes(1)
+        expect(planMock).toHaveBeenCalledWith("jobName")
     })
 
-    it("calls apply", () => {
+    it("calls schedules", async () => {
         // given
-        apply.mockReturnValueOnce({})
+        schedulesMock.mockReturnValueOnce([])
 
         // when
-        const call = get(moduleName, functions.run)(
-            RequestInput.ofData({ deployments: [{}] }, ["name", "jobName"])
-        )
+        const result = await call(schedules)({ name: "jobName" })
 
         // then
-        expect(call).resolves.toEqual({})
-        expect(apply).toHaveBeenCalledTimes(1)
-        expect(apply).toHaveBeenCalledWith({
+        expect(result).toEqual([])
+    })
+
+    it("calls apply", async () => {
+        // given
+        applyMock.mockReturnValueOnce({})
+
+        // when
+        const result = await call(run)({ deployments: [{}], name: "jobName" })
+
+        // then
+        expect(result).toEqual({})
+        expect(applyMock).toHaveBeenCalledTimes(1)
+        expect(applyMock).toHaveBeenCalledWith({
             name: "jobName",
             deployments: [{}]
         })

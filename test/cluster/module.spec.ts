@@ -1,94 +1,92 @@
 import { Layers } from "../../src/dispatcher/model/Layers"
 process.env.LAYER = Layers.Standalone
 
-import { init, moduleName, functions } from "../../src/cluster/ClusterModule"
+import { init, clusters, pods, scalers, deployments, updateDeployment } from "../../src/cluster/ClusterModule"
 import { ClusterRepository } from "../../src/cluster/ClusterRepository"
-import { get } from "../../src/dispatcher"
+import { get, call } from "../../src/dispatcher"
 import { RequestInput } from "../../src/dispatcher/model/RequestInput"
 
-const clusters = ["cluster1", "cluster2"]
-const pods = jest.fn()
-const namespaces = jest.fn()
-const deployments = jest.fn()
-const updateDeployment = jest.fn()
-const scalers = jest.fn()
+const podsMock = jest.fn()
+const namespacesMock = jest.fn()
+const deploymentsMock = jest.fn()
+const updateDeploymentMock = jest.fn()
+const scalersMock = jest.fn()
 const repo: ClusterRepository = {
-    clusters, namespaces, pods, deployments, updateDeployment, scalers
+    clusters: ["cluster1", "cluster2"],
+    pods: podsMock,
+    namespaces: namespacesMock,
+    deployments: deploymentsMock,
+    updateDeployment: updateDeploymentMock,
+    scalers: scalersMock
 }
 
 init(repo)
 
-describe("cluster module", () => {
+describe("cluster module", async () => {
 
-    it("calls clusters", () => {
+    it("calls clusters", async () => {
         // when
-        const call = get(moduleName, functions.clusters)()
+        const result = await call(clusters)()
 
         // then
-        expect(call).resolves.toEqual(clusters)
+        expect(result).toEqual(["cluster1", "cluster2"])
     })
 
-    it("calls pods", () => {
+    it("calls pods", async () => {
         // given
-        pods.mockReturnValueOnce({})
+        podsMock.mockReturnValueOnce({})
 
         // when
-        const call = get(moduleName, functions.pods)(
-            RequestInput.of(["cluster", "clusterName"])
-        )
+        const result = await call(pods)({ cluster: "clusterName" })
 
         // then
-        expect(call).resolves.toEqual({})
-        expect(pods).toHaveBeenCalledTimes(1)
-        expect(pods).toHaveBeenCalledWith({ cluster: "clusterName" })
+        expect(result).toEqual({})
+        expect(podsMock).toHaveBeenCalledTimes(1)
+        expect(podsMock).toHaveBeenCalledWith({ cluster: "clusterName" })
     })
 
-    it("calls scalers", () => {
+    it("calls scalers", async () => {
         // given
-        scalers.mockReturnValueOnce({})
+        scalersMock.mockReturnValueOnce({})
 
         // when
-        const call = get(moduleName, functions.scalers)(
-            RequestInput.of(["cluster", "clusterName"])
-        )
+        const result = await call(scalers)({ cluster: "clusterName" })
 
         // then
-        expect(call).resolves.toEqual({})
-        expect(scalers).toHaveBeenCalledTimes(1)
-        expect(scalers).toHaveBeenCalledWith({ cluster: "clusterName" })
+        expect(result).toEqual({})
+        expect(scalersMock).toHaveBeenCalledTimes(1)
+        expect(scalersMock).toHaveBeenCalledWith({ cluster: "clusterName" })
     })
 
-    it("calls deployments", () => {
+    it("calls deployments", async () => {
         // given
-        deployments.mockReturnValueOnce({})
+        deploymentsMock.mockReturnValueOnce({})
 
         // when
-        const call = get(moduleName, functions.deployments)(
-            RequestInput.of(["cluster", "clusterName"])
-        )
+        const result = await call(deployments)({ cluster: "clusterName" })
 
         // then
-        expect(call).resolves.toEqual({})
-        expect(deployments).toHaveBeenCalledTimes(1)
-        expect(deployments).toHaveBeenCalledWith({ cluster: "clusterName" })
+        expect(result).toEqual({})
+        expect(deploymentsMock).toHaveBeenCalledTimes(1)
+        expect(deploymentsMock).toHaveBeenCalledWith({ cluster: "clusterName" })
     })
 
-    it("calls deployments", () => {
+    it("calls deployments", async () => {
         // given
-        updateDeployment.mockReturnValueOnce({})
+        updateDeploymentMock.mockReturnValueOnce({})
         const deployment = { id: 1 }
         const image = { id: 2 }
 
         // when
-        const call = get(moduleName, functions.updateDeployment)(
-            RequestInput.ofData({
-                deployment, image
-            }, ["cluster", "clusterName"])
-        )
+        const result = await call(updateDeployment)({
+            deployment,
+            image,
+            group: { cluster: "clusterName" }
+        })
 
         // then
-        expect(call).resolves.toEqual({})
-        expect(updateDeployment).toHaveBeenCalledTimes(1)
-        expect(updateDeployment).toHaveBeenCalledWith({ cluster: "clusterName" }, deployment, image)
+        expect(result).toEqual({})
+        expect(updateDeploymentMock).toHaveBeenCalledTimes(1)
+        expect(updateDeploymentMock).toHaveBeenCalledWith({ cluster: "clusterName" }, deployment, image)
     })
 })

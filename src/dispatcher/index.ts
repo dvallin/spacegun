@@ -22,7 +22,7 @@ export function get<T>(moduleName: string, procedureName: string): PromiseProvid
 }
 
 export function call<Input, Output>(request: Request<Input, Output>): PromiseProvider<Input, Output> {
-    return (input?: Input) => procedures[path(request.module, request.procedure)](request.input(input))
+    return (input?: Input) => procedures[path(request.module, request.procedure)](request.input ? request.input(input) : undefined)
 }
 
 export function reset(): void {

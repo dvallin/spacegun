@@ -1,25 +1,16 @@
-import { Deployment } from "@/cluster/model/Deployment"
-
-import { get, call } from "@/dispatcher"
-
-import { pad } from "@/pad"
+import * as moment from "moment"
+import * as ora from "ora"
 import chalk from "chalk"
 
-import * as ora from "ora"
+import { call } from "@/dispatcher"
+import { pad } from "@/pad"
 import { IO } from "@/IO"
-import * as moment from "moment"
 
 import * as jobsModule from "@/jobs/JobsModule"
-
 import * as clusterModule from "@/cluster/ClusterModule"
-import { Pod } from "@/cluster/model/Pod"
-
 import * as imageModule from "@/images/ImageModule"
-import { Scaler } from "@/cluster/model/Scaler"
-import { RequestInput } from "@/dispatcher/model/RequestInput"
-import { JobPlan } from "@/jobs/model/JobPlan"
-import { Job } from "@/jobs/model/Job"
-import { Cron } from "@/jobs/model/Cron"
+
+import { Deployment } from "@/cluster/model/Deployment"
 
 export type Command = "namespaces" | "pods" | "images" | "jobs" | "jobSchedules"
     | "run" | "deployments" | "deploy" | "scalers" | "help"
@@ -33,7 +24,7 @@ async function load<T>(p: Promise<T>): Promise<T> {
 }
 
 async function foreachCluster(io: IO, command: (io: IO, cluster: string) => void) {
-    const clusters = await get<string[]>(clusterModule.moduleName, clusterModule.functions.clusters)()
+    const clusters = await load(call(clusterModule.clusters)())
     for (const cluster of clusters) {
         io.out("")
         io.out(chalk.underline.bold(pad(`${cluster}`)))
@@ -42,9 +33,7 @@ async function foreachCluster(io: IO, command: (io: IO, cluster: string) => void
 }
 
 async function foreachNamespace(io: IO, cluster: string, command: (io: IO, cluster: string, namespace?: string) => void) {
-    const namespaces = await get<string[]>(clusterModule.moduleName, clusterModule.functions.namespaces)(
-        RequestInput.of(["cluster", cluster])
-    )
+    const namespaces = await load(call(clusterModule.namespaces)({ cluster }))
     if (namespaces.length === 0) {
         command(io, cluster)
     } else {
@@ -56,9 +45,7 @@ async function foreachNamespace(io: IO, cluster: string, command: (io: IO, clust
 }
 
 async function podsCommand(io: IO, cluster: string, namespace?: string) {
-    const pods = await get<Pod[]>(clusterModule.moduleName, clusterModule.functions.pods)(
-        RequestInput.of(["cluster", cluster], ["namespace", namespace])
-    )
+    const pods = await load(call(clusterModule.pods)({ cluster, namespace }))
     io.out(chalk.bold(pad("pod name", 5) + pad("tag name", 5) + pad("starts", 1) + pad("status", 1)))
     pods.forEach(pod => {
         let restartText
@@ -83,16 +70,14 @@ async function podsCommand(io: IO, cluster: string, namespace?: string) {
 }
 
 async function namespacesCommand(io: IO, cluster: string) {
-    const namespaces = await get<string[]>(clusterModule.moduleName, clusterModule.functions.namespaces)(
-        RequestInput.of(["cluster", cluster])
-    )
+    const namespaces = await load(call(clusterModule.namespaces)({ cluster }))
     namespaces.forEach(namespace =>
         io.out(namespace)
     )
 }
 
 async function imagesCommand(io: IO) {
-    const images = await call(imageModule.images)()
+    const images = await load(call(imageModule.images)())
     images.forEach(image =>
         io.out(image)
     )
@@ -103,7 +88,7 @@ function logJobHeader(io: IO) {
 }
 
 async function jobsCommand(io: IO) {
-    const jobs = await get<Job[]>(jobsModule.moduleName, jobsModule.functions.jobs)()
+    const jobs = await load(call(jobsModule.jobs)())
     logJobHeader(io)
     jobs.forEach(job => {
         io.out(
@@ -116,14 +101,12 @@ async function jobsCommand(io: IO) {
 
 async function jobSchedulesCommand(io: IO) {
     io.out("Choose the target job")
-    const jobs = await get<Job[]>(jobsModule.moduleName, jobsModule.functions.jobs)()
+    const jobs = await call(jobsModule.jobs)()
     jobs.forEach((job, index) => {
         io.out(chalk.bold.cyan(index.toString()) + ": " + pad(job.name, 5))
     })
     const job = await io.choose('> ', jobs)
-    const schedules = await get<Cron>(jobsModule.moduleName, jobsModule.functions.schedules)(
-        RequestInput.of(["name", job.name])
-    )
+    const schedules = await call(jobsModule.schedules)(job)
     logJobHeader(io)
     io.out(
         chalk.bold(pad(job.name, 2))
@@ -145,14 +128,12 @@ async function jobSchedulesCommand(io: IO) {
 
 async function runCommand(io: IO) {
     io.out("Choose the target job")
-    const jobs = await get<Job[]>(jobsModule.moduleName, jobsModule.functions.jobs)()
+    const jobs = await call(jobsModule.jobs)()
     jobs.forEach((job, index) => {
         io.out(chalk.bold.cyan(index.toString()) + ": " + pad(job.name, 5))
     })
     const job = await io.choose('> ', jobs)
-    const plan = await get<JobPlan>(jobsModule.moduleName, jobsModule.functions.plan)(
-        RequestInput.of(["name", job.name])
-    )
+    const plan = await call(jobsModule.plan)(job)
 
     io.out(chalk.bold(`planned deployment ${plan.name}`))
     plan.deployments.forEach(deploymentPlan => {
@@ -170,9 +151,7 @@ async function runCommand(io: IO) {
     io.out("Answer `yes` to apply.")
     const userAgrees = await io.expect('> ', "yes")
     if (userAgrees) {
-        await get<void>(jobsModule.moduleName, jobsModule.functions.run)(
-            RequestInput.ofData(plan, ["name", job])
-        )
+        await call(jobsModule.run)(plan)
     }
 }
 
@@ -191,11 +170,7 @@ function logDeployment(io: IO, deployment: Deployment) {
 }
 
 async function deployementsCommand(io: IO, cluster: string, namespace?: string) {
-    const deployments = await load(
-        get<Deployment[]>(clusterModule.moduleName, clusterModule.functions.deployments)(
-            RequestInput.of(["cluster", cluster], ["namespace", namespace])
-        )
-    )
+    const deployments = await load(call(clusterModule.deployments)({ cluster, namespace }))
     logDeploymentHeader(io)
     deployments.forEach(deployment => {
         logDeployment(io, deployment)
@@ -204,15 +179,13 @@ async function deployementsCommand(io: IO, cluster: string, namespace?: string) 
 
 async function deployCommand(io: IO) {
     io.out("Choose the target cluster")
-    const clusters = await get<string[]>(clusterModule.moduleName, clusterModule.functions.clusters)()
+    const clusters = await load(call(clusterModule.clusters)())
     clusters.forEach((cluster, index) => {
         io.out(chalk.bold.cyan(index.toString()) + ": " + pad(cluster, 5))
     })
     const cluster = await io.choose('> ', clusters)
 
-    const namespaces = await get<string[]>(clusterModule.moduleName, clusterModule.functions.namespaces)(
-        RequestInput.of(["cluster", cluster])
-    )
+    const namespaces = await call(clusterModule.namespaces)({ cluster })
     let namespace = undefined
     if (namespaces.length > 0) {
         io.out("Choose the target namespace")
@@ -222,11 +195,7 @@ async function deployCommand(io: IO) {
         namespace = await io.choose('> ', namespaces)
     }
 
-    const deployments = await load(
-        get<Deployment[]>(clusterModule.moduleName, clusterModule.functions.deployments)(
-            RequestInput.of(["cluster", cluster], ["namespace", namespace])
-        )
-    )
+    const deployments = await load(call(clusterModule.deployments)({ cluster, namespace }))
 
     io.out("Choose the target deployment")
     deployments.forEach((deployment, index) => {
@@ -251,18 +220,18 @@ async function deployCommand(io: IO) {
     io.out("Answer `yes` to apply.")
     const userAgrees = await io.expect('> ', "yes")
     if (userAgrees) {
-        const updated = await get<Deployment>(clusterModule.moduleName, clusterModule.functions.updateDeployment)(
-            RequestInput.ofData({ deployment, image }, ["cluster", cluster])
-        )
+        const updated = await load(call(clusterModule.updateDeployment)({
+            deployment,
+            image,
+            group: { cluster, namespace }
+        }))
         logDeploymentHeader(io)
         logDeployment(io, updated)
     }
 }
 
 async function scalersCommand(io: IO, cluster: string, namespace?: string) {
-    const scalers = await load(get<Scaler[]>(clusterModule.moduleName, clusterModule.functions.scalers)(
-        RequestInput.of(["cluster", cluster], ["namespace", namespace])
-    ))
+    const scalers = await load(call(clusterModule.scalers)({ cluster, namespace }))
     io.out(chalk.bold(pad("scaler name", 5) + pad("replication", 7)))
     io.out(chalk.bold(pad("", 5) + pad("current", 3) + pad("minimum", 2) + pad("maximum", 2)))
     scalers.forEach(scaler => {
@@ -305,7 +274,7 @@ export async function printHelp(io: IO, error?: Error) {
         io.out(c(error.message))
         io.out("")
     } else {
-        const clusters = await get<string[]>(clusterModule.moduleName, clusterModule.functions.clusters)()
+        const clusters = await call(clusterModule.clusters)()
         io.out('configured clusters: ' + m(clusters.join(", ")))
 
         const endpoint = await call(imageModule.endpoint)()

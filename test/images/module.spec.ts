@@ -15,35 +15,35 @@ init(repo)
 
 describe("image module", () => {
 
-    it("calls endpoint", () => {
+    it("calls endpoint", async () => {
         // when
-        const promise = call(endpoint)()
+        const result = await call(endpoint)()
 
         // then
-        expect(promise).resolves.toEqual(endpoint)
+        expect(result).toEqual("someEndpoint")
     })
 
-    it("calls images", () => {
+    it("calls images", async () => {
         // given
         imagesMock.mockReturnValueOnce({})
 
         // when
-        const promise = call(images)()
+        const result = await call(images)()
 
         // then
-        expect(promise).resolves.toEqual({})
+        expect(result).toEqual({})
         expect(imagesMock).toHaveBeenCalledTimes(1)
     })
 
-    it("calls versions", () => {
+    it("calls versions", async () => {
         // given
         versionsMock.mockReturnValueOnce({})
 
         // when
-        const promise = call(versions)({ name: "imageName" })
+        const result = await call(versions)({ name: "imageName" })
 
         // then
-        expect(promise).resolves.toEqual({})
+        expect(result).toEqual({})
         expect(versionsMock).toHaveBeenCalledTimes(1)
         expect(versionsMock).toHaveBeenCalledWith("imageName")
     })

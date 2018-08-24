@@ -13,16 +13,12 @@ export function init(repository: ImageRepository) {
 
 export const images: Request<void, string[]> = {
     module: "images",
-    procedure: "images",
-    input: () => RequestInput.of(),
-    mapper: ({ }: RequestInput) => undefined
+    procedure: "images"
 }
 
 export const endpoint: Request<void, string> = {
     module: "images",
-    procedure: "endpoint",
-    input: () => RequestInput.of(),
-    mapper: ({ }: RequestInput) => undefined
+    procedure: "endpoint"
 }
 
 export const versions: Request<{ name: string }, Image[]> = {
