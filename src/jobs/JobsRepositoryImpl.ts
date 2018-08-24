@@ -3,14 +3,13 @@ import { Job } from "@/jobs/model/Job"
 import { JobPlan } from "@/jobs/model/JobPlan"
 import { DeploymentPlan } from "@/jobs/model/DeploymentPlan"
 
-import { get } from "@/dispatcher"
+import { get, call } from "@/dispatcher"
 import { RequestInput } from "@/dispatcher/model/RequestInput"
 
 import * as clusterModule from "@/cluster/ClusterModule"
 import { Deployment } from "@/cluster/model/Deployment"
 
 import * as imageModule from "@/images/ImageModule"
-import { Image } from "@/images/model/Image"
 import { JobsRepository } from "@/jobs/JobsRepository"
 import { Cron } from "@/jobs/model/Cron"
 import { IO } from "@/IO"
@@ -149,9 +148,7 @@ export class JobsRepositoryImpl implements JobsRepository {
                 console.error(`${targetDeployment.name} in cluster ${group.cluster} has no image, so spacegun cannot determine the right image source`)
                 continue
             }
-            const versions = await get<Image[]>(imageModule.moduleName, imageModule.functions.versions)(
-                RequestInput.of(["name", targetDeployment.image.name])
-            )
+            const versions = await call(imageModule.versions)(targetDeployment.image)
             const newestImage = versions
                 .filter(image => image.tag.match(tagMatcher))
                 .reduce((a, b) => a.lastUpdated > b.lastUpdated ? a : b)

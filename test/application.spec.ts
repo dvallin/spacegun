@@ -14,7 +14,7 @@ describe("Application", () => {
         jest.resetAllMocks()
         process.chdir(__dirname)
         const io = new IO()
-        const crons = { register: jest.fn(), removeAllCrons: jest.fn() }
+        const crons = { register: jest.fn(), startAllCrons: jest.fn(), removeAllCrons: jest.fn() }
         const options = {}
         app = new Application(io, crons, options)
     })

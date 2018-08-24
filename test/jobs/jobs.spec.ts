@@ -1,5 +1,6 @@
 jest.useFakeTimers()
 
+import { Request } from "../../src/dispatcher/model/Request"
 import { Layers } from "../../src/dispatcher/model/Layers"
 process.env.LAYER = Layers.Standalone
 
@@ -48,10 +49,14 @@ dispatcher.get = (moduleName: string, procedureName: string) => {
                 }
             }
         }
-        case imageModule.moduleName: {
-            switch (procedureName) {
-                case imageModule.functions.versions: {
-                    return (input: RequestInput) => (versions[input.params["name"]])
+    }
+}
+dispatcher.call = (request: Request<any, any>) => {
+    switch (request.module) {
+        case "images": {
+            switch (request.procedure) {
+                case "versions": {
+                    return (input: { name: string }) => (versions[input.name])
                 }
             }
         }

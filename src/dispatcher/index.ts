@@ -1,6 +1,7 @@
 
 import { PromiseProvider } from "@/dispatcher/model/PromiseProvider"
 import { RequestInput } from "@/dispatcher/model/RequestInput"
+import { Request } from "@/dispatcher/model/Request"
 import { build, listen, init } from "@/dispatcher/api"
 
 let procedures: {
@@ -18,6 +19,10 @@ export function add<T>(moduleName: string, procedureName: string, procedure: Pro
 
 export function get<T>(moduleName: string, procedureName: string): PromiseProvider<RequestInput, T> {
     return procedures[path(moduleName, procedureName)]
+}
+
+export function call<Input, Output>(request: Request<Input, Output>): PromiseProvider<Input, Output> {
+    return (input?: Input) => procedures[path(request.module, request.procedure)](request.input(input))
 }
 
 export function reset(): void {

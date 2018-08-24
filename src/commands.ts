@@ -1,6 +1,6 @@
 import { Deployment } from "@/cluster/model/Deployment"
 
-import { get } from "@/dispatcher"
+import { get, call } from "@/dispatcher"
 
 import { pad } from "@/pad"
 import chalk from "chalk"
@@ -15,7 +15,6 @@ import * as clusterModule from "@/cluster/ClusterModule"
 import { Pod } from "@/cluster/model/Pod"
 
 import * as imageModule from "@/images/ImageModule"
-import { Image } from "@/images/model/Image"
 import { Scaler } from "@/cluster/model/Scaler"
 import { RequestInput } from "@/dispatcher/model/RequestInput"
 import { JobPlan } from "@/jobs/model/JobPlan"
@@ -93,7 +92,7 @@ async function namespacesCommand(io: IO, cluster: string) {
 }
 
 async function imagesCommand(io: IO) {
-    const images = await get<string[]>(imageModule.moduleName, imageModule.functions.images)()
+    const images = await call(imageModule.images)()
     images.forEach(image =>
         io.out(image)
     )
@@ -235,11 +234,8 @@ async function deployCommand(io: IO) {
     })
     const deployment = await io.choose('> ', deployments)
 
-    const versions = await load(
-        get<Image[]>(imageModule.moduleName, imageModule.functions.versions)(
-            RequestInput.of(["name", deployment.image!.name])
-        )
-    )
+    const versions = await load(call(imageModule.versions)(deployment.image!))
+
     versions.sort((a, b) => b.lastUpdated - a.lastUpdated)
     io.out("Choose the target image")
     versions.forEach((image, index) => {
@@ -312,7 +308,7 @@ export async function printHelp(io: IO, error?: Error) {
         const clusters = await get<string[]>(clusterModule.moduleName, clusterModule.functions.clusters)()
         io.out('configured clusters: ' + m(clusters.join(", ")))
 
-        const endpoint = await get<string>(imageModule.moduleName, imageModule.functions.endpoint)()
+        const endpoint = await call(imageModule.endpoint)()
         io.out('configured image endpoint: ' + m(endpoint))
     }
 

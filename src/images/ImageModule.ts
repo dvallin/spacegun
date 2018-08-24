@@ -1,46 +1,61 @@
 import { RequestInput } from "@/dispatcher/model/RequestInput"
+import { Request } from "@/dispatcher/model/Request"
 import { Component } from "@/dispatcher/component"
 import { Layers } from "@/dispatcher/model/Layers"
 
 import { ImageRepository } from "@/images/ImageRepository"
-import { Image } from "@/cluster/model/Image"
+import { Image } from "@/images/model/Image"
 
 let repo: ImageRepository | undefined = undefined
 export function init(repository: ImageRepository) {
     repo = repository
 }
 
-export const moduleName = "images"
-export const functions = {
-    images: "images",
-    versions: "versions",
-    endpoint: "endpoint"
+export const images: Request<void, string[]> = {
+    module: "images",
+    procedure: "images",
+    input: () => RequestInput.of(),
+    mapper: ({ }: RequestInput) => undefined
+}
+
+export const endpoint: Request<void, string> = {
+    module: "images",
+    procedure: "endpoint",
+    input: () => RequestInput.of(),
+    mapper: ({ }: RequestInput) => undefined
+}
+
+export const versions: Request<{ name: string }, Image[]> = {
+    module: "images",
+    procedure: "versions",
+    input: (input: { name: string } | undefined) => RequestInput.of(["name", input!.name]),
+    mapper: (input: RequestInput) => ({ name: input.params!["name"] as string })
 }
 
 export class Module {
 
     @Component({
-        moduleName,
+        moduleName: endpoint.module,
         layer: Layers.Server
     })
-    async [functions.endpoint](): Promise<string> {
+    async [endpoint.procedure](): Promise<string> {
         return repo!.endpoint
     }
 
     @Component({
-        moduleName,
+        moduleName: images.module,
         layer: Layers.Server
     })
-    async [functions.images](): Promise<string[]> {
+    async [images.procedure](): Promise<string[]> {
         return repo!.images()
     }
 
     @Component({
-        moduleName,
+        moduleName: versions.module,
         layer: Layers.Server,
-        mapper: (p: RequestInput) => p.params!["name"]
+        mapper: versions.mapper
     })
-    async [functions.versions](name: string): Promise<Image[]> {
-        return repo!.versions(name)
+    async [versions.procedure](params: { name: string }): Promise<Image[]> {
+        return repo!.versions(params.name)
     }
 }

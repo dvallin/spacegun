@@ -3,8 +3,13 @@ import { commands } from "../src/commands"
 const out = jest.fn()
 
 import * as dispatcher from "../src/dispatcher"
+
 const dispatched = jest.fn()
 const dispatchFn = jest.fn()
+dispatcher.call = (request: any) => {
+    dispatched(request.module, request.procedure)
+    return dispatchFn
+}
 dispatcher.get = (moduleName: string, procedureName: string) => {
     dispatched(moduleName, procedureName)
     return dispatchFn
