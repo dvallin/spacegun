@@ -12,7 +12,6 @@ describe("Application", () => {
     let app
     beforeEach(() => {
         jest.resetAllMocks()
-        process.chdir(__dirname)
         const io = new IO()
         const crons = { register: jest.fn(), startAllCrons: jest.fn(), removeAllCrons: jest.fn() }
         const options = {}
@@ -25,26 +24,17 @@ describe("Application", () => {
     })
 
     it("registers the cronjobs", async () => {
-        app.options.config = "./test-config/config.yml"
+        app.options.config = "test/test-config/config.yml"
         process.env.LAYER = Layers.Server
         await app.run()
         expect(app.crons.register).toHaveBeenCalledTimes(3)
         expect(callParameters(app.crons.register, 0)[0]).toEqual("config-reload")
         expect(callParameters(app.crons.register, 1)[0]).toEqual("dev")
         expect(callParameters(app.crons.register, 2)[0]).toEqual("pre")
-        expect(app.crons.removeAllCrons).toHaveBeenCalledTimes(1)
-    })
-
-    it("registers the cronjobs", async () => {
-        app.options.config = "./test-config/config.yml"
-        process.env.LAYER = Layers.Standalone
-        await app.run()
-        expect(app.crons.register).toHaveBeenCalledTimes(0)
-        expect(app.crons.removeAllCrons).toHaveBeenCalledTimes(1)
     })
 
     it("reloads the cronjobs", async () => {
-        app.options.config = "./test-config/config.yml"
+        app.options.config = "test/test-config/config.yml"
         process.env.LAYER = Layers.Server
         const hasNewConfig = () => (Promise.resolve(true))
         const fetchNewConfig = () => (Promise.resolve())

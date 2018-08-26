@@ -43,12 +43,8 @@ export class JobsRepositoryImpl implements JobsRepository {
         return Array.from(this.jobs.values())
     }
 
-    public async schedules(name: string): Promise<Cron> {
-        const cron = this.cronRegistry.get(name)
-        if (cron !== undefined) {
-            return Promise.resolve(cron)
-        }
-        return Promise.reject(`job ${name} not found.`)
+    public async schedules(name: string): Promise<Cron | undefined> {
+        return Promise.resolve(this.cronRegistry.get(name))
     }
 
     public async start(): Promise<void> {

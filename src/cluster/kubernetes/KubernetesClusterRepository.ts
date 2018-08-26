@@ -3,6 +3,7 @@ import { Image } from "@/cluster/model/Image"
 import { Deployment } from "@/cluster/model/Deployment"
 import { Scaler } from "@/cluster/model/Scaler"
 import { ClusterRepository } from "@/cluster/ClusterRepository"
+import { Cache } from "@/Cache"
 
 const cloneDeep = require("lodash.clonedeep")
 
@@ -28,6 +29,8 @@ class UpdateDeploymentApi extends Apps_v1beta2Api {
 
 export class KubernetesClusterRepository implements ClusterRepository {
 
+    private namespacesCache: Cache<string, string[]> = new Cache(60)
+
     public static fromConfig(configFile: string, namespaces?: string[]): KubernetesClusterRepository {
         const config = new KubeConfig()
         config.loadFromFile(configFile)
@@ -50,11 +53,13 @@ export class KubernetesClusterRepository implements ClusterRepository {
     }
 
     async namespaces(context: string): Promise<string[]> {
-        const api = this.build(context, (server: string) => new Core_v1Api(server))
-        const result: V1NamespaceList = await api.listNamespace().get("body")
-        return result.items
-            .map(namespace => namespace.metadata.name)
-            .filter(namespace => this.isNamespaceAllowed(namespace))
+        return this.namespacesCache.calculate(context, async () => {
+            const api = this.build(context, (server: string) => new Core_v1Api(server))
+            const result: V1NamespaceList = await api.listNamespace().get("body")
+            return result.items
+                .map(namespace => namespace.metadata.name)
+                .filter(namespace => this.isNamespaceAllowed(namespace))
+        })
     }
 
     async pods(group: ServerGroup): Promise<Pod[]> {

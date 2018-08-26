@@ -114,16 +114,20 @@ async function jobSchedulesCommand(io: IO) {
         + pad(job.cluster, 2)
     )
     io.out("")
-    if (schedules.lastRun !== undefined) {
+    if (schedules !== undefined && schedules.lastRun !== undefined) {
         io.out(chalk.magenta("last run") + moment(schedules.lastRun).toISOString())
     } else {
         io.out(chalk.magenta.bold("not run yet!"))
     }
     io.out("")
     io.out(chalk.underline.bold(pad("scheduled runs", 8)))
-    schedules.nextRuns.forEach(run => {
-        io.out(moment(run).toISOString())
-    })
+    if (schedules !== undefined) {
+        schedules.nextRuns.forEach(run => {
+            io.out(moment(run).toISOString())
+        })
+    } else {
+        io.out("not scheduling this job!")
+    }
 }
 
 async function runCommand(io: IO) {

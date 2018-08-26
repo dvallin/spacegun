@@ -8,7 +8,7 @@ export interface JobsRepository {
     crons: Cron[]
 
     plan(name: string): Promise<JobPlan>
-    schedules(name: string): Promise<Cron>
+    schedules(name: string): Promise<Cron | undefined>
     apply(plan: JobPlan): Promise<void>
     start(): Promise<void>
 }
