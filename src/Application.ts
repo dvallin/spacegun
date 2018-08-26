@@ -17,6 +17,7 @@ import { JobsRepositoryImpl } from "@/jobs/JobsRepositoryImpl"
 import { init as initJobs } from "@/jobs/JobsModule"
 import { init as initCluster } from "@/cluster/ClusterModule"
 import { init as initImages } from "@/images/ImageModule"
+import { init as initViews } from "@/views"
 
 import { Options } from "@/options"
 
@@ -46,8 +47,6 @@ export class Application {
             }
         } catch (e) {
             printHelp(this.io, e)
-        } finally {
-            this.crons.removeAllCrons()
         }
     }
 
@@ -79,6 +78,7 @@ export class Application {
             )
         }
 
+        initViews(config)
         initCluster(KubernetesClusterRepository.fromConfig(config.kube, config.namespaces))
         initImages(DockerImageRepository.fromConfig(config.docker))
         initJobs(JobsRepositoryImpl.fromConfig(config.jobs, this.crons))

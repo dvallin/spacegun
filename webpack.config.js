@@ -1,8 +1,11 @@
 const path = require('path')
 const webpack = require('webpack')
 const BundleAnalyzerPlugin = require("webpack-bundle-analyzer").BundleAnalyzerPlugin
+const CopyWebpackPlugin = require('copy-webpack-plugin')
 
 const fs = require('fs');
+
+var pjson = require('./package.json')
 
 var nodeModules = {};
 fs.readdirSync('node_modules')
@@ -16,12 +19,17 @@ fs.readdirSync('node_modules')
 const plugins = [
     new webpack.DefinePlugin({
         'process.env': {
-            NODE_ENV: JSON.stringify(process.env.NODE_ENV),
             LAYER: JSON.stringify(process.env.LAYER),
+            VIEW_FOLDER: "'src/views'",
             SERVER_PORT: '3000',
-            SERVER_HOST: "'localhost'"
+            SERVER_HOST: "'localhost'",
+            VERSION: JSON.stringify(pjson.version)
         }
-    })
+    }),
+    new CopyWebpackPlugin([
+        { context: 'src', from: 'views/**/*.pug' },
+        "assets/**/*.css"
+    ])
 ]
 if (process.env.ANALYZE === "true") {
     plugins.push(new BundleAnalyzerPlugin())
@@ -45,7 +53,7 @@ module.exports = {
                 options: {
                     useBabel: true
                 }
-            },
+            }
         ]
     },
     resolve: {
@@ -55,5 +63,8 @@ module.exports = {
         }
     },
     plugins,
-    devtool: 'source-map'
+    devtool: 'source-map',
+    node: {
+        __dirname: false
+    }
 }

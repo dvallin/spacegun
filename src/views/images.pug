@@ -1,0 +1,24 @@
+doctype html
+html(lang="en")
+  include includes/head.pug
+body
+    h1
+        a(href="/")="Home"
+        span=" ∞ Images"
+    
+
+    h3=name
+    table(class="u-full-width")
+        thead
+            tr
+                th="Name"
+                th="Tag"
+                th="Last Updated"
+                th="Url"
+        tbody
+            each version in versions
+                tr
+                    td=version.name
+                    td=version.tag
+                    td=version.lastUpdated
+                    td=version.url

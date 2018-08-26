@@ -95,8 +95,8 @@ export class Module {
         layer: Layers.Server,
         mapper: namespaces.mapper
     })
-    async [namespaces.procedure](cluster: string): Promise<string[]> {
-        return repo!.namespaces(cluster)
+    async [namespaces.procedure](params: { cluster: string }): Promise<string[]> {
+        return repo!.namespaces(params.cluster)
     }
 
     @Component({

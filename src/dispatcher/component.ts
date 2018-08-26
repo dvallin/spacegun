@@ -26,7 +26,7 @@ function addPromiseProvider<T>(
     let procedure
     const procedurePath = path(configuration.moduleName, procedureName)
     if (isLocalCallable(configuration.layer)) {
-        procedure = (input: RequestInput = {}) => {
+        procedure = (input?: RequestInput) => {
             let mappedInput = undefined
             if (input) {
                 if (configuration.mapper) {

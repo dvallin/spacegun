@@ -23,7 +23,7 @@ export const jobs: Request<void, Job[]> = {
     procedure: "jobs"
 }
 
-export const schedules: Request<{ name: string }, Cron> = {
+export const schedules: Request<{ name: string }, Cron | undefined> = {
     module: "jobs",
     procedure: "schedules",
     input: (input: { name: string } | undefined) => RequestInput.of(["name", input!.name]),
@@ -62,7 +62,7 @@ export class Module {
         layer: Layers.Server,
         mapper: schedules.mapper
     })
-    async [schedules.procedure](params: { name: string }): Promise<Cron> {
+    async [schedules.procedure](params: { name: string }): Promise<Cron | undefined> {
         return repo!.schedules(params.name)
     }
 

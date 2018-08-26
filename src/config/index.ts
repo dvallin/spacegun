@@ -24,16 +24,15 @@ export interface Config {
 
 export function load(filePath: string = "./config.yml"): Config {
     const path = parse(filePath)
-    process.chdir(path.dir)
-    const doc = safeLoad(readFileSync(path.base, 'utf8')) as Partial<Config>
-    return validateConfig(doc)
+    const doc = safeLoad(readFileSync(filePath, 'utf8')) as Partial<Config>
+    return validateConfig(path.dir, doc)
 }
 
-export function validateConfig(partial: Partial<Config>): Config {
-    const {
-        kube = homedir() + "/.kube/config",
+export function validateConfig(configBasePath: string, partial: Partial<Config>): Config {
+    let {
+        kube,
         namespaces,
-        jobs = "./jobs",
+        jobs,
         server = {},
         docker,
         git
@@ -41,6 +40,18 @@ export function validateConfig(partial: Partial<Config>): Config {
 
     if (docker === undefined) {
         throw new Error(`a docker endpoint is needed`)
+    }
+
+    if (kube === undefined) {
+        kube = homedir() + "/.kube/config"
+    } else {
+        kube = `${configBasePath}/${kube}`
+    }
+
+    if (jobs === undefined) {
+        jobs = `${configBasePath}/jobs`
+    } else {
+        jobs = `${configBasePath}/${jobs}`
     }
 
     return { kube, jobs, namespaces, git, server: validateServerConfig(server), docker }

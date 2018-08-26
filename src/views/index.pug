@@ -1,0 +1,65 @@
+doctype html
+html(lang="en")
+  include includes/head.pug
+body
+    h1="Welcome to Spacegun "+version
+
+    h2="Clusters"
+    table(class="u-full-width")
+        thead
+            tr
+                th="Name"
+                th="Known Namespaces"
+        tbody
+            each cluster in clusters
+                tr
+                    td
+                        a(href=`pods/${cluster.name}`)=cluster.name
+                    td=cluster.namespaces
+
+    h2="Jobs"
+    table(class="u-full-width")
+        thead
+            tr
+                th="Name"
+                th="Type"
+                th="Expression"
+                th="Last Run"
+                th="Next Run"
+        tbody
+            each job in jobs
+                tr
+                    td=job.job.name
+                    td=job.job.from.type
+                    td=job.job.from.expression
+                    td=job.lastRun
+                    td=job.nextRun
+
+    h2="Images"
+    each image in images
+        div(class="u-pull-left")
+            a(href=`images/${image}`, class="card")=image
+    div(class="u-cf")
+
+    h2="Configuration"
+    pre
+        code
+            span.
+                kube: #{config.kube}
+                kube: #{config.docker}
+                jobs: #{config.jobs}
+
+            if config.namespaces
+                span.
+                    namespaces: [#{config.namespaces}]
+
+            if config.git
+                span.
+                    git:
+                        remote: #{config.git.remote}
+                        cron: #{config.git.cron}
+
+            span.
+                server:
+                    host: #{config.server.host}
+                    port: #{config.server.port}

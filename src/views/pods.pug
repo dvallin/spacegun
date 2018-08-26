@@ -1,0 +1,28 @@
+doctype html
+html(lang="en")
+  include includes/head.pug
+body
+    h1
+        a(href="/")="Home"
+        span=" ∞ Pods"
+    
+
+    each n in namespaces
+        h3=name+" ∞ "+n.name
+        table(class="u-full-width")
+            thead
+                tr
+                    th="Name"
+                    th="State"
+                    th="Image Tag"
+                    th="Restarts"
+            tbody
+                each pod in n.pods
+                    tr
+                        td=pod.name
+                        if pod.ready
+                            td="Up"
+                        else
+                            td="Down"
+                        td=pod.image.tag
+                        td=pod.restarts
