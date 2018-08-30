@@ -2,15 +2,15 @@ import { path } from "@/dispatcher"
 import { createServer, Context, Next, MiddleWare, createRouter, createViews } from "@/dispatcher/server"
 import { PromiseProvider } from "@/dispatcher/model/PromiseProvider"
 import { ComponentConfiguration } from "@/dispatcher/component"
-import { queryToParams } from "@/dispatcher/model/Params"
 import { Methods } from "@/dispatcher/model/Methods"
-import { ResourceConfiguration } from "@/dispatcher/resource";
+import { ResourceConfiguration } from "@/dispatcher/resource"
+import { Params } from "@/dispatcher/model/Params"
 
 function handle<S, T>(procedure: PromiseProvider<S, T>, configuration: ComponentConfiguration<S>): MiddleWare {
     return async (context: Context, next: Next) => {
         let mappedInput = undefined
         if (configuration.mapper) {
-            mappedInput = configuration.mapper({ params: queryToParams(context.query), data: context.request.body })
+            mappedInput = configuration.mapper({ params: context.query as Params, data: context.request.body })
         }
         const output = await procedure(mappedInput)
         context.body = JSON.stringify(output)

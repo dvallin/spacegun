@@ -97,7 +97,7 @@ describe("register", () => {
             const handle: (context: Context, next: Next) => Promise<{}> = callParameters(get, 0)[1]
             const context: Context = { request: { body: undefined }, query: { some: "param" } }
             await handle(context, () => (Promise.resolve()))
-            expect(mapper).toHaveBeenCalledWith({ data: undefined, params: { some: ["param"] } })
+            expect(mapper).toHaveBeenCalledWith({ data: undefined, params: { some: "param" } })
         })
 
         it("decodes request body", async () => {
