@@ -22,7 +22,7 @@ interface DockerV1ManifestLayer {
     created: string
 }
 
-const axiosConfig: AxiosRequestConfig = { timeout: 1000 }
+const axiosConfig: AxiosRequestConfig = { timeout: 20000 }
 
 export class DockerImageRepository implements ImageRepository {
 

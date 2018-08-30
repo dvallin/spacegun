@@ -4,7 +4,7 @@ import axios, { AxiosResponse } from "axios"
 
 describe("DockerImageProvider", () => {
 
-    const config = { timeout: 1000 }
+    const config = { timeout: 20000 }
 
     let provider
     beforeEach(() => {
