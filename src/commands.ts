@@ -27,7 +27,6 @@ async function foreachCluster(io: IO, command: (io: IO, cluster: string) => void
     const clusters = await load(call(clusterModule.clusters)())
     for (const cluster of clusters) {
         io.out("")
-        io.out(chalk.underline.bold(pad(`${cluster}`)))
         await command(io, cluster)
     }
 }
@@ -38,7 +37,8 @@ async function foreachNamespace(io: IO, cluster: string, command: (io: IO, clust
         command(io, cluster)
     } else {
         for (const namespace of namespaces) {
-            io.out(chalk.bold(pad(`${namespace}`)))
+            io.out(chalk.bold(pad(``)))
+            io.out(chalk.underline.bold(pad(`${cluster} ∞ ${namespace}`)))
             await command(io, cluster, namespace)
         }
     }
@@ -70,6 +70,7 @@ async function podsCommand(io: IO, cluster: string, namespace?: string) {
 }
 
 async function namespacesCommand(io: IO, cluster: string) {
+    io.out(chalk.underline.bold(pad(`${cluster}`)))
     const namespaces = await load(call(clusterModule.namespaces)({ cluster }))
     namespaces.forEach(namespace =>
         io.out(namespace)
