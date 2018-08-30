@@ -1,4 +1,4 @@
-import axios from "axios"
+import axios, { AxiosRequestConfig } from "axios"
 
 import { ImageRepository } from "@/images/ImageRepository"
 import { Image } from "@/images/model/Image"
@@ -22,6 +22,8 @@ interface DockerV1ManifestLayer {
     created: string
 }
 
+const axiosConfig: AxiosRequestConfig = { timeout: 1000 }
+
 export class DockerImageRepository implements ImageRepository {
 
     private imageCache: Cache<null, string[]> = new Cache(60)
@@ -43,7 +45,8 @@ export class DockerImageRepository implements ImageRepository {
     public async images(): Promise<string[]> {
         return this.imageCache.calculate(null, async () => {
             const repositories = await axios.get<DockerRepositoriesResponse>(
-                `${this.endpoint}/v2/_catalog`
+                `${this.endpoint}/v2/_catalog`,
+                axiosConfig
             )
             return await repositories.data.repositories
         })
@@ -52,7 +55,8 @@ export class DockerImageRepository implements ImageRepository {
     public async versions(name: string): Promise<Image[]> {
         return this.versionsCache.calculate(name, async () => {
             const tags = await axios.get<DockerTagsResponse>(
-                `${this.endpoint}/v2/${name}/tags/list`
+                `${this.endpoint}/v2/${name}/tags/list`,
+                axiosConfig
             )
             return Promise.all(tags.data.tags.map(async (tag) => {
                 const lastUpdated = await this.lastUpdated(name, tag)
@@ -69,7 +73,8 @@ export class DockerImageRepository implements ImageRepository {
     private async lastUpdated(name: string, tag: string): Promise<number> {
         return this.lastUpdatedCache.calculate(`${name}/${tag}`, async () => {
             const manifest = await axios.get<DockerManifestsReponse>(
-                `${this.endpoint}/v2/${name}/manifests/${tag}`
+                `${this.endpoint}/v2/${name}/manifests/${tag}`,
+                axiosConfig
             )
             return manifest.data.history
                 .map(update => JSON.parse(update.v1Compatibility) as DockerV1ManifestLayer)

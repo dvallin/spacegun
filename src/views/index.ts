@@ -15,39 +15,56 @@ export class Module {
 
     @Resource({ path: "/" })
     public async index(): Promise<object> {
-        const knownClusters: string[] = await call(clusters)()
-        const clustersWithNamespaces = []
-        for (const cluster of knownClusters) {
-            const knownNamespaces = await call(namespaces)({ cluster })
-            clustersWithNamespaces.push({
-                name: cluster,
-                namespaces: knownNamespaces
-            })
-        }
+        const errors: string[] = []
 
-        const knownJobs = await call(jobs)()
-        const jobsWithSchedules = []
-        for (const job of knownJobs) {
-            let knownSchedules = await call(schedules)(job)
-            let lastRun: string | undefined
-            let nextRun: string | undefined
-            if (knownSchedules !== undefined) {
-                if (knownSchedules.lastRun !== undefined) {
-                    lastRun = moment(knownSchedules.lastRun).toISOString()
-                }
-                if (knownSchedules.nextRuns.length > 0) {
-                    nextRun = moment(knownSchedules.nextRuns[0]).toISOString()
-                }
+        let clustersWithNamespaces = undefined
+        try {
+            const knownClusters: string[] = await call(clusters)()
+            clustersWithNamespaces = []
+            for (const cluster of knownClusters) {
+                const knownNamespaces = await call(namespaces)({ cluster })
+                clustersWithNamespaces.push({
+                    name: cluster,
+                    namespaces: knownNamespaces
+                })
             }
-            jobsWithSchedules.push({
-                job,
-                lastRun,
-                nextRun,
-                config
-            })
+        } catch (e) {
+            errors.push("Clusters could not be loaded: " + e.message)
         }
 
-        const knownImages = await call(images)()
+        let jobsWithSchedules = undefined
+        try {
+            const knownJobs = await call(jobs)()
+            jobsWithSchedules = []
+            for (const job of knownJobs) {
+                let knownSchedules = await call(schedules)(job)
+                let lastRun: string | undefined
+                let nextRun: string | undefined
+                if (knownSchedules !== undefined) {
+                    if (knownSchedules.lastRun !== undefined) {
+                        lastRun = moment(knownSchedules.lastRun).toISOString()
+                    }
+                    if (knownSchedules.nextRuns.length > 0) {
+                        nextRun = moment(knownSchedules.nextRuns[0]).toISOString()
+                    }
+                }
+                jobsWithSchedules.push({
+                    job,
+                    lastRun,
+                    nextRun,
+                    config
+                })
+            }
+        } catch (e) {
+            errors.push("Jobs could not be loaded: " + e.message)
+        }
+
+        let knownImages = undefined
+        try {
+            knownImages = await call(images)()
+        } catch (e) {
+            errors.push("Images could not be loaded: " + e.message)
+        }
 
         return {
             title: "Spacegun ∞ Dashboard",
@@ -55,7 +72,8 @@ export class Module {
             jobs: jobsWithSchedules,
             images: knownImages,
             config,
-            version: process.env.VERSION
+            version: process.env.VERSION,
+            errors
         }
     }
 
