@@ -20,7 +20,6 @@ const plugins = [
     new webpack.DefinePlugin({
         'process.env': {
             LAYER: JSON.stringify(process.env.LAYER),
-            VIEW_FOLDER: "'src/views'",
             SERVER_PORT: '3000',
             SERVER_HOST: "'localhost'",
             VERSION: JSON.stringify(pjson.version)
