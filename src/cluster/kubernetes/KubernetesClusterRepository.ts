@@ -11,7 +11,7 @@ import {
     KubeConfig,
     Core_v1Api, V1PodList,
     Apps_v1beta2Api, V1beta2DeploymentList,
-    Autoscaling_v1Api, V1HorizontalPodAutoscalerList, V1beta2Deployment, V1Container, V1NamespaceList
+    Autoscaling_v1Api, V1HorizontalPodAutoscalerList, V1beta2Deployment, V1Container, V1NamespaceList, V1PodStatus
 } from '@kubernetes/client-node'
 import { ServerGroup } from "@/cluster/model/ServerGroup"
 
@@ -72,8 +72,7 @@ export class KubernetesClusterRepository implements ClusterRepository {
             if (item.status.containerStatuses != undefined && item.status.containerStatuses.length >= 1) {
                 restarts = item.status.containerStatuses[0].restartCount
             }
-            const readyCondition = item.status.conditions.find(c => c.type === 'Ready')
-            const ready = readyCondition !== undefined && readyCondition.status === 'True'
+            const ready = this.isReady(item.status)
             return {
                 name: item.metadata.name,
                 image, restarts, ready
@@ -139,6 +138,11 @@ export class KubernetesClusterRepository implements ClusterRepository {
     private isNamespaceAllowed(namespace: string): boolean {
         return this.allowedNamespaces === undefined
             || this.allowedNamespaces.find(n => n === namespace) !== undefined
+    }
+
+    private isReady(status: V1PodStatus): boolean {
+        const readyCondition = status.conditions && status.conditions.find(c => c.type === 'Ready')
+        return readyCondition !== undefined && readyCondition.status === 'True'
     }
 
     private createImage(containers: Array<V1Container> | undefined): Image | undefined {

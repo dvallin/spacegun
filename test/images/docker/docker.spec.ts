@@ -4,6 +4,8 @@ import axios, { AxiosResponse } from "axios"
 
 describe("DockerImageProvider", () => {
 
+    const config = { timeout: 1000 }
+
     let provider
     beforeEach(() => {
         provider = DockerImageRepository.fromConfig("http://repo")
@@ -18,7 +20,7 @@ describe("DockerImageProvider", () => {
 
         it("retrieves images", async () => {
             expect(provider.images()).resolves.toEqual(images)
-            expect(axios.get).toHaveBeenCalledWith("http://repo/v2/_catalog")
+            expect(axios.get).toHaveBeenCalledWith("http://repo/v2/_catalog", config)
         })
 
         it("caches images", async () => {
@@ -50,9 +52,9 @@ describe("DockerImageProvider", () => {
                 { name: "image1", tag: "tag2", url: "repo/image1:tag2", lastUpdated: Date.parse("2018-05-29T11:53:39.318Z") }
             ])
             expect(axios.get).toHaveBeenCalledTimes(3)
-            expect(axios.get).toHaveBeenCalledWith("http://repo/v2/image1/tags/list")
-            expect(axios.get).toHaveBeenCalledWith("http://repo/v2/image1/manifests/tag1")
-            expect(axios.get).toHaveBeenCalledWith("http://repo/v2/image1/manifests/tag2")
+            expect(axios.get).toHaveBeenCalledWith("http://repo/v2/image1/tags/list", config)
+            expect(axios.get).toHaveBeenCalledWith("http://repo/v2/image1/manifests/tag1", config)
+            expect(axios.get).toHaveBeenCalledWith("http://repo/v2/image1/manifests/tag2", config)
         })
 
         it("caches versions", async () => {
@@ -76,8 +78,8 @@ describe("DockerImageProvider", () => {
         const versions = await provider.versions("image1")
         expect(versions[0].lastUpdated).toEqual(Date.parse("2018-05-29T11:53:39.318Z"))
         expect(axios.get).toHaveBeenCalledTimes(2)
-        expect(axios.get).toHaveBeenCalledWith("http://repo/v2/image1/tags/list")
-        expect(axios.get).toHaveBeenCalledWith("http://repo/v2/image1/manifests/tag1")
+        expect(axios.get).toHaveBeenCalledWith("http://repo/v2/image1/tags/list", config)
+        expect(axios.get).toHaveBeenCalledWith("http://repo/v2/image1/manifests/tag1", config)
     })
 })
 
