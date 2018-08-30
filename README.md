@@ -12,7 +12,7 @@ If you only want the cli you can install it with
 npm install -g spacegun
 ```
 
-and then run it from the console. The help message should get you started
+and then run it from the console. You will have `spacegun`, `spg` and `spacegun-server` as commands available in your console. These are the standalone, client and server builds respectively.
 
 ### Installing
 
@@ -27,6 +27,8 @@ then you can run the cli with
 ```
 node bin/spacegun
 ```
+
+There is also a Dockerfile in the repo in case you want to run spacegun in a container.
 
 ### Three modes of operation
 
@@ -133,5 +135,14 @@ This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md
 * [axios](https://github.com/axios/axios)
 * [chalk](https://github.com/chalk/chalk)
 * [command-line-args](https://github.com/75lb/command-line-args)
+* [cron](https://github.com/kelektiv/node-cron)
+* [koa](https://github.com/koajs/koa)
+* [koa-body](https://github.com/dlau/koa-body)
+* [koa-router](https://github.com/alexmingoia/koa-router)
+* [koa-static](https://github.com/koajs/static)
+* [koa-views](https://github.com/queckezz/koa-views)
 * [lodash](https://github.com/lodash/lodash)
+* [moment](https://github.com/moment/moment)
 * [ora](https://github.com/sindresorhus/ora)
+* [pug](https://github.com/pugjs/pug)
+* [simple-git](https://github.com/steveukx/git-js)

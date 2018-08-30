@@ -265,7 +265,7 @@ export async function printHelp(io: IO, error?: Error) {
 
     const HELP_HEADER = `
         ${b('/\\')} ${c('*')}    
-       ${b('/__\\')}     ${CLI_TITLE}   ${b('version 0.0.8')}
+       ${b('/__\\')}     ${CLI_TITLE}   ${b(`version ${process.env.VERSION}`)}
       ${b('/\\  /')}
      ${b('/__\\/')}      ${CLI_DESCRIPTION}
     ${b('/\\')}  ${m('/\\')}     
