@@ -14,12 +14,14 @@ import { KubernetesClusterRepository } from "@/cluster/kubernetes/KubernetesClus
 import { DockerImageRepository } from "@/images/docker/DockerImageRepository"
 import { JobsRepositoryImpl } from "@/jobs/JobsRepositoryImpl"
 
-import { init as initJobs } from "@/jobs/JobsModule"
 import { init as initCluster } from "@/cluster/ClusterModule"
+import { init as initEvents } from "@/events/EventModule"
 import { init as initImages } from "@/images/ImageModule"
+import { init as initJobs } from "@/jobs/JobsModule"
 import { init as initViews } from "@/views"
 
 import { Options } from "@/options"
+import { SlackEventRepository } from "@/events/slack/SlackEventRepository"
 
 export class Application {
 
@@ -79,6 +81,9 @@ export class Application {
         }
 
         initViews(config)
+        initEvents([
+            SlackEventRepository.fromConfig(config.slack)
+        ])
         initCluster(KubernetesClusterRepository.fromConfig(config.kube, config.namespaces))
         initImages(DockerImageRepository.fromConfig(config.docker))
         initJobs(JobsRepositoryImpl.fromConfig(config.jobs, this.crons))

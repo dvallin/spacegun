@@ -2,11 +2,12 @@ import { load, validateConfig } from "../../src/config"
 
 describe("config loading", () => {
 
-    it("loads jobs", () => {
+    it("loads configurations files", () => {
         const config = load('test/test-config/config.yml')
         expect(config).toEqual({
             docker: "https://docker.com",
             jobs: "test/test-config/jobs",
+            slack: "https://some.slack.hook",
             git: { remote: "https://some.git" },
             kube: "test/test-config/kube/config",
             namespaces: ["service1", "service2"],

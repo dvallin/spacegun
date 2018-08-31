@@ -58,7 +58,6 @@ export function register<S, T>(
 }
 
 export function build() {
-    console.log(__dirname + "/views")
     server
         .use(views.templateEngine(__dirname + "/views"))
         .use(router.routes())

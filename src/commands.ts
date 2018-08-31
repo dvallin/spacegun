@@ -38,7 +38,7 @@ async function foreachNamespace(io: IO, cluster: string, command: (io: IO, clust
     } else {
         for (const namespace of namespaces) {
             io.out(chalk.bold(pad(``)))
-            io.out(chalk.underline.bold(pad(`${cluster} ∞ ${namespace}`)))
+            io.out(chalk.underline.bold(pad(`${cluster} :: ${namespace}`)))
             await command(io, cluster, namespace)
         }
     }
@@ -214,7 +214,7 @@ async function deployCommand(io: IO) {
     io.out("Choose the target image")
     versions.forEach((image, index) => {
         if (image.tag === deployment.image!.tag) {
-            io.out(chalk.italic.magenta(index.toString()) + ": " + chalk.italic.magenta(pad(image.tag, 5)))
+            io.out(chalk.italic.magenta(index.toString()) + ": " + chalk.italic.magenta(pad(`current -> image.tag`, 5)))
         } else {
             io.out(chalk.bold.cyan(index.toString()) + ": " + pad(image.tag, 5))
         }

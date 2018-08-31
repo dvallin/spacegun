@@ -22,7 +22,7 @@ interface DockerV1ManifestLayer {
     created: string
 }
 
-const axiosConfig: AxiosRequestConfig = { timeout: 20000 }
+const axiosConfig: AxiosRequestConfig = {}
 
 export class DockerImageRepository implements ImageRepository {
 
@@ -48,7 +48,7 @@ export class DockerImageRepository implements ImageRepository {
                 `${this.endpoint}/v2/_catalog`,
                 axiosConfig
             )
-            return await repositories.data.repositories
+            return repositories.data.repositories
         })
     }
 

@@ -55,8 +55,12 @@ body
         code
             span.
                 kube: #{config.kube}
-                kube: #{config.docker}
+                docker: #{config.docker}
                 jobs: #{config.jobs}
+
+            if config.slack
+                span.
+                    slack: #{config.slack}
 
             if config.namespaces
                 span.
