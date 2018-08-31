@@ -1,5 +1,6 @@
 docker: https://docker.com
 kube: kube/config
+slack: https://some.slack.hook
 namespaces: ["service1", "service2"]
 git:
     remote: https://some.git

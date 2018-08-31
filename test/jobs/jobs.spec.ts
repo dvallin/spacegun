@@ -57,6 +57,13 @@ dispatcher.call = (request: Request<any, any>) => {
                 }
             }
         }
+        case "events": {
+            switch (request.procedure) {
+                case "log": {
+                    return () => { }
+                }
+            }
+        }
     }
 }
 

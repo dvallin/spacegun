@@ -16,6 +16,8 @@ import { CronRegistry } from "@/crons/CronRegistry"
 import { ServerGroup } from "@/cluster/model/ServerGroup"
 import { Layers } from "@/dispatcher/model/Layers"
 
+import * as eventModule from "@/events/EventModule"
+
 export class JobsRepositoryImpl implements JobsRepository {
 
     private readonly io: IO = new IO()
@@ -69,6 +71,7 @@ export class JobsRepositoryImpl implements JobsRepository {
         }
         const namespaces = await call(clusterModule.namespaces)(job)
         const deployments = await this.planDeploymentForNamespaces(job, namespaces)
+        this.io.out(`planning finished. ${deployments.length} deployments are planned.`)
         return {
             name,
             deployments
@@ -79,6 +82,16 @@ export class JobsRepositoryImpl implements JobsRepository {
         for (const deployment of plan.deployments) {
             await this.applyDeployment(deployment)
         }
+        call(eventModule.log)({
+            message: `Applied job ${plan.name}`,
+            timestamp: Date.now(),
+            topics: ["slack"],
+            description: `Applied ${plan.deployments.length} deployments while executing job ${plan.name}`,
+            fields: plan.deployments.map(deployment => ({
+                title: `${deployment.group.cluster} ∞ ${deployment.group.namespace} ∞ ${deployment.deployment.name}`,
+                value: `updated to ${deployment.image.url}`
+            }))
+        })
     }
 
     async planDeploymentForNamespaces(job: Job, namespaces: string[]): Promise<DeploymentPlan[]> {
@@ -111,6 +124,7 @@ export class JobsRepositoryImpl implements JobsRepository {
             namespace: group.namespace
         })
         for (const targetDeployment of targetDeployments) {
+            this.io.out(`planning cluster deployment ${targetDeployment.name} in job ${job.name}`)
             const sourceDeployment = sourceDeployments.find(d => d.name === targetDeployment.name)
             if (sourceDeployment === undefined) {
                 console.error(`${targetDeployment.name} in cluster ${group.cluster} has no appropriate deployment in cluster ${job.from.expression}`)
@@ -136,6 +150,7 @@ export class JobsRepositoryImpl implements JobsRepository {
         const tagMatcher = new RegExp(job.from.expression, "g");
 
         for (const targetDeployment of targetDeployments) {
+            this.io.out(`planning image deployment ${targetDeployment.name} in job ${job.name}`)
             if (targetDeployment.image === undefined) {
                 console.error(`${targetDeployment.name} in cluster ${group.cluster} has no image, so spacegun cannot determine the right image source`)
                 continue

@@ -17,6 +17,7 @@ export interface Config {
     kube: string
     docker: string
     jobs: string
+    slack?: string
     git?: GitConfig
     server: ServerConfig
     namespaces?: string[]
@@ -33,6 +34,7 @@ export function validateConfig(configBasePath: string, partial: Partial<Config>)
         kube,
         namespaces,
         jobs,
+        slack,
         server = {},
         docker,
         git
@@ -54,7 +56,7 @@ export function validateConfig(configBasePath: string, partial: Partial<Config>)
         jobs = `${configBasePath}/${jobs}`
     }
 
-    return { kube, jobs, namespaces, git, server: validateServerConfig(server), docker }
+    return { kube, jobs, slack, namespaces, git, server: validateServerConfig(server), docker }
 }
 
 export function validateServerConfig(partial: Partial<ServerConfig>): ServerConfig {
