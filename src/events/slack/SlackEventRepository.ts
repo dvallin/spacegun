@@ -43,7 +43,7 @@ export class SlackEventRepository implements EventRepository {
                     fields,
                     footer: "Spacegun",
                     footer_icon: "https://platform.slack-edge.com/img/default_application_icon.png",
-                    ts: Date.now()
+                    ts: Math.floor(Date.now() / 1000)
                 }
             ]
         }

@@ -44,7 +44,7 @@ describe("SlackEventRepository", () => {
                         footer_icon: "https://platform.slack-edge.com/img/default_application_icon.png",
                         text: "descriptionText",
                         title: "messageText",
-                        ts: 1520899200000
+                        ts: 1520899200
                     }]
                 },
                 { timeout: 20000 }
