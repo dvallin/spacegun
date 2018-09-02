@@ -1,4 +1,4 @@
-import { load as loadConfig, Config } from "@/config"
+import { loadConfig, Config } from "@/config"
 import { commands, printHelp } from "@/commands"
 import { parse } from "@/options"
 

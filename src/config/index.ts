@@ -25,14 +25,17 @@ export interface Config {
     namespaces?: string[]
 }
 
-export function load(filePath: string = "./config.yml"): Config {
+export function loadConfig(filePath: string = "./config.yml"): Config {
     const path = parse(filePath)
-    const doc = safeLoad(readFileSync(filePath, "utf8")) as Partial<Config>
+    const doc = load(filePath) as Partial<Config>
     return validateConfig(path.dir, doc)
 }
 
+export function load(filePath: string): object {
+    return safeLoad(readFileSync(filePath, "utf8"))
+}
+
 export function save(filePath: string, data: object): Promise<void> {
-    console.log("saving file " + filePath)
     const path = parse(filePath)
     return new Promise((resolve, reject) => {
         mkdirp(path.dir, (e) => {

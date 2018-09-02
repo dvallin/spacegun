@@ -89,6 +89,7 @@ export class KubernetesClusterRepository implements ClusterRepository {
             const image = this.createImage(item.spec.template.spec.containers)
             return {
                 name: item.metadata.name,
+                version: Number.parseInt(item.metadata.resourceVersion),
                 image
             }
         })
@@ -139,20 +140,42 @@ export class KubernetesClusterRepository implements ClusterRepository {
         return {
             deployments: result.items.map(d => ({
                 name: d.metadata.name,
-                data: d
+                data: this.minifyDeployment(d)
             }))
+        }
+    }
+
+    private minifyDeployment(deployment: V1beta2Deployment): object {
+        return {
+            metadata: {
+                name: deployment.metadata.name,
+                namespace: deployment.metadata.namespace,
+                annotations: deployment.metadata.annotations
+            },
+            spec: deployment.spec
         }
     }
 
     async applySnapshot(group: ServerGroup, snapshot: ClusterSnapshot): Promise<void> {
         const api = this.build(group.cluster, (server: string) => new Apps_v1beta2Api(server))
         const namespace = this.getNamespace(group)
+        const knownDeployments = await this.deployments(group)
         for (const deployment of snapshot.deployments) {
-            await api.replaceNamespacedDeployment(
-                deployment.name,
-                namespace,
-                deployment.data as V1beta2Deployment
-            )
+            const current = knownDeployments.find(d => d.name === deployment.name)
+            const target = deployment.data as V1beta2Deployment
+            if (current !== undefined && current.image !== undefined) {
+                target.spec.template.spec.containers[0].image = current.image.url
+            }
+            try {
+                await api.replaceNamespacedDeployment(
+                    deployment.name,
+                    namespace,
+                    target
+                )
+            } catch (e) {
+                // TODO: return a result set
+                console.error(e)
+            }
         }
     }
 

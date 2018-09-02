@@ -12,9 +12,10 @@ import * as imageModule from "@/images/ImageModule"
 import * as configModule from "@/config/ConfigModule"
 
 import { Deployment } from "@/cluster/model/Deployment"
+import { DeploymentSnapshot } from "@/cluster/model/DeploymentSnapshot";
 
 export type Command = "namespaces" | "pods" | "images" | "jobs" | "jobSchedules"
-    | "run" | "deployments" | "deploy" | "scalers" | "help" | "snapshot"
+    | "run" | "deployments" | "deploy" | "scalers" | "help" | "snapshot" | "apply"
 
 async function load<T>(p: Promise<T>): Promise<T> {
     const progress = ora()
@@ -189,6 +190,29 @@ async function snapshotCommand(io: IO, cluster: string, namespace?: string) {
     }
 }
 
+async function applySnapshotCommand(io: IO, cluster: string, namespace?: string) {
+    const deployments: DeploymentSnapshot[] = []
+    const knownDeployments = await load(call(clusterModule.deployments)({ cluster, namespace }))
+
+    for (const deployment of knownDeployments) {
+        io.out(`Loading snapshot for ${deployment.name}`)
+        const snapshot = await load(call(configModule.loadArtifact)({
+            name: deployment.name,
+            path: `${cluster}/${namespace}/deployments`
+        }))
+        if (snapshot !== undefined) {
+            deployments.push({
+                name: deployment.name,
+                data: snapshot
+            })
+        }
+    }
+    await call(clusterModule.applySnapshot)({
+        group: { cluster, namespace },
+        snapshot: { deployments }
+    })
+}
+
 async function deployementsCommand(io: IO, cluster: string, namespace?: string) {
     const deployments = await load(call(clusterModule.deployments)({ cluster, namespace }))
     logDeploymentHeader(io)
@@ -306,6 +330,7 @@ export async function printHelp(io: IO, error?: Error) {
     io.out(pad("namespaces", 2) + chalk.bold(pad("lists all namespaces of all known clusters", 10)))
     io.out(pad("pods", 2) + chalk.bold(pad("a summary of all pods of all known clusters", 10)))
     io.out(pad("snapshot", 2) + chalk.bold(pad("take a snapshot of the cluster and save it as an artifact", 10)))
+    io.out(pad("apply", 2) + chalk.bold(pad("apply the snapshot of the cluster", 10)))
     io.out(pad("images", 2) + chalk.bold(pad("a list of all images in the docker registry", 10)))
     io.out(pad("deployments", 2) + chalk.bold(pad("a summary of all deployements of all known clusters", 10)))
     io.out(pad("deploy", 2) + chalk.bold(pad("opens an interactive dialog to deploy an image", 10)))
@@ -322,6 +347,7 @@ export async function printHelp(io: IO, error?: Error) {
 const commands: { [k in Command]: (io: IO) => Promise<void> } = {
     "namespaces": async (io: IO) => foreachCluster(io, namespacesCommand),
     "snapshot": async (io: IO) => foreachCluster(io, (io, cluster) => foreachNamespace(io, cluster, snapshotCommand)),
+    "apply": async (io: IO) => foreachCluster(io, (io, cluster) => foreachNamespace(io, cluster, applySnapshotCommand)),
     "pods": async (io: IO) => foreachCluster(io, (io, cluster) => foreachNamespace(io, cluster, podsCommand)),
     "images": async (io: IO) => imagesCommand(io),
     "jobs": async (io: IO) => jobsCommand(io),
