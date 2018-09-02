@@ -8,20 +8,22 @@ import { run as runDispatcher } from "@/dispatcher"
 import { IO } from "@/IO"
 import { CronRegistry } from "@/crons/CronRegistry"
 
-import { GitConfigRepository } from "@/config/git/GitConfigRepository"
+import { GitConfigRepository, fromConfig as gitRepoFromConfig } from "@/config/git/GitConfigRepository"
+import { fromConfig as configRepoFromConfig } from "@/config/filesystem/FilesystemConfigRepository";
 
 import { KubernetesClusterRepository } from "@/cluster/kubernetes/KubernetesClusterRepository"
 import { DockerImageRepository } from "@/images/docker/DockerImageRepository"
 import { JobsRepositoryImpl } from "@/jobs/JobsRepositoryImpl"
+import { SlackEventRepository } from "@/events/slack/SlackEventRepository"
 
 import { init as initCluster } from "@/cluster/ClusterModule"
 import { init as initEvents } from "@/events/EventModule"
 import { init as initImages } from "@/images/ImageModule"
+import { init as initConfig } from "@/config/ConfigModule"
 import { init as initJobs } from "@/jobs/JobsModule"
 import { init as initViews } from "@/views"
 
 import { Options } from "@/options"
-import { SlackEventRepository } from "@/events/slack/SlackEventRepository"
 
 export class Application {
 
@@ -71,13 +73,17 @@ export class Application {
     }
 
     private initialize(config: Config) {
-        const git = GitConfigRepository.fromConfig(config)
-        if (git !== undefined) {
+        const gitRepo = gitRepoFromConfig(config)
+        if (gitRepo !== undefined) {
             this.crons.register(
                 "config-reload",
                 config.git!.cron,
-                () => this.checkForConfigChange(git)
+                () => this.checkForConfigChange(gitRepo)
             )
+            initConfig(gitRepo)
+        } else {
+            const fileSystemRepo = configRepoFromConfig(config)
+            initConfig(fileSystemRepo)
         }
 
         initViews(config)

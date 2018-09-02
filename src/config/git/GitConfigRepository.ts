@@ -1,23 +1,25 @@
-import { ConfigRepository } from "@/config/ConfigRepository"
 import { Config, GitConfig } from "@/config"
 import { Layers } from "@/dispatcher/model/Layers"
 
 import * as SimpleGit from "simple-git/promise"
+import { FilesystemConfigRepository } from "@/config/filesystem/FilesystemConfigRepository";
 
-export class GitConfigRepository implements ConfigRepository {
-
-    public static fromConfig(config: Config): GitConfigRepository | undefined {
-        if (config.git && process.env.LAYER === Layers.Server) {
-            const g = SimpleGit("./")
-            return new GitConfigRepository(g, config.git)
-        }
-        return undefined
+export function fromConfig(config: Config): GitConfigRepository | undefined {
+    if (config.git && process.env.LAYER === Layers.Server) {
+        const g = SimpleGit("./")
+        return new GitConfigRepository(g, config.git, config.artifacts)
     }
+    return undefined
+}
 
-    private constructor(
+export class GitConfigRepository extends FilesystemConfigRepository {
+
+    constructor(
         public readonly git: SimpleGit.SimpleGit,
         public readonly config: GitConfig,
+        artifactPath: string
     ) {
+        super(artifactPath)
     }
 
     public async hasNewConfig(): Promise<boolean> {

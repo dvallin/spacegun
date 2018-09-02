@@ -14,6 +14,7 @@ import {
     Autoscaling_v1Api, V1HorizontalPodAutoscalerList, V1beta2Deployment, V1Container, V1NamespaceList, V1PodStatus
 } from '@kubernetes/client-node'
 import { ServerGroup } from "@/cluster/model/ServerGroup"
+import { ClusterSnapshot } from "@/cluster/model/ClusterSnapshot";
 
 interface Api {
     setDefaultAuthentication(config: KubeConfig): void
@@ -118,7 +119,7 @@ export class KubernetesClusterRepository implements ClusterRepository {
                     spec: {
                         containers: [{
                             name: deployment.name,
-                            image: targetImage.url
+                            image: targetImage.url,
                         }]
                     }
                 }
@@ -128,6 +129,30 @@ export class KubernetesClusterRepository implements ClusterRepository {
         return {
             name: result.metadata.name,
             image: this.createImage(result.spec.template.spec.containers)
+        }
+    }
+
+    async takeSnapshot(group: ServerGroup): Promise<ClusterSnapshot> {
+        const api = this.build(group.cluster, (server: string) => new Apps_v1beta2Api(server))
+        const namespace = this.getNamespace(group)
+        const result: V1beta2DeploymentList = await api.listNamespacedDeployment(namespace).get("body")
+        return {
+            deployments: result.items.map(d => ({
+                name: d.metadata.name,
+                data: d
+            }))
+        }
+    }
+
+    async applySnapshot(group: ServerGroup, snapshot: ClusterSnapshot): Promise<void> {
+        const api = this.build(group.cluster, (server: string) => new Apps_v1beta2Api(server))
+        const namespace = this.getNamespace(group)
+        for (const deployment of snapshot.deployments) {
+            await api.replaceNamespacedDeployment(
+                deployment.name,
+                namespace,
+                deployment.data as V1beta2Deployment
+            )
         }
     }
 

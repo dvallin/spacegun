@@ -1,6 +1,7 @@
-import { safeLoad } from "js-yaml"
-import { readFileSync } from "fs"
+import { safeLoad, safeDump } from "js-yaml"
+import { readFileSync, writeFileSync } from "fs"
 import { homedir } from "os"
+import * as mkdirp from "mkdirp"
 import { parse } from "path"
 
 export interface ServerConfig {
@@ -17,6 +18,7 @@ export interface Config {
     kube: string
     docker: string
     jobs: string
+    artifacts: string
     slack?: string
     git?: GitConfig
     server: ServerConfig
@@ -25,8 +27,23 @@ export interface Config {
 
 export function load(filePath: string = "./config.yml"): Config {
     const path = parse(filePath)
-    const doc = safeLoad(readFileSync(filePath, 'utf8')) as Partial<Config>
+    const doc = safeLoad(readFileSync(filePath, "utf8")) as Partial<Config>
     return validateConfig(path.dir, doc)
+}
+
+export function save(filePath: string, data: object): Promise<void> {
+    console.log("saving file " + filePath)
+    const path = parse(filePath)
+    return new Promise((resolve, reject) => {
+        mkdirp(path.dir, (e) => {
+            if (e) {
+                reject(e)
+            } else {
+                writeFileSync(filePath, safeDump(data), "utf8")
+                resolve()
+            }
+        })
+    })
 }
 
 export function validateConfig(configBasePath: string, partial: Partial<Config>): Config {
@@ -34,6 +51,7 @@ export function validateConfig(configBasePath: string, partial: Partial<Config>)
         kube,
         namespaces,
         jobs,
+        artifacts,
         slack,
         server = {},
         docker,
@@ -56,7 +74,13 @@ export function validateConfig(configBasePath: string, partial: Partial<Config>)
         jobs = `${configBasePath}/${jobs}`
     }
 
-    return { kube, jobs, slack, namespaces, git, server: validateServerConfig(server), docker }
+    if (artifacts === undefined) {
+        artifacts = `${configBasePath}/artifacts`
+    } else {
+        artifacts = `${configBasePath}/${artifacts}`
+    }
+
+    return { kube, jobs, artifacts, slack, namespaces, git, server: validateServerConfig(server), docker }
 }
 
 export function validateServerConfig(partial: Partial<ServerConfig>): ServerConfig {
