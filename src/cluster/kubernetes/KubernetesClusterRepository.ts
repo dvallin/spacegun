@@ -15,6 +15,7 @@ import {
 } from '@kubernetes/client-node'
 import { ServerGroup } from "@/cluster/model/ServerGroup"
 import { ClusterSnapshot } from "@/cluster/model/ClusterSnapshot";
+import { call } from "@/dispatcher";
 
 interface Api {
     setDefaultAuthentication(config: KubeConfig): void
@@ -145,36 +146,31 @@ export class KubernetesClusterRepository implements ClusterRepository {
         }
     }
 
-    private minifyDeployment(deployment: V1beta2Deployment): object {
-        return {
-            metadata: {
-                name: deployment.metadata.name,
-                namespace: deployment.metadata.namespace,
-                annotations: deployment.metadata.annotations
-            },
-            spec: deployment.spec
-        }
-    }
-
     async applySnapshot(group: ServerGroup, snapshot: ClusterSnapshot): Promise<void> {
         const api = this.build(group.cluster, (server: string) => new Apps_v1beta2Api(server))
         const namespace = this.getNamespace(group)
-        const knownDeployments = await this.deployments(group)
+        const result: V1beta2DeploymentList = await api.listNamespacedDeployment(namespace).get("body")
         for (const deployment of snapshot.deployments) {
-            const current = knownDeployments.find(d => d.name === deployment.name)
+            const current = result.items.find(d => d.metadata.name === deployment.name)
             const target = deployment.data as V1beta2Deployment
-            if (current !== undefined && current.image !== undefined) {
-                target.spec.template.spec.containers[0].image = current.image.url
+
+            if (current !== undefined) {
+                const image = this.createImage(current.spec.template.spec.containers)
+                if (image !== undefined) {
+                    target.spec.template.spec.containers[0].image = image.url
+                }
             }
-            try {
-                await api.replaceNamespacedDeployment(
-                    deployment.name,
-                    namespace,
-                    target
-                )
-            } catch (e) {
-                // TODO: return a result set
-                console.error(e)
+            if (this.needsUpdate(current, target)) {
+                try {
+                    await api.replaceNamespacedDeployment(
+                        deployment.name,
+                        namespace,
+                        target
+                    )
+                } catch (e) {
+                    // TODO: return a result set
+                    console.error(e)
+                }
             }
         }
     }
@@ -222,5 +218,23 @@ export class KubernetesClusterRepository implements ClusterRepository {
         const api: T = apiProvider(this.getServer(config))
         api.setDefaultAuthentication(config)
         return api
+    }
+
+    private minifyDeployment(deployment: V1beta2Deployment): object {
+        return {
+            metadata: {
+                name: deployment.metadata.name,
+                namespace: deployment.metadata.namespace,
+                annotations: deployment.metadata.annotations
+            },
+            spec: deployment.spec
+        }
+    }
+
+    private needsUpdate(current: V1beta2Deployment | undefined, target: V1beta2Deployment): boolean {
+        if (current === undefined) {
+            return true
+        }
+        return JSON.stringify(this.minifyDeployment(target)) !== JSON.stringify(this.minifyDeployment(current))
     }
 }
