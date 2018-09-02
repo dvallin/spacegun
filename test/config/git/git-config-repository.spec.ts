@@ -1,4 +1,4 @@
-import { GitConfigRepository } from "../../../src/config/git/GitConfigRepository"
+import { fromConfig } from "../../../src/config/git/GitConfigRepository"
 import { Layers } from "../../../src/dispatcher/model/Layers"
 
 describe("GitConfigRepository", () => {
@@ -10,10 +10,10 @@ describe("GitConfigRepository", () => {
     describe("fromConfig", () => {
 
         it("builds only if config.git exists and layer is server", () => {
-            expect(GitConfigRepository.fromConfig({ git: {} })).toBeDefined()
-            expect(GitConfigRepository.fromConfig({ git: undefined })).toBeUndefined()
+            expect(fromConfig({ git: {} })).toBeDefined()
+            expect(fromConfig({ git: undefined })).toBeUndefined()
             process.env.LAYER = Layers.Client
-            expect(GitConfigRepository.fromConfig({ git: {} })).toBeUndefined()
+            expect(fromConfig({ git: {} })).toBeUndefined()
         })
     })
 
@@ -22,7 +22,7 @@ describe("GitConfigRepository", () => {
 
         let repo
         beforeEach(() => {
-            repo = GitConfigRepository.fromConfig({ git: { remote: "remotePath" } })
+            repo = fromConfig({ git: { remote: "remotePath" } })
         })
 
         describe("hasNewConfig", () => {

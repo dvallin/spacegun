@@ -1,9 +1,13 @@
 import { Pod } from "@/cluster/model/Pod"
 import { Image } from "@/cluster/model/Image"
 import { Deployment } from "@/cluster/model/Deployment"
+import { ServerGroup } from "@/cluster/model/ServerGroup"
+import { ClusterSnapshot } from "@/cluster/model/ClusterSnapshot"
 import { Scaler } from "@/cluster/model/Scaler"
 import { ClusterRepository } from "@/cluster/ClusterRepository"
 import { Cache } from "@/Cache"
+
+import * as eventModule from "@/events/EventModule"
 
 const cloneDeep = require("lodash.clonedeep")
 
@@ -13,8 +17,6 @@ import {
     Apps_v1beta2Api, V1beta2DeploymentList,
     Autoscaling_v1Api, V1HorizontalPodAutoscalerList, V1beta2Deployment, V1Container, V1NamespaceList, V1PodStatus
 } from '@kubernetes/client-node'
-import { ServerGroup } from "@/cluster/model/ServerGroup"
-import { ClusterSnapshot } from "@/cluster/model/ClusterSnapshot";
 import { call } from "@/dispatcher";
 
 interface Api {
@@ -90,7 +92,6 @@ export class KubernetesClusterRepository implements ClusterRepository {
             const image = this.createImage(item.spec.template.spec.containers)
             return {
                 name: item.metadata.name,
-                version: Number.parseInt(item.metadata.resourceVersion),
                 image
             }
         })
@@ -150,6 +151,9 @@ export class KubernetesClusterRepository implements ClusterRepository {
         const api = this.build(group.cluster, (server: string) => new Apps_v1beta2Api(server))
         const namespace = this.getNamespace(group)
         const result: V1beta2DeploymentList = await api.listNamespacedDeployment(namespace).get("body")
+
+        const applied: string[] = []
+        const errored: string[] = []
         for (const deployment of snapshot.deployments) {
             const current = result.items.find(d => d.metadata.name === deployment.name)
             const target = deployment.data as V1beta2Deployment
@@ -167,11 +171,23 @@ export class KubernetesClusterRepository implements ClusterRepository {
                         namespace,
                         target
                     )
+                    applied.push(`Deployment ${deployment.name}`)
                 } catch (e) {
-                    // TODO: return a result set
-                    console.error(e)
+                    errored.push(`Deployment ${deployment.name}`)
                 }
             }
+        }
+        if (applied.length + errored.length > 0) {
+            call(eventModule.log)({
+                message: `Applied Snapshots`,
+                timestamp: Date.now(),
+                topics: ["slack"],
+                description: `Applied Snapshots in ${group.cluster} ∞ ${group.namespace}`,
+                fields: [
+                    ...errored.map(value => ({ value, title: "Applied Failed" })),
+                    ...applied.map(value => ({ value, title: "Applied Successfully" })),
+                ]
+            })
         }
     }
 

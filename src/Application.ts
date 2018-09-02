@@ -67,6 +67,7 @@ export class Application {
         try {
             const config = loadConfig(this.options.config)
             this.initialize(config)
+            commands.apply(this.io)
         } catch (e) {
             this.io.out(`could not reload config ${e.message}`)
         }
