@@ -2,7 +2,18 @@
 [![Build Status](https://travis-ci.org/dvallin/spacegun.svg?branch=master)](https://travis-ci.org/dvallin/spacegun)
 [![codecov](https://codecov.io/gh/dvallin/spacegun/branch/master/graph/badge.svg)](https://codecov.io/gh/dvallin/spacegun)
 
-Space age deployment manager to get your docker images to kubernetes, without the headaches of fancy ui.
+Straight-forward deployment management to get your docker images to kubernetes, without the headaches of fancy ui.
+
+## Features
+- deployment jobs
+- managing multiple kuberentes clusters
+- version controlled configuration
+- managing kubernetes deployments
+- crontabs everywhere
+- generating configuration from existing clusters
+- slack integration
+- some colorful cli
+- a static but informative ui
 
 ## Getting Started
 
@@ -48,11 +59,14 @@ The standalone build is just the client and server functionality compiled direct
 #### Config.yml
 Spaceguns main configuration file is just a yml containing information about your cluster and image repository. By default Spacegun will look under `./config.yml` relative to its working directory.
 
-A configuraiton may look like this
+A configuration may look like this
 
 ```
 docker: https://my.docker.repository.com
+artifact: artifactsFolder
+jobs: jobsFolder
 kube: kube/config
+slack: https://hooks.slack.com/services/SOMEFUNKY/ID
 namespaces: ["service1", "service2"]
 server:
   host: localhost
@@ -63,14 +77,17 @@ git:
 ```
 
 `docker` gives a url of a docker repository  
+`artifacts` folder for spacegun to put cluster snapshots  
+`jobs` folder for spacegun to load jobs from  
 `kube` gives a path to a kubernetes config file (relative to the config.yml)  
+`slack` optional webhook to get notifactions of cluster updates  
 `namespaces` gives a list of namespaces for spacegun to operate on.  
 `server` gives hostname and port of the server (client uses both, server uses the port)  
 `git` contains the path to the remote git where all configurations are kept. And the (optional) crontab configures how often the service should poll for configuration changes.
 
 #### Jobs
 
-Spacegun is driven by deployment jobs. A job is configured by a `<jobname>.yml`. By default spacegun scans the `./job` folder relative to its configuration file for such files.
+Spacegun is driven by deployment jobs. A job is configured by a `<jobname>.yml`. By default spacegun scans the `configPath/job` folder relative to its configuration file for such files.
 
 Here is an example of a job that deploys the newest images that are not tagged as `latest` from your docker registry to your `develop` kubernetes cluster
 ```
@@ -111,6 +128,16 @@ A git repository could have such a folder structure
 └── kube
     └── config
 ```
+
+## Cluster Snapshots
+
+Running `spacegun snapshot` will download the current state of your cluster's deployments and save them as artifacts (yml files) in your artifacts folder (by default `configPath/artifacts`).
+
+Now you can just update your deployments by committing changes of the artifacts into your config repository. Spacegun will then apply the changes on config reload.
+
+If you want to apply local changes to your deployments configuration, run `spacegun apply`.
+
+Note that spacegun will not apply changes to the deployment's image. This is where deployment jobs or the `spacegun deploy` command are for.
 
 ## Running the tests
 
