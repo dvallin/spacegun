@@ -3,13 +3,14 @@ import { Pod } from "@/cluster/model/Pod"
 import { Deployment } from "@/cluster/model/Deployment"
 import { Scaler } from "@/cluster/model/Scaler"
 import { Image } from "@/cluster/model/Image"
+import { ServerGroup } from "@/cluster/model/ServerGroup"
+import { ClusterSnapshot } from "@/cluster/model/ClusterSnapshot"
 
 import { RequestInput } from "@/dispatcher/model/RequestInput"
 import { Request } from "@/dispatcher/model/Request"
 import { Component } from "@/dispatcher/component"
 import { Layers } from "@/dispatcher/model/Layers"
 import { Methods } from "@/dispatcher/model/Methods"
-import { ServerGroup } from "@/cluster/model/ServerGroup"
 
 let repo: ClusterRepository | undefined = undefined
 export function init(clusterRepository: ClusterRepository) {
@@ -76,8 +77,36 @@ export const scalers: Request<ServerGroup, Scaler[]> = {
     mapper: serverGroupMapper
 }
 
+export const takeSnapshot: Request<ServerGroup, ClusterSnapshot> = {
+    module: "cluster",
+    procedure: "takeSnapshot",
+    input: serverGroupInput,
+    mapper: serverGroupMapper
+}
+
+export const applySnapshot: Request<ApplySnapshotParameters, void> = {
+    module: "cluster",
+    procedure: "applySnapshot",
+    input: (input: ApplySnapshotParameters | undefined) => RequestInput.ofData(
+        { snapshot: input!.snapshot },
+        ["cluster", input!.group.cluster],
+        ["namespace", input!.group.namespace]
+    ),
+    mapper: (p: RequestInput) => ({
+        snapshot: p.data.snapshot as ClusterSnapshot,
+        group: {
+            cluster: p.params!["cluster"],
+            namespace: p.params!["namespace"]
+        } as ServerGroup
+    } as ApplySnapshotParameters)
+}
+
 export interface UpdateDeploymentParameters {
     group: ServerGroup, deployment: Deployment, image: Image
+}
+
+export interface ApplySnapshotParameters {
+    group: ServerGroup, snapshot: ClusterSnapshot
 }
 
 export class Module {
@@ -86,8 +115,8 @@ export class Module {
         moduleName: clusters.module,
         layer: Layers.Server
     })
-    async [clusters.procedure](): Promise<string[]> {
-        return repo!.clusters
+    [clusters.procedure](): Promise<string[]> {
+        return Promise.resolve(repo!.clusters)
     }
 
     @Component({
@@ -95,7 +124,7 @@ export class Module {
         layer: Layers.Server,
         mapper: namespaces.mapper
     })
-    async [namespaces.procedure](params: { cluster: string }): Promise<string[]> {
+    [namespaces.procedure](params: { cluster: string }): Promise<string[]> {
         return repo!.namespaces(params.cluster)
     }
 
@@ -104,7 +133,7 @@ export class Module {
         layer: Layers.Server,
         mapper: pods.mapper
     })
-    async [pods.procedure](group: ServerGroup): Promise<Pod[]> {
+    [pods.procedure](group: ServerGroup): Promise<Pod[]> {
         return repo!.pods(group)
     }
 
@@ -114,7 +143,7 @@ export class Module {
         mapper: updateDeployment.mapper,
         method: Methods.Put
     })
-    async [updateDeployment.procedure](input: UpdateDeploymentParameters): Promise<Deployment> {
+    [updateDeployment.procedure](input: UpdateDeploymentParameters): Promise<Deployment> {
         return repo!.updateDeployment(input.group, input.deployment, input.image)
     }
 
@@ -123,7 +152,7 @@ export class Module {
         layer: Layers.Server,
         mapper: deployments.mapper
     })
-    async [deployments.procedure](group: ServerGroup): Promise<Deployment[]> {
+    [deployments.procedure](group: ServerGroup): Promise<Deployment[]> {
         return repo!.deployments(group)
     }
 
@@ -132,7 +161,26 @@ export class Module {
         layer: Layers.Server,
         mapper: scalers.mapper
     })
-    async [scalers.procedure](group: ServerGroup): Promise<Scaler[]> {
+    [scalers.procedure](group: ServerGroup): Promise<Scaler[]> {
         return repo!.scalers(group)
+    }
+
+    @Component({
+        moduleName: takeSnapshot.module,
+        layer: Layers.Server,
+        mapper: takeSnapshot.mapper
+    })
+    [takeSnapshot.procedure](group: ServerGroup): Promise<ClusterSnapshot> {
+        return repo!.takeSnapshot(group)
+    }
+
+    @Component({
+        moduleName: applySnapshot.module,
+        layer: Layers.Server,
+        mapper: applySnapshot.mapper,
+        method: Methods.Put
+    })
+    [applySnapshot.procedure](params: ApplySnapshotParameters): Promise<void> {
+        return repo!.applySnapshot(params.group, params.snapshot)
     }
 }

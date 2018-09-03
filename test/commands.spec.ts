@@ -306,4 +306,60 @@ describe("commands", () => {
             expect(dispatched).toBeCalledWith("images", "endpoint")
         })
     })
+
+    describe(commands.snapshot.name, () => {
+
+        it("creates snapshots", async () => {
+            // given
+            dispatchFn
+                .mockReturnValueOnce(["cluster"])
+                .mockReturnValueOnce([])
+                .mockReturnValueOnce({
+                    deployments: [
+                        { data: {}, name: "deployment1" },
+                        { data: {}, name: "deployment2" }
+                    ]
+                })
+
+            // when
+            await commands.snapshot({ out })
+
+            // then
+            expect(dispatched).toHaveBeenCalledTimes(5)
+            expect(dispatched).toBeCalledWith("cluster", "clusters")
+            expect(dispatched).toBeCalledWith("cluster", "namespaces")
+            expect(dispatched).toBeCalledWith("cluster", "takeSnapshot")
+            expect(dispatched).toBeCalledWith("config", "saveArtifact")
+            expect(dispatched).toBeCalledWith("config", "saveArtifact")
+        })
+    })
+
+    describe(commands.apply.name, () => {
+
+        it("applies snapshots", async () => {
+            // given
+            const deployments = [
+                { name: "deployment1", image: { name: "image" } },
+                { name: "deployment2", image: { name: "image" } }
+            ]
+            dispatchFn
+                .mockReturnValueOnce(["cluster"])
+                .mockReturnValueOnce([])
+                .mockReturnValueOnce(deployments)
+                .mockReturnValueOnce({})
+                .mockReturnValueOnce({})
+
+            // when
+            await commands.apply({ out })
+
+            // then
+            expect(dispatched).toHaveBeenCalledTimes(6)
+            expect(dispatched).toBeCalledWith("cluster", "clusters")
+            expect(dispatched).toBeCalledWith("cluster", "namespaces")
+            expect(dispatched).toBeCalledWith("cluster", "deployments")
+            expect(dispatched).toBeCalledWith("config", "loadArtifact")
+            expect(dispatched).toBeCalledWith("config", "loadArtifact")
+            expect(dispatched).toBeCalledWith("cluster", "applySnapshot")
+        })
+    })
 })

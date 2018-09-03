@@ -1,9 +1,13 @@
 import { Pod } from "@/cluster/model/Pod"
 import { Image } from "@/cluster/model/Image"
 import { Deployment } from "@/cluster/model/Deployment"
+import { ServerGroup } from "@/cluster/model/ServerGroup"
+import { ClusterSnapshot } from "@/cluster/model/ClusterSnapshot"
 import { Scaler } from "@/cluster/model/Scaler"
 import { ClusterRepository } from "@/cluster/ClusterRepository"
 import { Cache } from "@/Cache"
+
+import * as eventModule from "@/events/EventModule"
 
 const cloneDeep = require("lodash.clonedeep")
 
@@ -13,7 +17,7 @@ import {
     Apps_v1beta2Api, V1beta2DeploymentList,
     Autoscaling_v1Api, V1HorizontalPodAutoscalerList, V1beta2Deployment, V1Container, V1NamespaceList, V1PodStatus
 } from '@kubernetes/client-node'
-import { ServerGroup } from "@/cluster/model/ServerGroup"
+import { call } from "@/dispatcher";
 
 interface Api {
     setDefaultAuthentication(config: KubeConfig): void
@@ -118,7 +122,7 @@ export class KubernetesClusterRepository implements ClusterRepository {
                     spec: {
                         containers: [{
                             name: deployment.name,
-                            image: targetImage.url
+                            image: targetImage.url,
                         }]
                     }
                 }
@@ -128,6 +132,61 @@ export class KubernetesClusterRepository implements ClusterRepository {
         return {
             name: result.metadata.name,
             image: this.createImage(result.spec.template.spec.containers)
+        }
+    }
+
+    async takeSnapshot(group: ServerGroup): Promise<ClusterSnapshot> {
+        const api = this.build(group.cluster, (server: string) => new Apps_v1beta2Api(server))
+        const namespace = this.getNamespace(group)
+        const result: V1beta2DeploymentList = await api.listNamespacedDeployment(namespace).get("body")
+        return {
+            deployments: result.items.map(d => ({
+                name: d.metadata.name,
+                data: this.minifyDeployment(d)
+            }))
+        }
+    }
+
+    async applySnapshot(group: ServerGroup, snapshot: ClusterSnapshot): Promise<void> {
+        const api = this.build(group.cluster, (server: string) => new Apps_v1beta2Api(server))
+        const namespace = this.getNamespace(group)
+        const result: V1beta2DeploymentList = await api.listNamespacedDeployment(namespace).get("body")
+
+        const applied: string[] = []
+        const errored: string[] = []
+        for (const deployment of snapshot.deployments) {
+            const current = result.items.find(d => d.metadata.name === deployment.name)
+            const target = deployment.data as V1beta2Deployment
+            if (current !== undefined) {
+                const image = this.createImage(current.spec.template.spec.containers)
+                if (image !== undefined) {
+                    target.spec.template.spec.containers[0].image = image.url
+                }
+            }
+            if (this.needsUpdate(current, target)) {
+                try {
+                    await api.replaceNamespacedDeployment(
+                        deployment.name,
+                        namespace,
+                        target
+                    )
+                    applied.push(`Deployment ${deployment.name}`)
+                } catch (e) {
+                    errored.push(`Deployment ${deployment.name}`)
+                }
+            }
+        }
+        if (applied.length + errored.length > 0) {
+            call(eventModule.log)({
+                message: `Applied Snapshots`,
+                timestamp: Date.now(),
+                topics: ["slack"],
+                description: `Applied Snapshots in ${group.cluster} ∞ ${group.namespace}`,
+                fields: [
+                    ...errored.map(value => ({ value, title: "Failure" })),
+                    ...applied.map(value => ({ value, title: "Success" })),
+                ]
+            })
         }
     }
 
@@ -174,5 +233,23 @@ export class KubernetesClusterRepository implements ClusterRepository {
         const api: T = apiProvider(this.getServer(config))
         api.setDefaultAuthentication(config)
         return api
+    }
+
+    private minifyDeployment(deployment: V1beta2Deployment): object {
+        return {
+            metadata: {
+                name: deployment.metadata.name,
+                namespace: deployment.metadata.namespace,
+                annotations: deployment.metadata.annotations
+            },
+            spec: deployment.spec
+        }
+    }
+
+    private needsUpdate(current: V1beta2Deployment | undefined, target: V1beta2Deployment): boolean {
+        if (current === undefined) {
+            return true
+        }
+        return JSON.stringify(this.minifyDeployment(target)) !== JSON.stringify(this.minifyDeployment(current))
     }
 }
