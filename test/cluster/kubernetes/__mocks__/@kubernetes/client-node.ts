@@ -61,16 +61,26 @@ const Core_v1Api = jest.fn<api1>().mockImplementation(function () {
     return mockedApi
 });
 
+export const replaceDeploymentMock = jest.fn()
+
 const Apps_v1beta2Api = jest.fn<api2>().mockImplementation(function () {
     const mockedApi = new api2()
     mockedApi.listNamespacedDeployment = jest.fn().mockReturnValue({
         get: () => ({
-            items: [mockDeployment("deployement1", "repo/image1:tag"), mockDeployment("deployement2", "repo/image2:tag")]
+            items: [mockDeployment("deployment1", "repo/image1:tag"), mockDeployment("deployment2", "repo/image2:tag")]
         })
     })
     mockedApi.patchNamespacedDeployment = jest.fn().mockReturnValue({
 
         get: () => mockDeployment("updatedDeployment", "repo/updatedImage:tag")
+    })
+    mockedApi.replaceNamespacedDeployment = jest.fn().mockImplementation((name, namespace, body) => {
+        if (name !== "deployment2") {
+            replaceDeploymentMock(name, namespace, body)
+            return Promise.resolve()
+        } else {
+            throw Error()
+        }
     })
     return mockedApi
 })

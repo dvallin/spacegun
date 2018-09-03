@@ -1,4 +1,4 @@
-import { fromConfig } from "../../../src/config/git/GitConfigRepository"
+import { fromConfig, GitConfigRepository } from "../../../src/config/git/GitConfigRepository"
 import { Layers } from "../../../src/dispatcher/model/Layers"
 
 describe("GitConfigRepository", () => {
@@ -20,7 +20,7 @@ describe("GitConfigRepository", () => {
 
     describe("methods", () => {
 
-        let repo
+        let repo: GitConfigRepository
         beforeEach(() => {
             repo = fromConfig({ git: { remote: "remotePath" } })
         })

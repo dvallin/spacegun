@@ -36,7 +36,7 @@ async function foreachCluster(io: IO, command: (io: IO, cluster: string) => void
 async function foreachNamespace(io: IO, cluster: string, command: (io: IO, cluster: string, namespace?: string) => void) {
     const namespaces = await load(call(clusterModule.namespaces)({ cluster }))
     if (namespaces.length === 0) {
-        command(io, cluster)
+        await command(io, cluster)
     } else {
         for (const namespace of namespaces) {
             io.out(chalk.bold(pad(``)))

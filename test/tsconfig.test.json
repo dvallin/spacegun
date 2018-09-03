@@ -1,0 +1,14 @@
+{
+    "extends": "../tsconfig",
+    "compilerOptions": {
+        "allowJs": true,
+        "typeRoots": [
+            "../node_modules/@types",
+            "../types",
+        ]
+    },
+    "include": [
+        "../test",
+        "../types"
+    ]
+}

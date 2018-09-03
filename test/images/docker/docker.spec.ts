@@ -7,7 +7,7 @@ describe("DockerImageProvider", () => {
 
     const config = {}
 
-    let provider
+    let provider: DockerImageRepository
     beforeEach(() => {
         provider = DockerImageRepository.fromConfig("http://repo")
     })

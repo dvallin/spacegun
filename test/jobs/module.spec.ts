@@ -57,17 +57,21 @@ describe("image module", () => {
 
     it("calls apply", async () => {
         // given
+        const plan = {
+            deployments: [{
+                deployment: { name: "name" },
+                image: { url: "url", name: "name", tag: "tag" },
+                group: { cluster: "cluster" }
+            }], name: "jobName"
+        }
         applyMock.mockReturnValueOnce({})
 
         // when
-        const result = await call(run)({ deployments: [{}], name: "jobName" })
+        const result = await call(run)(plan)
 
         // then
         expect(result).toEqual({})
         expect(applyMock).toHaveBeenCalledTimes(1)
-        expect(applyMock).toHaveBeenCalledWith({
-            name: "jobName",
-            deployments: [{}]
-        })
+        expect(applyMock).toHaveBeenCalledWith(plan)
     })
 })

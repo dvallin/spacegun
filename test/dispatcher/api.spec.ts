@@ -21,7 +21,7 @@ describe("register", () => {
                 mapper,
                 method: Methods.Get
             }
-            register("procedureName", () => "resultFromServer", configuration)
+            register("procedureName", () => Promise.resolve("resultFromServer"), configuration)
         })
 
         it("register get requests", () => {

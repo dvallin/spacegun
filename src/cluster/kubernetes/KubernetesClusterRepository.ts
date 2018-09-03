@@ -157,7 +157,6 @@ export class KubernetesClusterRepository implements ClusterRepository {
         for (const deployment of snapshot.deployments) {
             const current = result.items.find(d => d.metadata.name === deployment.name)
             const target = deployment.data as V1beta2Deployment
-
             if (current !== undefined) {
                 const image = this.createImage(current.spec.template.spec.containers)
                 if (image !== undefined) {
@@ -184,8 +183,8 @@ export class KubernetesClusterRepository implements ClusterRepository {
                 topics: ["slack"],
                 description: `Applied Snapshots in ${group.cluster} ∞ ${group.namespace}`,
                 fields: [
-                    ...errored.map(value => ({ value, title: "Applied Failed" })),
-                    ...applied.map(value => ({ value, title: "Applied Successfully" })),
+                    ...errored.map(value => ({ value, title: "Failure" })),
+                    ...applied.map(value => ({ value, title: "Success" })),
                 ]
             })
         }
