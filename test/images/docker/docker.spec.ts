@@ -1,12 +1,13 @@
 import { DockerImageRepository } from "../../../src/images/docker/DockerImageRepository"
-import axios, { AxiosResponse } from "axios"
+import axios from "axios"
 
+import { axiosSuccess } from "../../test-utils/axios"
 
 describe("DockerImageProvider", () => {
 
-    const config = { timeout: 20000 }
+    const config = {}
 
-    let provider
+    let provider: DockerImageRepository
     beforeEach(() => {
         provider = DockerImageRepository.fromConfig("http://repo")
     })
@@ -82,20 +83,3 @@ describe("DockerImageProvider", () => {
         expect(axios.get).toHaveBeenCalledWith("http://repo/v2/image1/manifests/tag1", config)
     })
 })
-
-function success<T>(data: T): AxiosResponse<T> {
-    return {
-        config: {},
-        data,
-        headers: {},
-        request: undefined,
-        status: 200,
-        statusText: "Ok",
-    }
-}
-
-export function axiosSuccess(...data: object[]): jest.Mock<{}> {
-    let mock = jest.fn()
-    data.forEach(d => mock.mockReturnValueOnce(Promise.resolve(success(d))))
-    return mock
-}

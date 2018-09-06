@@ -6,15 +6,22 @@ import { IO } from "../src/IO"
 import { Layers } from "../src/dispatcher/model/Layers"
 import { Application } from "../src/Application"
 import { callParameters } from "./test-utils/jest"
+import { CronRegistry } from "../src/crons/CronRegistry"
+
+import { Options } from "../src/options"
 
 describe("Application", () => {
 
-    let app
+    let app: Application
     beforeEach(() => {
         jest.resetAllMocks()
         const io = new IO()
-        const crons = { register: jest.fn(), startAllCrons: jest.fn(), removeAllCrons: jest.fn() }
-        const options = {}
+        const crons: CronRegistry = new CronRegistry()
+        crons.register = jest.fn()
+        crons.startAllCrons = jest.fn()
+        crons.removeAllCrons = jest.fn()
+
+        const options: Options = { command: "help" }
         app = new Application(io, crons, options)
     })
 

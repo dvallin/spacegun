@@ -1,14 +1,16 @@
-import { load, validateConfig } from "../../src/config"
+import { loadConfig, validateConfig } from "../../src/config"
 
 describe("config loading", () => {
 
-    it("loads jobs", () => {
-        const config = load('test/test-config/config.yml')
+    it("loads configurations files", () => {
+        const config = loadConfig('test/test-config/config.yml')
         expect(config).toEqual({
             docker: "https://docker.com",
             jobs: "test/test-config/jobs",
-            git: { remote: "https://some.git" },
+            artifacts: "test/test-config/artifacts",
             kube: "test/test-config/kube/config",
+            slack: "https://some.slack.hook",
+            git: { remote: "https://some.git" },
             namespaces: ["service1", "service2"],
             server: { "host": "localhost", "port": 8080 }
         })

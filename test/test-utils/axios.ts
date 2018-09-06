@@ -11,7 +11,7 @@ function success<T>(data: T): AxiosResponse<T> {
     }
 }
 
-function failure<T>(): AxiosResponse<T> {
+function failure(): AxiosResponse<undefined> {
     return {
         config: {},
         data: undefined,

@@ -26,6 +26,8 @@ function parse(): Options {
             case "deployments":
             case "jobs":
             case "jobSchedules":
+            case "snapshot":
+            case "apply":
             case "run":
             case "deploy":
                 command = internalOptions.command
