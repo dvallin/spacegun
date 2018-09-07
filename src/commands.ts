@@ -9,7 +9,7 @@ import { IO } from "@/IO"
 import * as jobsModule from "@/jobs/JobsModule"
 import * as clusterModule from "@/cluster/ClusterModule"
 import * as imageModule from "@/images/ImageModule"
-import * as configModule from "@/config/ConfigModule"
+import * as configModule from "@/artifacts/ArtifactModule"
 
 import { Deployment } from "@/cluster/model/Deployment"
 import { DeploymentSnapshot } from "@/cluster/model/DeploymentSnapshot";

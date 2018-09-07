@@ -3,15 +3,13 @@ process.env.LAYER = Layers.Standalone
 
 import { call } from "../../src/dispatcher"
 
-import { init, saveArtifact, loadArtifact } from "../../src/config/ConfigModule"
-import { FilesystemConfigRepository } from "../../src/config/filesystem/FilesystemConfigRepository"
+import { init, saveArtifact, loadArtifact } from "../../src/artifacts/ArtifactModule"
+import { FilesystemArtifactRepository } from "../../src/artifacts/filesystem/FilesystemArtifactRepository"
 
 const saveArtifactMock = jest.fn()
 const loadArtifactMock = jest.fn()
-const repo: FilesystemConfigRepository = {
+const repo: FilesystemArtifactRepository = {
     artifactPath: "",
-    hasNewConfig: jest.fn(),
-    fetchNewConfig: jest.fn(),
     saveArtifact: saveArtifactMock,
     loadArtifact: loadArtifactMock
 }

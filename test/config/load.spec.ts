@@ -34,4 +34,11 @@ describe("validateConfig", () => {
         })
         expect(config.namespaces).toBeUndefined()
     })
+
+    it("adds config base path to paths", () => {
+        const config = validateConfig("basePath", { docker: "someDocker", jobs: "some/jobs", kube: "some/kube", artifacts: "some/artifacts" })
+        expect(config.artifacts).toEqual("basePath/some/artifacts")
+        expect(config.jobs).toEqual("basePath/some/jobs")
+        expect(config.kube).toEqual("basePath/some/kube")
+    })
 })

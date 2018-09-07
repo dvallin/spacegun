@@ -1,24 +1,16 @@
-import { ConfigRepository } from "@/config/ConfigRepository"
+import { ArtifactRepository } from "@/artifacts/ArtifactRepository"
 import { Config } from "@/config"
-import { save, load } from "../index"
+import { save, load } from "@/file-loading"
 
-export function fromConfig(config: Config): FilesystemConfigRepository {
-    return new FilesystemConfigRepository(config.artifacts)
+export function fromConfig(config: Config): FilesystemArtifactRepository {
+    return new FilesystemArtifactRepository(config.artifacts)
 }
 
-export class FilesystemConfigRepository implements ConfigRepository {
+export class FilesystemArtifactRepository implements ArtifactRepository {
 
     constructor(
         public readonly artifactPath: string
     ) {
-    }
-
-    public hasNewConfig(): Promise<boolean> {
-        return Promise.resolve(false)
-    }
-
-    public fetchNewConfig(): Promise<void> {
-        return Promise.resolve()
     }
 
     public saveArtifact(name: string, path: string, data: object): Promise<void> {
