@@ -20,6 +20,45 @@ describe('out', () => {
     })
 })
 
+describe('expect', () => {
+    it('should print question', () => {
+        // given
+        jest.spyOn(process.stdout, 'write')
+        const response: string = 'any'
+        const io: IO = new IO(new RespondOnce(response))
+        const message = 'test message for expect'
+
+        // when
+        return io.expect(message, response)
+            .finally(() => {
+                // then
+                expect(process.stdout.write).toHaveBeenCalledWith(message)
+            })
+    })
+
+    it('should accept expected answer', () => {
+        // given
+        const expectedAnswer: string = 'yes'
+        const io: IO = new IO(new RespondOnce(expectedAnswer))
+
+        // when + then
+        return expect(
+            io.expect('', expectedAnswer)
+        ).resolves.toEqual(true)
+    })
+
+    it('should reject unexpected answer', () => {
+        // given
+        const expectedAnswer: string = 'yes'
+        const io: IO = new IO(new RespondOnce('no'))
+
+        // when + then
+        return expect(
+            io.expect('', expectedAnswer)
+        ).resolves.toEqual(false)
+    })
+})
+
 describe('choose', () => {
     it('should print question', () => {
         // given
