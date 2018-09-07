@@ -112,8 +112,8 @@ describe("JobsRepositoryImpl", () => {
             expect(repo.crons[1].lastRun).toBeUndefined()
 
             crons.cronJobs.get("1->2")!.start()
-
             jest.runOnlyPendingTimers()
+
             expect(repo.crons[0].lastRun).toBeDefined()
             expect(repo.crons[1].lastRun).toBeUndefined()
         })
@@ -123,7 +123,7 @@ describe("JobsRepositoryImpl", () => {
                 [1520942400000, 1521028800000, 1521115200000, 1521201600000, 1521460800000]
             )
             expect(repo.crons[1].nextRuns).toEqual(
-                [1520899200000, 1520899500000, 1520899800000, 1520900100000, 1520900400000]
+                [1520899500000, 1520899800000, 1520900100000, 1520900400000, 1520900700000]
             )
         })
 
