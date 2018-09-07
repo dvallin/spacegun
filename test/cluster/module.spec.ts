@@ -1,8 +1,9 @@
 import { Layers } from "../../src/dispatcher/model/Layers"
 process.env.LAYER = Layers.Standalone
 
-import { init, clusters, pods, scalers, deployments, updateDeployment, namespaces, takeSnapshot, applySnapshot } from "../../src/cluster/ClusterModule"
+import { init, clusters, pods, scalers, deployments, updateDeployment, namespaces, takeSnapshot, applySnapshot, UpdateDeploymentParameters } from "../../src/cluster/ClusterModule"
 import { ClusterRepository } from "../../src/cluster/ClusterRepository"
+import { ApplySnapshotParameters } from "../../src/cluster/ClusterModule"
 import { call } from "../../src/dispatcher"
 
 const podsMock = jest.fn()
@@ -90,15 +91,16 @@ describe("cluster module", async () => {
     it("calls deployments", async () => {
         // given
         updateDeploymentMock.mockReturnValueOnce({})
-        const deployment = { id: 1 }
-        const image = { id: 2 }
-
-        // when
-        const result = await call(updateDeployment)({
+        const deployment = { id: 1, name: "deployment1" }
+        const image = { id: 2, url: "url", name: "name", tag: "tag" }
+        const params: UpdateDeploymentParameters = {
             deployment,
             image,
             group: { cluster: "clusterName" }
-        })
+        }
+
+        // when
+        const result = await call(updateDeployment)(params)
 
         // then
         expect(result).toEqual({})
@@ -122,13 +124,14 @@ describe("cluster module", async () => {
     it("calls apply snapshot", async () => {
         // given
         applySnapshotMock.mockReturnValueOnce({})
+        const params: ApplySnapshotParameters = { group: { cluster: "clusterName" }, snapshot: { deployments: [] } }
 
         // when
-        const result = await call(applySnapshot)({ group: { cluster: "clusterName" }, snapshot: {} })
+        const result = await call(applySnapshot)(params)
 
         // then
         expect(result).toEqual({})
         expect(applySnapshotMock).toHaveBeenCalledTimes(1)
-        expect(applySnapshotMock).toHaveBeenCalledWith({ cluster: "clusterName" }, {})
+        expect(applySnapshotMock).toHaveBeenCalledWith({ cluster: "clusterName" }, { deployments: [] })
     })
 })

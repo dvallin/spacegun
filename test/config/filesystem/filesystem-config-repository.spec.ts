@@ -1,9 +1,9 @@
 import { fromConfig, FilesystemConfigRepository } from "../../../src/config/filesystem/FilesystemConfigRepository"
-import { Layers } from "../../../src/dispatcher/model/Layers"
+import { Config } from "../../../src/config/index"
 
 describe("FileSystemConfigRepository", () => {
 
-    const repo = fromConfig({ artifacts: "test/test-config/artifacts/" })
+    const repo: FilesystemConfigRepository = fromConfig(createConfig("test/test-config/artifacts/"))
 
     describe("fromConfig", () => {
 
@@ -29,3 +29,13 @@ describe("FileSystemConfigRepository", () => {
         })
     })
 })
+
+function createConfig(artifacts: string): Config {
+    return {
+        kube: "",
+        docker: "",
+        jobs: "",
+        artifacts,
+        server: { host: "", port: 2 }
+    }
+}

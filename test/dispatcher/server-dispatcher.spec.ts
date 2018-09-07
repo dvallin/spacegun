@@ -55,6 +55,6 @@ describe("server dispatcher", () => {
         await get(moduleName, functions.remoteParams)(params)
 
         // then
-        expect(callParameters(remoteFunction)[0]).toEqual("1")
+        expect(callParameters(remoteFunction)[0]).toEqual(1)
     })
 })

@@ -1,3 +1,20 @@
+jest.mock("../../../src/dispatcher/index", () => ({
+    call: (request: Request<any, any>) => {
+        switch (request.module) {
+            case "events": {
+                switch (request.procedure) {
+                    case "log": {
+                        return (input: any) => { mockLog(input) }
+                    }
+                }
+            }
+        }
+        return undefined
+    },
+    add: () => { },
+    path: () => ""
+}))
+
 import { KubernetesClusterRepository } from "../../../src/cluster/kubernetes/KubernetesClusterRepository"
 import { Pod } from "../../../src/cluster/model/Pod"
 import { Deployment } from "../../../src/cluster/model/Deployment"
@@ -9,21 +26,12 @@ import { Request } from "../../../src/dispatcher/model/Request"
 const image1 = { name: "image1", tag: "tag", url: "repo/image1:tag" }
 const image2 = { name: "image2", tag: "tag", url: "repo/image2:tag" }
 
-const logMock = jest.fn()
+const mockLog = jest.fn()
 
-import * as dispatcher from "../../../src/dispatcher"
-import { replaceDeploymentMock } from "./__mocks__/@kubernetes/client-node";
-dispatcher.call = (request: Request<any, any>) => {
-    switch (request.module) {
-        case "events": {
-            switch (request.procedure) {
-                case "log": {
-                    return (input) => { logMock(input) }
-                }
-            }
-        }
-    }
-}
+import { replaceDeploymentMock } from "./__mocks__/@kubernetes/client-node"
+import { V1Deployment } from "@kubernetes/client-node"
+
+
 describe("KubernetesClusterProvider", () => {
 
     beforeEach(() => {
@@ -119,8 +127,9 @@ describe("KubernetesClusterProvider", () => {
             const snapshot: ClusterSnapshot = await cluster.takeSnapshot({
                 cluster: cluster.clusters[0]
             })
-            snapshot.deployments[0].data.spec.replicas = 2
-            snapshot.deployments[0].data.spec.template.spec.containers[0].image = "somenewsillyimage"
+            const deployment1 = (snapshot.deployments[0].data as V1Deployment)
+            deployment1.spec.replicas = 2
+            deployment1.spec.template.spec.containers[0].image = "somenewsillyimage"
 
             await cluster.applySnapshot({ cluster: cluster.clusters[0] }, snapshot)
 
@@ -135,10 +144,11 @@ describe("KubernetesClusterProvider", () => {
             const snapshot: ClusterSnapshot = await cluster.takeSnapshot({
                 cluster: cluster.clusters[0]
             })
+            const deployment1 = (snapshot.deployments[0].data as V1Deployment)
             snapshot.deployments[0].name = "somesillydeployment"
-            snapshot.deployments[0].data.metadata.name = "somesillydeployment"
-            snapshot.deployments[0].data.spec.replicas = 2
-            snapshot.deployments[0].data.spec.template.spec.containers[0].image = "somenewsillyimage"
+            deployment1.metadata.name = "somesillydeployment"
+            deployment1.spec.replicas = 2
+            deployment1.spec.template.spec.containers[0].image = "somenewsillyimage"
 
             await cluster.applySnapshot({ cluster: cluster.clusters[0] }, snapshot)
 
@@ -153,12 +163,15 @@ describe("KubernetesClusterProvider", () => {
             const snapshot: ClusterSnapshot = await cluster.takeSnapshot({
                 cluster: cluster.clusters[0]
             })
-            snapshot.deployments[0].data.spec.replicas = 2
-            snapshot.deployments[1].data.spec.replicas = 2
+
+            const deployment1 = (snapshot.deployments[0].data as V1Deployment)
+            deployment1.spec.replicas = 2
+            const deployment2 = (snapshot.deployments[1].data as V1Deployment)
+            deployment2.spec.replicas = 2
 
             await cluster.applySnapshot({ cluster: cluster.clusters[0] }, snapshot)
 
-            expect(logMock).toHaveBeenCalledWith({
+            expect(mockLog).toHaveBeenCalledWith({
                 description: "Applied Snapshots in dev ∞ undefined",
                 fields: [
                     { title: "Failure", value: "Deployment deployment2" },

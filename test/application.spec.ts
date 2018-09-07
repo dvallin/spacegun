@@ -7,8 +7,10 @@ import { Layers } from "../src/dispatcher/model/Layers"
 import { Application } from "../src/Application"
 import { callParameters } from "./test-utils/jest"
 import { CronRegistry } from "../src/crons/CronRegistry"
+import { GitConfigRepository, fromConfig } from "../src/config/git/GitConfigRepository"
 
 import { Options } from "../src/options"
+import { Config } from "../src/config";
 
 describe("Application", () => {
 
@@ -33,7 +35,9 @@ describe("Application", () => {
     it("registers the cronjobs", async () => {
         app.options.config = "test/test-config/config.yml"
         process.env.LAYER = Layers.Server
+
         await app.run()
+
         expect(app.crons.register).toHaveBeenCalledTimes(3)
         expect(callParameters(app.crons.register, 0)[0]).toEqual("config-reload")
         expect(callParameters(app.crons.register, 1)[0]).toEqual("dev")
@@ -43,9 +47,13 @@ describe("Application", () => {
     it("reloads the cronjobs", async () => {
         app.options.config = "test/test-config/config.yml"
         process.env.LAYER = Layers.Server
-        const hasNewConfig = () => (Promise.resolve(true))
-        const fetchNewConfig = () => (Promise.resolve())
-        await app.checkForConfigChange({ hasNewConfig, fetchNewConfig })
+
+        const configRepo: GitConfigRepository = fromConfig(createConfig())!
+        configRepo.hasNewConfig = () => (Promise.resolve(true))
+        configRepo.fetchNewConfig = () => (Promise.resolve())
+
+        await app.checkForConfigChange(configRepo)
+
         expect(app.crons.register).toHaveBeenCalledTimes(3)
         expect(callParameters(app.crons.register, 0)[0]).toEqual("config-reload")
         expect(callParameters(app.crons.register, 1)[0]).toEqual("dev")
@@ -53,3 +61,14 @@ describe("Application", () => {
         expect(app.crons.removeAllCrons).toHaveBeenCalledTimes(1)
     })
 })
+
+function createConfig(): Config {
+    return {
+        git: { remote: "someUrl", cron: "someCron" },
+        kube: "",
+        docker: "",
+        jobs: "",
+        artifacts: "",
+        server: { host: "", port: 2 }
+    }
+}

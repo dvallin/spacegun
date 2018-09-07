@@ -36,10 +36,6 @@ describe("validateJob", () => {
         expect(() => validateJob({ cluster: "someCluster" }, "jobName")).toThrowErrorMatchingSnapshot()
     })
 
-    it("ensures source type is correct", () => {
-        expect(() => validateJob({ cluster: "someCluster", from: {} }, "jobName")).toThrowErrorMatchingSnapshot()
-    })
-
     describe("image source", () => {
 
         it("only needs the type", () => {

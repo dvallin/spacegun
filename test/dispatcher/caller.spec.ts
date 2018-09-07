@@ -9,41 +9,41 @@ import { RequestInput } from "../../src/dispatcher/model/RequestInput"
 
 describe("caller", () => {
 
-    const getParams = { sut: get, backend: "get" }
-    const postParams = { sut: post, backend: "post" }
-    const putParams = { sut: put, backend: "put" }
+    const getParams = { sut: get, method: "get" }
+    const postParams = { sut: post, method: "post" }
+    const putParams = { sut: put, method: "put" }
 
     beforeEach(() => {
         init("localhost", 3000)
     })
 
     const regularTestCases = [getParams, postParams, putParams]
-    regularTestCases.forEach(({ sut, backend }) =>
+    regularTestCases.forEach(({ sut, method }) =>
 
         describe(sut.name, () => {
 
             it("sets the base url", () => {
                 // given
-                axios[backend] = axiosSuccess({})
+                mockAxiosMethod(method, axiosSuccess({}))
 
                 // when
                 sut("procedure", RequestInput.of(["someParam", 1]))
 
                 // then
-                const callParams = callParameters(axios[backend])
+                const callParams = axiosCallParameters(method)
                 const config: AxiosRequestConfig = callParams[callParams.length - 1]
                 expect(config.baseURL).toEqual("http://localhost:3000")
             })
 
             it("serializes the params", () => {
                 // given
-                axios[backend] = axiosSuccess({})
+                mockAxiosMethod(method, axiosSuccess({}))
                 sut("procedure", RequestInput.of(["someParam", 1], ["someParam", 4]))
-                const callParams = callParameters(axios[backend])
+                const callParams = axiosCallParameters(method)
                 const config: AxiosRequestConfig = callParams[callParams.length - 1]
 
                 // when
-                const serializedParams = config.paramsSerializer(config.params)
+                const serializedParams = config.paramsSerializer!(config.params!)
 
                 // then
                 expect(serializedParams).toEqual("someParam=1&someParam=4")
@@ -51,7 +51,7 @@ describe("caller", () => {
 
             it("returns the body", async () => {
                 // given
-                axios[backend] = axiosSuccess({ data: "D" })
+                mockAxiosMethod(method, axiosSuccess({ data: "D" }))
 
                 // when
                 const data = await sut("procedure", RequestInput.of(["someParam", 1]))
@@ -62,7 +62,7 @@ describe("caller", () => {
 
             it("rejects to axios ", async () => {
                 // given
-                axios[backend] = axiosFailure()
+                mockAxiosMethod(method, axiosFailure())
 
                 // when
                 const data = sut("procedure", RequestInput.of(["someParam", 1]))
@@ -81,22 +81,43 @@ describe("caller", () => {
     )
 
     const postingTestCases = [postParams, putParams]
-    postingTestCases.forEach(({ sut, backend }) =>
+    postingTestCases.forEach(({ sut, method }) =>
 
         describe(sut.name, () => {
 
             it("sends data", () => {
                 // given
-                axios[backend] = axiosSuccess({})
+                mockAxiosMethod(method, axiosSuccess({}))
 
                 // when
                 sut("procedure", RequestInput.ofData({ data: "Data" }))
 
                 // then
-                const callParams = callParameters(axios[backend])
+                const callParams = axiosCallParameters(method)
                 expect(callParams[1]).toEqual({ data: "Data" })
             })
         })
     )
 
 })
+
+function mockAxiosMethod(method: string, mock: jest.Mock<{}>): void {
+    switch (method) {
+        case "get": axios.get = mock
+            break
+        case "post": axios.post = mock
+            break
+        case "put": axios.put = mock
+            break
+    }
+}
+
+function axiosCallParameters(method: string): any[] {
+    switch (method) {
+        case "post": return callParameters(axios.post)
+        case "put": return callParameters(axios.put)
+
+        case "get":
+        default: return callParameters(axios.get)
+    }
+}

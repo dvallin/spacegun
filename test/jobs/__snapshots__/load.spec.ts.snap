@@ -7,5 +7,3 @@ exports[`validateJob cluster source needs a cluster expression not equal to its 
 exports[`validateJob ensures cluster exists 1`] = `"job jobName must contain a cluster"`;
 
 exports[`validateJob ensures source exists 1`] = `"job jobName must contain a source"`;
-
-exports[`validateJob ensures source type is correct 1`] = `"undefined of job jobName is not a valid source type"`;

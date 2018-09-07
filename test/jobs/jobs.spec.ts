@@ -7,65 +7,77 @@ process.env.LAYER = Layers.Standalone
 import { Job } from "../../src/jobs/model/Job"
 import { CronRegistry } from "../../src/crons/CronRegistry"
 
-const deployments = {
+import { Deployment } from "../../src/cluster/model/Deployment"
+import { Image } from "../../src/images/model/Image"
+
+const mockDeployments: { [key: string]: Deployment[] } = {
     "cluster1": [
-        { name: "service1", image: { name: "image1", tag: "tag2" } }
+        { name: "service1", image: { name: "image1", tag: "tag2", url: "imageUrl" } }
     ],
     "cluster2": [
-        { name: "service1", image: { name: "image1", tag: "tag1" } }
+        { name: "service1", image: { name: "image1", tag: "tag1", url: "imageUrl" } }
     ],
 }
-const namespaces = {
+
+const mockNamespaces: { [key: string]: string[] } = {
     "cluster1": [],
     "cluster2": ["service1"]
 }
 
-const versions = {
+const mockVersions: { [key: string]: Image[] } = {
     "image1": [
-        { name: "image1", tag: "tag3" }
+        { name: "image1", tag: "tag3", url: "imageUrl", lastUpdated: Date.now() }
     ]
 }
 
-const updateDeploymentMock = jest.fn()
+const mockUpdateDeployment = jest.fn()
 
-import * as dispatcher from "../../src/dispatcher"
-dispatcher.call = (request: Request<any, any>) => {
-    switch (request.module) {
-        case "cluster": {
-            switch (request.procedure) {
-                case "deployments": {
-                    return (input: { cluster: string }) => (deployments[input.cluster])
-                }
-                case "deployments": {
-                    return (input: { cluster: string }) => (deployments[input.cluster])
-                }
-                case "namespaces": {
-                    return (input: { cluster: string }) => (namespaces[input.cluster])
-                }
-                case "updateDeployment": {
-                    return (input: any) => {
-                        updateDeploymentMock(input)
-                        return deployments[input.group.cluster]
+jest.mock("../../src/dispatcher/index", () => ({
+    get: jest.fn(),
+    call: (request: Request<any, any>) => {
+        switch (request.module) {
+            case "cluster": {
+                switch (request.procedure) {
+                    case "deployments": {
+                        return (input: { cluster: string }) => (mockDeployments[input.cluster])
+                    }
+                    case "deployments": {
+                        return (input: { cluster: string }) => (mockDeployments[input.cluster])
+                    }
+                    case "namespaces": {
+                        return (input: { cluster: string }) => (mockNamespaces[input.cluster])
+                    }
+                    case "updateDeployment": {
+                        return (input: any) => {
+                            mockUpdateDeployment(input)
+                            return mockDeployments[input.group.cluster]
+                        }
                     }
                 }
+                break
             }
-        }
-        case "images": {
-            switch (request.procedure) {
-                case "versions": {
-                    return (input: { name: string }) => (versions[input.name])
+            case "images": {
+                switch (request.procedure) {
+                    case "versions": {
+                        return (input: { name: string }) => (mockVersions[input.name])
+                    }
                 }
+                break
             }
-        }
-        case "events": {
-            switch (request.procedure) {
-                case "log": {
-                    return () => { }
+            case "events": {
+                switch (request.procedure) {
+                    case "log": {
+                        return () => { }
+                    }
                 }
+                break
             }
         }
-    }
-}
+        return undefined
+    },
+    add: () => { },
+    path: () => ""
+}))
 
 import { JobsRepositoryImpl } from "../../src/jobs/JobsRepositoryImpl"
 
@@ -85,10 +97,6 @@ describe("JobsRepositoryImpl", () => {
         jobs.set("1->2", job1)
         jobs.set("i->1", job2)
 
-        jest.mock("../../src/dispatcher/index", () => ({
-            get: jest.fn()
-        }))
-
         crons = new CronRegistry()
         repo = new JobsRepositoryImpl(jobs, crons)
     })
@@ -102,7 +110,9 @@ describe("JobsRepositoryImpl", () => {
         it("updates lastRun", () => {
             expect(repo.crons[0].lastRun).toBeUndefined()
             expect(repo.crons[1].lastRun).toBeUndefined()
-            crons.cronJobs.get("1->2").start()
+
+            crons.cronJobs.get("1->2")!.start()
+
             jest.runOnlyPendingTimers()
             expect(repo.crons[0].lastRun).toBeDefined()
             expect(repo.crons[1].lastRun).toBeUndefined()
@@ -133,9 +143,9 @@ describe("JobsRepositoryImpl", () => {
         expect(deploymentPlan.group.namespace).toEqual("service1")
 
         // service1 gets from tag1 to tag2
-        expect(deploymentPlan.image.tag).toBe("tag2")
+        expect(deploymentPlan.image!.tag).toBe("tag2")
         expect(deploymentPlan.deployment.name).toBe("service1")
-        expect(deploymentPlan.deployment.image.tag).toBe("tag1")
+        expect(deploymentPlan.deployment.image!.tag).toBe("tag1")
     })
 
     it("plans an image job", async () => {
@@ -155,7 +165,7 @@ describe("JobsRepositoryImpl", () => {
         // service1 gets from tag2 to tag3
         expect(deploymentPlan.image.tag).toBe("tag3")
         expect(deploymentPlan.deployment.name).toBe("service1")
-        expect(deploymentPlan.deployment.image.tag).toBe("tag2")
+        expect(deploymentPlan.deployment.image!.tag).toBe("tag2")
     })
 
     it("applies plans", async () => {
@@ -163,12 +173,12 @@ describe("JobsRepositoryImpl", () => {
         await repo.planAndApply("1->2")
 
         // then
-        expect(updateDeploymentMock).toHaveBeenCalledWith({
+        expect(mockUpdateDeployment).toHaveBeenCalledWith({
             deployment: {
-                image: { name: "image1", tag: "tag1" },
+                image: { name: "image1", tag: "tag1", url: "imageUrl" },
                 name: "service1"
             },
-            image: { name: "image1", tag: "tag2" },
+            image: { name: "image1", tag: "tag2", url: "imageUrl" },
             group: { cluster: "cluster2", namespace: "service1" }
         })
     })
@@ -191,6 +201,6 @@ describe("JobsRepositoryImpl", () => {
 
         // then
         const crons = await repo.schedules("i->1")
-        expect(crons.isStarted).toBeTruthy()
+        expect(crons!.isStarted).toBeTruthy()
     })
 })

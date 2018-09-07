@@ -2,6 +2,7 @@ import { Layers } from "../../src/dispatcher/model/Layers"
 process.env.LAYER = Layers.Standalone
 
 import { init, jobs, plan, run, schedules } from "../../src/jobs/JobsModule"
+import { Job } from "../../src/jobs/model/Job"
 import { call } from "../../src/dispatcher"
 import { JobsRepository } from "../../src/jobs/JobsRepository"
 
@@ -9,8 +10,13 @@ const planMock = jest.fn()
 const applyMock = jest.fn()
 const startMock = jest.fn()
 const schedulesMock = jest.fn()
+const list: Job[] = [
+    { name: "job1", cluster: "cluster1", from: { type: "cluster" } },
+    { name: "job2", cluster: "cluster2", from: { type: "cluster" } }
+]
+
 const repo: JobsRepository = {
-    list: ["job1", "job2"],
+    list,
     crons: [],
 
     plan: planMock,
@@ -28,7 +34,7 @@ describe("image module", () => {
         const result = await call(jobs)()
 
         // then
-        expect(result).toEqual(["job1", "job2"])
+        expect(result).toEqual(list)
     })
 
     it("calls plan", async () => {

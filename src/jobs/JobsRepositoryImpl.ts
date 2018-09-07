@@ -120,7 +120,7 @@ export class JobsRepositoryImpl implements JobsRepository {
     async planClusterDeployment(job: Job, targetDeployments: Deployment[], group: ServerGroup): Promise<DeploymentPlan[]> {
         const deployments: DeploymentPlan[] = []
         const sourceDeployments = await call(clusterModule.deployments)({
-            cluster: job.from.expression,
+            cluster: job.from.expression!,
             namespace: group.namespace
         })
         for (const targetDeployment of targetDeployments) {
@@ -147,7 +147,7 @@ export class JobsRepositoryImpl implements JobsRepository {
 
     async planImageDeployment(job: Job, targetDeployments: Deployment[], group: ServerGroup): Promise<DeploymentPlan[]> {
         const deployments: DeploymentPlan[] = []
-        const tagMatcher = new RegExp(job.from.expression, "g");
+        const tagMatcher = new RegExp(job.from.expression || "^*$", "g");
 
         for (const targetDeployment of targetDeployments) {
             this.io.out(`planning image deployment ${targetDeployment.name} in job ${job.name}`)

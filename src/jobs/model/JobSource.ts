@@ -1,4 +1,4 @@
 export interface JobSource {
     readonly type: "cluster" | "image"
-    readonly expression: string
+    readonly expression?: string
 }
