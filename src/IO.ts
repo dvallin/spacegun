@@ -2,6 +2,12 @@ import * as readline from "readline"
 
 export class IO {
 
+    public constructor(
+        public readonly stdin: NodeJS.ReadableStream = process.stdin,
+        public readonly stdout: NodeJS.WritableStream = process.stdout
+    ) {
+    }
+
     public choose<T>(question: string, options: T[]): Promise<T> {
         return new Promise((resolve, reject) => {
             this.readlineContext(question, (answer) => {
@@ -31,8 +37,8 @@ export class IO {
 
     private readlineContext(question: string, callback: (answer: string) => void) {
         const r = readline.createInterface({
-            input: process.stdin,
-            output: process.stdout
+            input: this.stdin,
+            output: this.stdout
         })
         r.question(question, (answer) => {
             callback(answer)

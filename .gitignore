@@ -4,3 +4,4 @@ node_modules/
 production-config/
 
 yarn-error.log
+.idea/
