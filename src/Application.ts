@@ -79,7 +79,8 @@ export class Application {
             this.crons.register(
                 "config-reload",
                 config.git!.cron,
-                () => this.checkForConfigChange(gitRepo)
+                () => this.checkForConfigChange(gitRepo),
+                true
             )
             initConfig(gitRepo)
         } else {

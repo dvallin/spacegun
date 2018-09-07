@@ -9,12 +9,12 @@ export class CronRegistry {
     public readonly running: Map<string, Promise<void>> = new Map()
     private readonly io: IO = new IO()
 
-    public register(name: string, cronTab: string, promiseProvider: () => Promise<void>) {
+    public register(name: string, cronTab: string, promiseProvider: () => Promise<void>, started: boolean = false) {
         const cron = new CronJob(
             cronTab,
             () => this.executeTask(name, promiseProvider),
             () => { },
-            false,
+            started,
             "UTC"
         )
         this.cronJobs.set(name, cron)
@@ -41,10 +41,10 @@ export class CronRegistry {
     public startAllCrons(): void {
         this.cronJobs.forEach((cronJob, name) => {
             if (!cronJob.running) {
-                this.io.out(`starting ${name}`)
+                this.io.out(`starting cron job ${name}`)
                 cronJob.start()
             } else {
-                this.io.out(`job ${name} already started`)
+                this.io.out(`cron job ${name} already started`)
             }
         })
     }
@@ -64,6 +64,7 @@ export class CronRegistry {
         if (currentTask !== undefined) {
             this.io.out(`${name} is already running!`)
         } else {
+            this.io.out(`executing of cron job ${name}`)
             const task = promiseProvider()
             this.running.set(name, task)
             await task
