@@ -3,11 +3,11 @@ import { Request } from "@/dispatcher/model/Request"
 import { Component } from "@/dispatcher/component"
 import { Layers } from "@/dispatcher/model/Layers"
 import { Methods } from "@/dispatcher/model/Methods"
-import { ConfigRepository } from "@/config/ConfigRepository"
+import { ArtifactRepository } from "@/artifacts/ArtifactRepository"
 
-let repo: ConfigRepository | undefined = undefined
-export function init(configRepository: ConfigRepository) {
-    repo = configRepository
+let repo: ArtifactRepository | undefined = undefined
+export function init(artifactRepository: ArtifactRepository) {
+    repo = artifactRepository
 }
 
 export interface SaveArtifactParameters {
@@ -22,7 +22,7 @@ export interface LoadArtifactParameters {
 }
 
 export const saveArtifact: Request<SaveArtifactParameters, void> = {
-    module: "config",
+    module: "artifacts",
     procedure: "saveArtifact",
     input: (input: SaveArtifactParameters | undefined) => RequestInput.ofData(
         input!.data, ["path", input!.path], ["name", input!.name]
@@ -35,7 +35,7 @@ export const saveArtifact: Request<SaveArtifactParameters, void> = {
 }
 
 export const loadArtifact: Request<LoadArtifactParameters, object | undefined> = {
-    module: "config",
+    module: "artifacts",
     procedure: "loadArtifact",
     input: (input: LoadArtifactParameters | undefined) => RequestInput.of(
         ["path", input!.path], ["name", input!.name]

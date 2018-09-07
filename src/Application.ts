@@ -9,17 +9,17 @@ import { IO } from "@/IO"
 import { CronRegistry } from "@/crons/CronRegistry"
 
 import { GitConfigRepository, fromConfig as gitRepoFromConfig } from "@/config/git/GitConfigRepository"
-import { fromConfig as configRepoFromConfig } from "@/config/filesystem/FilesystemConfigRepository";
 
+import { fromConfig as artifactRepoFromConfig } from "@/artifacts/filesystem/FilesystemArtifactRepository"
 import { KubernetesClusterRepository } from "@/cluster/kubernetes/KubernetesClusterRepository"
 import { DockerImageRepository } from "@/images/docker/DockerImageRepository"
 import { JobsRepositoryImpl } from "@/jobs/JobsRepositoryImpl"
 import { SlackEventRepository } from "@/events/slack/SlackEventRepository"
 
+import { init as initArtifacts } from "@/artifacts/ArtifactModule"
 import { init as initCluster } from "@/cluster/ClusterModule"
 import { init as initEvents } from "@/events/EventModule"
 import { init as initImages } from "@/images/ImageModule"
-import { init as initConfig } from "@/config/ConfigModule"
 import { init as initJobs } from "@/jobs/JobsModule"
 import { init as initViews } from "@/views"
 
@@ -82,12 +82,9 @@ export class Application {
                 () => this.checkForConfigChange(gitRepo),
                 true
             )
-            initConfig(gitRepo)
-        } else {
-            const fileSystemRepo = configRepoFromConfig(config)
-            initConfig(fileSystemRepo)
         }
 
+        initArtifacts(artifactRepoFromConfig(config))
         initViews(config)
         initEvents([
             SlackEventRepository.fromConfig(config.slack)

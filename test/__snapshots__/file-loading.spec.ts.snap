@@ -1,0 +1,3 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`save propagates file io errors 1`] = `[Error: some issue happened]`;

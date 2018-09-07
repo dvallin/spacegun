@@ -1,8 +1,6 @@
-import { safeLoad, safeDump } from "js-yaml"
-import { readFileSync, writeFileSync } from "fs"
 import { homedir } from "os"
-import * as mkdirp from "mkdirp"
 import { parse } from "path"
+import { load } from "@/file-loading";
 
 export interface ServerConfig {
     host: string
@@ -29,24 +27,6 @@ export function loadConfig(filePath: string = "./config.yml"): Config {
     const path = parse(filePath)
     const doc = load(filePath) as Partial<Config>
     return validateConfig(path.dir, doc)
-}
-
-export function load(filePath: string): object {
-    return safeLoad(readFileSync(filePath, "utf8"))
-}
-
-export function save(filePath: string, data: object): Promise<void> {
-    const path = parse(filePath)
-    return new Promise((resolve, reject) => {
-        mkdirp(path.dir, (e) => {
-            if (e) {
-                reject(e)
-            } else {
-                writeFileSync(filePath, safeDump(data), "utf8")
-                resolve()
-            }
-        })
-    })
 }
 
 export function validateConfig(configBasePath: string, partial: Partial<Config>): Config {
