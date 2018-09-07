@@ -1,7 +1,6 @@
 import { Component } from "../../src/dispatcher/component"
 import { Layers } from "../../src/dispatcher/model/Layers"
-import { Params } from "../../src/dispatcher/model/Params"
-import { RequestInput } from "../../src/dispatcher/model/RequestInput";
+import { RequestInput } from "../../src/dispatcher/model/RequestInput"
 
 export const globalFunction = jest.fn()
 export const localFunction = jest.fn()
@@ -43,7 +42,7 @@ export class ModuleOnClient {
     @Component({
         moduleName,
         layer: Layers.Server,
-        mapper: (input: RequestInput): number => input.params!["param"][0]
+        mapper: (input: RequestInput): number => Number.parseInt(input.params!["param"] as string)
     })
     [functions.remoteParams](param: number): void {
         remoteFunction(param)

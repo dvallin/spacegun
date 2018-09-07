@@ -25,10 +25,6 @@ export function call<Input, Output>(request: Request<Input, Output>): PromisePro
     return (input?: Input) => procedures[path(request.module, request.procedure)](request.input ? request.input(input) : undefined)
 }
 
-export function reset(): void {
-    procedures = {}
-}
-
 export function path(moduleName: string, procedureName: string): string {
     return `${moduleName}/${procedureName}`
 }

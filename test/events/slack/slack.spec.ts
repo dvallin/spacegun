@@ -8,9 +8,9 @@ import { axiosSuccess } from "../../test-utils/axios"
 
 describe("SlackEventRepository", () => {
 
-    let repo
+    let repo: SlackEventRepository
     beforeEach(() => {
-        repo = SlackEventRepository.fromConfig("http://slack")
+        repo = SlackEventRepository.fromConfig("http://slack")!
     })
 
     describe("log", () => {

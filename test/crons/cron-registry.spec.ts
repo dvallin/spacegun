@@ -25,6 +25,22 @@ describe("CronRegistry", () => {
         expect(registry.crons[0].isRunning).toBeFalsy()
     })
 
+    it("stops crons", () => {
+        const registry = new CronRegistry()
+        registry.register("cron1", "* * * * * *", () => Promise.resolve())
+        registry.startAllCrons()
+        registry.stopAllCrons()
+        expect(registry.crons[0].isStarted).toBeFalsy()
+        expect(registry.crons[0].isRunning).toBeFalsy()
+    })
+
+    it("removes crons", () => {
+        const registry = new CronRegistry()
+        registry.register("cron1", "* * * * * *", () => Promise.resolve())
+        registry.removeAllCrons()
+        expect(registry.crons).toHaveLength(0)
+    })
+
     it("runs started crons", async () => {
         const registry = new CronRegistry()
         const promise: Promise<void> = new Promise((resolve) => setTimeout(() => resolve(), 200))

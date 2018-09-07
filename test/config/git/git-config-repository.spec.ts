@@ -1,6 +1,8 @@
 import { fromConfig, GitConfigRepository } from "../../../src/config/git/GitConfigRepository"
 import { Layers } from "../../../src/dispatcher/model/Layers"
 
+import { GitConfig, Config } from "../../../src/config/index"
+
 describe("GitConfigRepository", () => {
 
     beforeEach(() => {
@@ -10,10 +12,10 @@ describe("GitConfigRepository", () => {
     describe("fromConfig", () => {
 
         it("builds only if config.git exists and layer is server", () => {
-            expect(fromConfig({ git: {} })).toBeDefined()
-            expect(fromConfig({ git: undefined })).toBeUndefined()
+            expect(fromConfig(createConfig({ remote: "someGit", cron: "someCron" }))).toBeDefined()
+            expect(fromConfig(createConfig())).toBeUndefined()
             process.env.LAYER = Layers.Client
-            expect(fromConfig({ git: {} })).toBeUndefined()
+            expect(fromConfig(createConfig({ remote: "someGit", cron: "someCron" }))).toBeUndefined()
         })
     })
 
@@ -22,7 +24,7 @@ describe("GitConfigRepository", () => {
 
         let repo: GitConfigRepository
         beforeEach(() => {
-            repo = fromConfig({ git: { remote: "remotePath" } })
+            repo = fromConfig(createConfig({ remote: "remotePath", cron: "someCron" }))!
         })
 
         describe("hasNewConfig", () => {
@@ -62,3 +64,14 @@ describe("GitConfigRepository", () => {
         })
     })
 })
+
+function createConfig(git?: GitConfig): Config {
+    return {
+        git,
+        kube: "",
+        docker: "",
+        jobs: "",
+        artifacts: "",
+        server: { host: "", port: 2 }
+    }
+}

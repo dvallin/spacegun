@@ -1,10 +1,10 @@
-import { path } from "@/dispatcher"
 import { createServer, Context, Next, MiddleWare, createRouter, createViews } from "@/dispatcher/server"
 import { PromiseProvider } from "@/dispatcher/model/PromiseProvider"
 import { ComponentConfiguration } from "@/dispatcher/component"
 import { Methods } from "@/dispatcher/model/Methods"
 import { ResourceConfiguration } from "@/dispatcher/resource"
 import { Params } from "@/dispatcher/model/Params"
+import { path } from "@/dispatcher";
 
 function handle<S, T>(procedure: PromiseProvider<S, T>, configuration: ComponentConfiguration<S>): MiddleWare {
     return async (context: Context, next: Next) => {
