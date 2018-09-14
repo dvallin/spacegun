@@ -35,7 +35,7 @@ describe("commands", () => {
 
             // then
             expect(mockDispatched).toHaveBeenCalledTimes(1)
-            expect(mockDispatched).toBeCalledWith("images", "images")
+            expect(mockDispatched).toBeCalledWith("images", "list")
         })
     })
 
@@ -186,18 +186,20 @@ describe("commands", () => {
     })
 
     describe(commands.deploy.name, () => {
+        const clusters = ["cluster1", "cluster2"]
+        const namespaces: string[] = []
+        const deployments = [{ name: "deployment1", image: { name: "image" } }]
+        const tags = ["latest", "notLatest"]
+        const image = { name: "image", tag: "latest", url: "image:latest:url" }
 
         it("deploys an image if user agrees", async () => {
             // given
-            const clusters = ["cluster1", "cluster2"]
-            const namespaces: string[] = []
-            const deployments = [{ name: "deployment1", image: { name: "image" } }]
-            const images = [{ lastUpdated: 1, tag: "tag1" }, { lastUpdated: 2, tag: "tag2" }]
             mockDispatchFn
                 .mockReturnValueOnce(clusters)
                 .mockReturnValueOnce(namespaces)
                 .mockReturnValueOnce(deployments)
-                .mockReturnValueOnce(images)
+                .mockReturnValueOnce(tags)
+                .mockReturnValueOnce(image)
                 .mockReturnValueOnce({ name: "deployment1" })
 
             const choose = jest.fn().mockImplementation(({ }, b) => b[0])
@@ -211,27 +213,25 @@ describe("commands", () => {
             expect(choose).toHaveBeenCalledTimes(3)
             expect(choose).toHaveBeenCalledWith("> ", clusters)
             expect(choose).toHaveBeenCalledWith("> ", deployments)
-            expect(choose).toHaveBeenCalledWith("> ", images)
+            expect(choose).toHaveBeenCalledWith("> ", tags)
 
-            expect(mockDispatched).toHaveBeenCalledTimes(5)
+            expect(mockDispatched).toHaveBeenCalledTimes(6)
             expect(mockDispatched).toBeCalledWith("cluster", "clusters")
             expect(mockDispatched).toBeCalledWith("cluster", "namespaces")
             expect(mockDispatched).toBeCalledWith("cluster", "deployments")
-            expect(mockDispatched).toBeCalledWith("images", "versions")
+            expect(mockDispatched).toBeCalledWith("images", "tags")
+            expect(mockDispatched).toBeCalledWith("images", "image")
             expect(mockDispatched).toBeCalledWith("cluster", "updateDeployment")
         })
 
         it("asks user for namespace if there are any", async () => {
             // given
-            const clusters = ["cluster1", "cluster2"]
-            const namespaces = ["service1"]
-            const deployments = [{ name: "deployment1", image: { name: "image" } }]
-            const images = [{ lastUpdated: 1, tag: "tag1" }, { lastUpdated: 2, tag: "tag2" }]
             mockDispatchFn
                 .mockReturnValueOnce(clusters)
-                .mockReturnValueOnce(namespaces)
+                .mockReturnValueOnce(["service1"])
                 .mockReturnValueOnce(deployments)
-                .mockReturnValueOnce(images)
+                .mockReturnValueOnce(tags)
+                .mockReturnValueOnce(image)
                 .mockReturnValueOnce({ name: "deployment1" })
 
             const choose = jest.fn().mockImplementation(({ }, b) => b[0])
@@ -245,16 +245,17 @@ describe("commands", () => {
             expect(choose).toHaveBeenCalledTimes(4)
             expect(choose).toHaveBeenCalledWith("> ", clusters)
             expect(choose).toHaveBeenCalledWith("> ", deployments)
-            expect(choose).toHaveBeenCalledWith("> ", images)
+            expect(choose).toHaveBeenCalledWith("> ", tags)
         })
 
         it("does not deploy an image if user disagrees", async () => {
             // given
             mockDispatchFn
-                .mockReturnValueOnce(["cluster1", "cluster2"])
-                .mockReturnValueOnce([])
-                .mockReturnValueOnce([{ name: "deployment1", image: { name: "image" } }])
-                .mockReturnValueOnce([{ lastUpdated: 1, tag: "tag1" }, { lastUpdated: 2, tag: "tag2" }])
+                .mockReturnValueOnce(clusters)
+                .mockReturnValueOnce(namespaces)
+                .mockReturnValueOnce(deployments)
+                .mockReturnValueOnce(tags)
+                .mockReturnValueOnce(image)
                 .mockReturnValueOnce({ name: "deployment1" })
 
             const choose = jest.fn().mockImplementation(({ }, b) => b[0])
@@ -265,7 +266,7 @@ describe("commands", () => {
             await commands.deploy(io)
 
             // then
-            expect(mockDispatched).toHaveBeenCalledTimes(4)
+            expect(mockDispatched).toHaveBeenCalledTimes(5)
             expect(mockDispatched).not.toBeCalledWith("cluster", "updateDeployment")
         })
     })

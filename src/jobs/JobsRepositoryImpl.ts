@@ -134,7 +134,7 @@ export class JobsRepositoryImpl implements JobsRepository {
                 console.error(`${targetDeployment.name} in cluster ${group.cluster} has no image`)
                 continue
             }
-            if (targetDeployment.image === undefined || targetDeployment.image.tag !== sourceDeployment.image.tag) {
+            if (targetDeployment.image === undefined || targetDeployment.image.url !== sourceDeployment.image.url) {
                 deployments.push({
                     group,
                     deployment: targetDeployment,
@@ -147,7 +147,6 @@ export class JobsRepositoryImpl implements JobsRepository {
 
     async planImageDeployment(job: Job, targetDeployments: Deployment[], group: ServerGroup): Promise<DeploymentPlan[]> {
         const deployments: DeploymentPlan[] = []
-        const tagMatcher = new RegExp(job.from.expression || "^*$", "g");
 
         for (const targetDeployment of targetDeployments) {
             this.io.out(`planning image deployment ${targetDeployment.name} in job ${job.name}`)
@@ -155,15 +154,15 @@ export class JobsRepositoryImpl implements JobsRepository {
                 console.error(`${targetDeployment.name} in cluster ${group.cluster} has no image, so spacegun cannot determine the right image source`)
                 continue
             }
-            const versions = await call(imageModule.versions)(targetDeployment.image)
-            const newestImage = versions
-                .filter(image => image.tag.match(tagMatcher))
-                .reduce((a, b) => a.lastUpdated > b.lastUpdated ? a : b)
-            if (targetDeployment.image.tag !== newestImage.tag) {
+            const image = await call(imageModule.image)({
+                tag: job.from.expression,
+                name: targetDeployment.image.name
+            })
+            if (targetDeployment.image.url !== image.url) {
                 deployments.push({
                     group,
+                    image,
                     deployment: targetDeployment,
-                    image: newestImage
                 })
             }
         }

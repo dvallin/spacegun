@@ -62,7 +62,7 @@ module.exports = {
         }
     },
     plugins,
-    devtool: 'source-map',
+    devtool: 'cheap-source-map',
     node: {
         __dirname: false
     }

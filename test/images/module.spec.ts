@@ -1,14 +1,15 @@
 import { Layers } from "../../src/dispatcher/model/Layers"
 process.env.LAYER = Layers.Standalone
 
-import { init, endpoint, versions, images } from "../../src/images/ImageModule"
+import { init, endpoint, tags, image, list } from "../../src/images/ImageModule"
 import { call } from "../../src/dispatcher"
 import { ImageRepository } from "../../src/images/ImageRepository"
 
-const imagesMock = jest.fn()
-const versionsMock = jest.fn()
+const tagsMock = jest.fn()
+const imageMock = jest.fn()
+const listMock = jest.fn()
 const repo: ImageRepository = {
-    endpoint: "someEndpoint", images: imagesMock, versions: versionsMock
+    endpoint: "someEndpoint", list: listMock, tags: tagsMock, image: imageMock
 }
 
 init(repo)
@@ -23,28 +24,41 @@ describe("image module", () => {
         expect(result).toEqual("someEndpoint")
     })
 
-    it("calls images", async () => {
+    it("calls list", async () => {
         // given
-        imagesMock.mockReturnValueOnce({})
+        listMock.mockReturnValueOnce({})
 
         // when
-        const result = await call(images)()
+        const result = await call(list)()
 
         // then
         expect(result).toEqual({})
-        expect(imagesMock).toHaveBeenCalledTimes(1)
+        expect(listMock).toHaveBeenCalledTimes(1)
     })
 
-    it("calls versions", async () => {
+    it("calls tags", async () => {
         // given
-        versionsMock.mockReturnValueOnce({})
+        tagsMock.mockReturnValueOnce({})
 
         // when
-        const result = await call(versions)({ name: "imageName" })
+        const result = await call(tags)({ name: "imageName" })
 
         // then
         expect(result).toEqual({})
-        expect(versionsMock).toHaveBeenCalledTimes(1)
-        expect(versionsMock).toHaveBeenCalledWith("imageName")
+        expect(tagsMock).toHaveBeenCalledTimes(1)
+        expect(tagsMock).toHaveBeenCalledWith("imageName")
+    })
+
+    it("calls image", async () => {
+        // given
+        imageMock.mockReturnValueOnce({})
+
+        // when
+        const result = await call(image)({ name: "imageName", tag: "tagName" })
+
+        // then
+        expect(result).toEqual({})
+        expect(imageMock).toHaveBeenCalledTimes(1)
+        expect(imageMock).toHaveBeenCalledWith("imageName", "tagName")
     })
 })

@@ -48,7 +48,7 @@ async function foreachNamespace(io: IO, cluster: string, command: (io: IO, clust
 
 async function podsCommand(io: IO, cluster: string, namespace?: string) {
     const pods = await load(call(clusterModule.pods)({ cluster, namespace }))
-    io.out(chalk.bold(pad("pod name", 5) + pad("tag name", 5) + pad("starts", 1) + pad("status", 1)))
+    io.out(chalk.bold(pad("pod name", 5) + pad("image url", 5) + pad("starts", 1) + pad("status", 1)))
     pods.forEach(pod => {
         let restartText
         if (pod.restarts === undefined) {
@@ -61,13 +61,13 @@ async function podsCommand(io: IO, cluster: string, namespace?: string) {
             restartText = pad(pod.restarts.toString(), 1)
         }
         const statusText = pod.ready ? chalk.bold.magenta(pad("up", 1)) : chalk.bold.cyan(pad("down!", 1))
-        let tagText
+        let urlText
         if (pod.image === undefined) {
-            tagText = chalk.bold.magenta(pad("missing", 5))
+            urlText = chalk.bold.magenta(pad("missing", 5))
         } else {
-            tagText = pad(pod.image.tag, 5)
+            urlText = pad(pod.image.url, 5)
         }
-        io.out(pad(pod.name, 5) + tagText + restartText + statusText)
+        io.out(pad(pod.name, 5) + urlText + restartText + statusText)
     })
 }
 
@@ -80,7 +80,7 @@ async function namespacesCommand(io: IO, cluster: string) {
 }
 
 async function imagesCommand(io: IO) {
-    const images = await load(call(imageModule.images)())
+    const images = await load(call(imageModule.list)())
     images.forEach(image =>
         io.out(image)
     )
@@ -144,15 +144,15 @@ async function runCommand(io: IO) {
 
     io.out(chalk.bold(`planned deployment ${plan.name}`))
     plan.deployments.forEach(deploymentPlan => {
-        let previousTag = "none"
+        let previousUrl = "none"
         if (deploymentPlan.deployment.image !== undefined) {
-            previousTag = deploymentPlan.deployment.image.tag
+            previousUrl = deploymentPlan.deployment.image.url
         }
         io.out(
             pad(`${deploymentPlan.deployment.name}`, 3) +
-            chalk.bold(pad(`${previousTag}`, 5))
+            chalk.bold(pad(`${previousUrl}`, 5))
             + chalk.magenta(pad("=>", 1))
-            + chalk.bold(pad(`${deploymentPlan.image.tag}`, 5)))
+            + chalk.bold(pad(`${deploymentPlan.image.url}`, 5)))
     })
 
     io.out("Answer `yes` to apply.")
@@ -163,17 +163,17 @@ async function runCommand(io: IO) {
 }
 
 function logDeploymentHeader(io: IO) {
-    io.out(chalk.bold(pad("deployment name", 5) + pad("tag name", 7)))
+    io.out(chalk.bold(pad("deployment name", 5) + pad("image url", 7)))
 }
 
 function logDeployment(io: IO, deployment: Deployment) {
-    let tagText
+    let urlText
     if (deployment.image === undefined) {
-        tagText = chalk.bold.magenta(pad("missing", 7))
+        urlText = chalk.bold.magenta(pad("missing", 7))
     } else {
-        tagText = pad(deployment.image.tag, 7)
+        urlText = pad(deployment.image.url, 7)
     }
-    io.out(pad(deployment.name, 5) + tagText)
+    io.out(pad(deployment.name, 5) + urlText)
 }
 
 async function snapshotCommand(io: IO, cluster: string, namespace?: string) {
@@ -247,18 +247,19 @@ async function deployCommand(io: IO) {
     })
     const deployment = await io.choose('> ', deployments)
 
-    const versions = await load(call(imageModule.versions)(deployment.image!))
+    const tags = await load(call(imageModule.tags)(deployment.image!))
+    tags.sort()
 
-    versions.sort((a, b) => b.lastUpdated - a.lastUpdated)
     io.out("Choose the target image")
-    versions.forEach((image, index) => {
-        if (image.tag === deployment.image!.tag) {
-            io.out(chalk.italic.magenta(index.toString()) + ": " + chalk.italic.magenta(pad(`current -> image.tag`, 5)))
-        } else {
-            io.out(chalk.bold.cyan(index.toString()) + ": " + pad(image.tag, 5))
-        }
+    tags.forEach((tag, index) => {
+        io.out(chalk.bold.cyan(index.toString()) + ": " + pad(tag, 5))
     })
-    const image = await io.choose('> ', versions)
+    const tag = await io.choose('> ', tags)
+
+    const image = await load(call(imageModule.image)({
+        name: deployment.image!.name,
+        tag
+    }))
 
     io.out("deploy " + chalk.cyan(image.url) + " into " + chalk.cyan(cluster + "::" + deployment.name))
     io.out("Answer `yes` to apply.")

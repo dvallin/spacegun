@@ -23,8 +23,8 @@ import { ClusterSnapshot } from "../../../src/cluster/model/ClusterSnapshot"
 
 import { Request } from "../../../src/dispatcher/model/Request"
 
-const image1 = { name: "image1", tag: "tag", url: "repo/image1:tag" }
-const image2 = { name: "image2", tag: "tag", url: "repo/image2:tag" }
+const image1 = { name: "image1", url: "repo/image1:tag@some:digest" }
+const image2 = { name: "image2", url: "repo/image2:tag@some:digest" }
 
 const mockLog = jest.fn()
 
@@ -93,7 +93,7 @@ describe("KubernetesClusterProvider", () => {
                 image2
             )
             expect(deployment).toEqual(
-                { image: { name: "updatedImage", tag: "tag", url: "repo/updatedImage:tag" }, name: "updatedDeployment" }
+                { image: { name: "image2", url: "repo/image2:tag@some:digest" }, name: "deployment1" }
             )
         })
     })
@@ -123,21 +123,42 @@ describe("KubernetesClusterProvider", () => {
 
     describe("appliesSnapshots", () => {
 
-        it("calls endpoints only if needed", async () => {
+        it("calls endpoints on snapshot change", async () => {
             const snapshot: ClusterSnapshot = await cluster.takeSnapshot({
                 cluster: cluster.clusters[0]
             })
             const deployment1 = (snapshot.deployments[0].data as V1Deployment)
             deployment1.spec.replicas = 2
-            deployment1.spec.template.spec.containers[0].image = "somenewsillyimage"
 
-            await cluster.applySnapshot({ cluster: cluster.clusters[0] }, snapshot)
+            await cluster.applySnapshot({ cluster: cluster.clusters[0] }, snapshot, false)
 
             expect(replaceDeploymentMock).toHaveBeenCalledTimes(1)
             expect(replaceDeploymentMock).toHaveBeenCalledWith("deployment1", "default", {
                 metadata: { name: "deployment1" },
-                spec: { replicas: 2, template: { spec: { containers: [{ image: "repo/image1:tag" }] } } }
+                spec: { replicas: 2, template: { spec: { containers: [{ image: "repo/image1:tag@some:digest" }] } } }
             })
+        })
+
+        it("does not call endpoints if nothing has changed", async () => {
+            const snapshot: ClusterSnapshot = await cluster.takeSnapshot({
+                cluster: cluster.clusters[0]
+            })
+
+            await cluster.applySnapshot({ cluster: cluster.clusters[0] }, snapshot, false)
+
+            expect(replaceDeploymentMock).not.toHaveBeenCalled()
+        })
+
+        it("ignores image if flag is set", async () => {
+            const snapshot: ClusterSnapshot = await cluster.takeSnapshot({
+                cluster: cluster.clusters[0]
+            })
+            const deployment1 = (snapshot.deployments[0].data as V1Deployment)
+            deployment1.spec.template.spec.containers[0].image = "somenewsillyimage"
+
+            await cluster.applySnapshot({ cluster: cluster.clusters[0] }, snapshot, true)
+
+            expect(replaceDeploymentMock).not.toHaveBeenCalled()
         })
 
         it("calls endpoints if deployment is not known yet", async () => {
@@ -150,7 +171,7 @@ describe("KubernetesClusterProvider", () => {
             deployment1.spec.replicas = 2
             deployment1.spec.template.spec.containers[0].image = "somenewsillyimage"
 
-            await cluster.applySnapshot({ cluster: cluster.clusters[0] }, snapshot)
+            await cluster.applySnapshot({ cluster: cluster.clusters[0] }, snapshot, false)
 
             expect(replaceDeploymentMock).toHaveBeenCalledTimes(1)
             expect(replaceDeploymentMock).toHaveBeenCalledWith("somesillydeployment", "default", {
@@ -169,7 +190,7 @@ describe("KubernetesClusterProvider", () => {
             const deployment2 = (snapshot.deployments[1].data as V1Deployment)
             deployment2.spec.replicas = 2
 
-            await cluster.applySnapshot({ cluster: cluster.clusters[0] }, snapshot)
+            await cluster.applySnapshot({ cluster: cluster.clusters[0] }, snapshot, true)
 
             expect(mockLog).toHaveBeenCalledWith({
                 description: "Applied Snapshots in dev ∞ undefined",

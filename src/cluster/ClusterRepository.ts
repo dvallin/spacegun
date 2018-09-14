@@ -15,5 +15,5 @@ export interface ClusterRepository {
     scalers(group: ServerGroup): Promise<Scaler[]>
 
     takeSnapshot(group: ServerGroup): Promise<ClusterSnapshot>
-    applySnapshot(group: ServerGroup, snapshot: ClusterSnapshot): Promise<void>
+    applySnapshot(group: ServerGroup, snapshot: ClusterSnapshot, ignoreImage: boolean): Promise<void>
 }

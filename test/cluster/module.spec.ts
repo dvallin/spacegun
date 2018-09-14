@@ -28,6 +28,10 @@ init(repo)
 
 describe("cluster module", async () => {
 
+    beforeEach(() => {
+        jest.resetAllMocks()
+    })
+
     it("calls clusters", async () => {
         // when
         const result = await call(clusters)()
@@ -121,17 +125,34 @@ describe("cluster module", async () => {
         expect(takeSnapshotMock).toHaveBeenCalledWith({ cluster: "clusterName" })
     })
 
-    it("calls apply snapshot", async () => {
-        // given
-        applySnapshotMock.mockReturnValueOnce({})
-        const params: ApplySnapshotParameters = { group: { cluster: "clusterName" }, snapshot: { deployments: [] } }
+    describe("apply snapshot", () => {
 
-        // when
-        const result = await call(applySnapshot)(params)
+        it("calls apply snapshot", async () => {
+            // given
+            applySnapshotMock.mockReturnValueOnce({})
+            const params: ApplySnapshotParameters = { group: { cluster: "clusterName" }, snapshot: { deployments: [] } }
 
-        // then
-        expect(result).toEqual({})
-        expect(applySnapshotMock).toHaveBeenCalledTimes(1)
-        expect(applySnapshotMock).toHaveBeenCalledWith({ cluster: "clusterName" }, { deployments: [] })
+            // when
+            const result = await call(applySnapshot)(params)
+
+            // then
+            expect(result).toEqual({})
+            expect(applySnapshotMock).toHaveBeenCalledTimes(1)
+            expect(applySnapshotMock).toHaveBeenCalledWith({ cluster: "clusterName" }, { deployments: [] }, true)
+        })
+
+        it("does not ignore image if flag is set", async () => {
+            // given
+            applySnapshotMock.mockReturnValueOnce({})
+            const params: ApplySnapshotParameters = { group: { cluster: "clusterName" }, snapshot: { deployments: [] }, ignoreImage: false }
+
+            // when
+            const result = await call(applySnapshot)(params)
+
+            // then
+            expect(result).toEqual({})
+            expect(applySnapshotMock).toHaveBeenCalledTimes(1)
+            expect(applySnapshotMock).toHaveBeenCalledWith({ cluster: "clusterName" }, { deployments: [] }, false)
+        })
     })
 })
