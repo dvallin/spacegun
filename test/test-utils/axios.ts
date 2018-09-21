@@ -24,10 +24,10 @@ function failure(): AxiosResponse<undefined> {
 
 export function axiosSuccess(...data: object[]): jest.Mock<{}> {
     let mock = jest.fn()
-    data.forEach(d => mock.mockReturnValueOnce(Promise.resolve(success(d))))
+    data.forEach(d => mock.mockReturnValue(Promise.resolve(success(d))))
     return mock
 }
 
 export function axiosFailure(): jest.Mock<{}> {
-    return jest.fn().mockReturnValueOnce(Promise.reject(failure()))
+    return jest.fn().mockReturnValue(Promise.reject(failure()))
 }

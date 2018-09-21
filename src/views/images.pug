@@ -13,12 +13,10 @@ body
             tr
                 th="Name"
                 th="Tag"
-                th="Last Updated"
                 th="Url"
         tbody
             each version in versions
                 tr
                     td=version.name
                     td=version.tag
-                    td=version.lastUpdated
                     td=version.url

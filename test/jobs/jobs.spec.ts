@@ -12,22 +12,16 @@ import { Image } from "../../src/images/model/Image"
 
 const mockDeployments: { [key: string]: Deployment[] } = {
     "cluster1": [
-        { name: "service1", image: { name: "image1", tag: "tag2", url: "imageUrl" } }
+        { name: "service1", image: { name: "image1", url: "imageUrl:tag1:digest1" } }
     ],
     "cluster2": [
-        { name: "service1", image: { name: "image1", tag: "tag1", url: "imageUrl" } }
+        { name: "service1", image: { name: "image1", url: "imageUrl:tag1:digest2" } }
     ],
 }
 
 const mockNamespaces: { [key: string]: string[] } = {
     "cluster1": [],
     "cluster2": ["service1"]
-}
-
-const mockVersions: { [key: string]: Image[] } = {
-    "image1": [
-        { name: "image1", tag: "tag3", url: "imageUrl", lastUpdated: Date.now() }
-    ]
 }
 
 const mockUpdateDeployment = jest.fn()
@@ -58,8 +52,10 @@ jest.mock("../../src/dispatcher/index", () => ({
             }
             case "images": {
                 switch (request.procedure) {
-                    case "versions": {
-                        return (input: { name: string }) => (mockVersions[input.name])
+                    case "image": {
+                        return (input: { name: string, tag: string }): Image => ({
+                            name: input.name, tag: input.tag, url: `${input.name}:${input.tag}:otherDigest`
+                        })
                     }
                 }
                 break
@@ -88,7 +84,7 @@ describe("JobsRepositoryImpl", () => {
     const twelvePMEveryWorkday = "0 0 0 12 * * MON-FRI"
     const everyMinuteEveryWorkday = "0 */5 * * * MON-FRI"
     const job1: Job = { name: "1->2", cluster: "cluster2", from: { type: "cluster", expression: "cluster1" }, cron: twelvePMEveryWorkday }
-    const job2: Job = { name: "i->1", cluster: "cluster1", from: { type: "image", expression: "^(?!.*latest).*$" }, cron: everyMinuteEveryWorkday }
+    const job2: Job = { name: "i->1", cluster: "cluster1", from: { type: "image", expression: "latest" }, cron: everyMinuteEveryWorkday }
 
     beforeEach(() => {
         process.env.LAYER = Layers.Server
@@ -142,10 +138,10 @@ describe("JobsRepositoryImpl", () => {
         expect(deploymentPlan.group.cluster).toBe("cluster2")
         expect(deploymentPlan.group.namespace).toEqual("service1")
 
-        // service1 gets from tag1 to tag2
-        expect(deploymentPlan.image!.tag).toBe("tag2")
+        // service1 gets another image url
+        expect(deploymentPlan.image!.url).toBe("imageUrl:tag1:digest1")
         expect(deploymentPlan.deployment.name).toBe("service1")
-        expect(deploymentPlan.deployment.image!.tag).toBe("tag1")
+        expect(deploymentPlan.deployment.image!.url).toBe("imageUrl:tag1:digest2")
     })
 
     it("plans an image job", async () => {
@@ -162,10 +158,10 @@ describe("JobsRepositoryImpl", () => {
         expect(deploymentPlan.group.cluster).toBe("cluster1")
         expect(deploymentPlan.group.namespace).toBeUndefined()
 
-        // service1 gets from tag2 to tag3
-        expect(deploymentPlan.image.tag).toBe("tag3")
+        // service1 gets from digest1 to otherDigest
+        expect(deploymentPlan.image.url).toBe("image1:latest:otherDigest")
         expect(deploymentPlan.deployment.name).toBe("service1")
-        expect(deploymentPlan.deployment.image!.tag).toBe("tag2")
+        expect(deploymentPlan.deployment.image!.url).toBe("imageUrl:tag1:digest1")
     })
 
     it("applies plans", async () => {
@@ -175,10 +171,10 @@ describe("JobsRepositoryImpl", () => {
         // then
         expect(mockUpdateDeployment).toHaveBeenCalledWith({
             deployment: {
-                image: { name: "image1", tag: "tag1", url: "imageUrl" },
+                image: { name: "image1", url: "imageUrl:tag1:digest2" },
                 name: "service1"
             },
-            image: { name: "image1", tag: "tag2", url: "imageUrl" },
+            image: { name: "image1", url: "imageUrl:tag1:digest1" },
             group: { cluster: "cluster2", namespace: "service1" }
         })
     })

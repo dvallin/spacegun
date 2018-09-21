@@ -4,7 +4,7 @@ import { call } from "@/dispatcher"
 import { clusters, namespaces, pods } from "@/cluster/ClusterModule"
 import { jobs, schedules } from "@/jobs/JobsModule"
 import { Config } from "@/config"
-import { images, versions } from "@/images/ImageModule";
+import { list, tags } from "@/images/ImageModule"
 
 let config: Config | undefined
 export function init(c: Config) {
@@ -61,7 +61,7 @@ export class Module {
 
         let knownImages = undefined
         try {
-            knownImages = await call(images)()
+            knownImages = await call(list)()
         } catch (e) {
             errors.push("Images could not be loaded: " + e.message)
         }
@@ -101,12 +101,11 @@ export class Module {
     @Resource({ path: "/images/:image" })
     public async images(params: { image: string }): Promise<object> {
         const image = params.image
-        const knownVersions = await call(versions)({ name: image })
-        const versionsWithDates = knownVersions.map(version => ({
-            url: version.url,
-            name: version.name,
-            tag: version.tag,
-            lastUpdated: moment(version.lastUpdated).toISOString()
+        const knownTags = await call(tags)({ name: image })
+        const versionsWithDates = knownTags.map(tag => ({
+            url: "tbd...",
+            name: image,
+            tag: tag,
         }))
 
         return {

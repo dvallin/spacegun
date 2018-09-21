@@ -90,14 +90,16 @@ export const applySnapshot: Request<ApplySnapshotParameters, void> = {
     input: (input: ApplySnapshotParameters | undefined) => RequestInput.ofData(
         { snapshot: input!.snapshot },
         ["cluster", input!.group.cluster],
-        ["namespace", input!.group.namespace]
+        ["namespace", input!.group.namespace],
+        ["ignoreImage", input!.ignoreImage]
     ),
     mapper: (p: RequestInput) => ({
         snapshot: p.data.snapshot as ClusterSnapshot,
         group: {
             cluster: p.params!["cluster"],
             namespace: p.params!["namespace"]
-        } as ServerGroup
+        } as ServerGroup,
+        ignoreImage: p.params!["ignoreImage"] === undefined ? undefined : p.params!["ignoreImage"] === "true"
     } as ApplySnapshotParameters)
 }
 
@@ -106,7 +108,7 @@ export interface UpdateDeploymentParameters {
 }
 
 export interface ApplySnapshotParameters {
-    group: ServerGroup, snapshot: ClusterSnapshot
+    group: ServerGroup, snapshot: ClusterSnapshot, ignoreImage?: boolean
 }
 
 export class Module {
@@ -181,6 +183,6 @@ export class Module {
         method: Methods.Put
     })
     [applySnapshot.procedure](params: ApplySnapshotParameters): Promise<void> {
-        return repo!.applySnapshot(params.group, params.snapshot)
+        return repo!.applySnapshot(params.group, params.snapshot, params.ignoreImage === undefined ? true : params.ignoreImage)
     }
 }

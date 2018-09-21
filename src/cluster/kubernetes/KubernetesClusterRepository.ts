@@ -23,14 +23,6 @@ interface Api {
     setDefaultAuthentication(config: KubeConfig): void
 }
 
-class UpdateDeploymentApi extends Apps_v1beta2Api {
-    defaultHeaders = { "content-type": "application/merge-patch+json" }
-
-    constructor(server: string) {
-        super(server)
-    }
-}
-
 export class KubernetesClusterRepository implements ClusterRepository {
 
     private namespacesCache: Cache<string, string[]> = new Cache(60)
@@ -112,23 +104,15 @@ export class KubernetesClusterRepository implements ClusterRepository {
     }
 
     async updateDeployment(group: ServerGroup, deployment: Deployment, targetImage: Image): Promise<Deployment> {
-        const api = this.build(group.cluster, (server: string) => new UpdateDeploymentApi(server))
+        const api = this.build(group.cluster, (server: string) => new Apps_v1beta2Api(server))
         const namespace = this.getNamespace(group)
-        const patch = {
-            apiVersion: "apps/v1beta2",
-            kind: "Deployment",
-            spec: {
-                template: {
-                    spec: {
-                        containers: [{
-                            name: deployment.name,
-                            image: targetImage.url,
-                        }]
-                    }
-                }
-            }
-        }
-        const result: V1beta2Deployment = await api.patchNamespacedDeployment(deployment.name, namespace, patch).get("body")
+        const current: V1beta2Deployment = await api.readNamespacedDeployment(deployment.name, namespace).get("body")
+
+        const target = this.minifyDeployment(current)
+        target.spec.template.spec.containers[0].image = targetImage.url
+
+        let result: V1beta2Deployment = await api.replaceNamespacedDeployment(deployment.name, namespace, target).get("body")
+
         return {
             name: result.metadata.name,
             image: this.createImage(result.spec.template.spec.containers)
@@ -147,7 +131,7 @@ export class KubernetesClusterRepository implements ClusterRepository {
         }
     }
 
-    async applySnapshot(group: ServerGroup, snapshot: ClusterSnapshot): Promise<void> {
+    async applySnapshot(group: ServerGroup, snapshot: ClusterSnapshot, ignoreImage: boolean): Promise<void> {
         const api = this.build(group.cluster, (server: string) => new Apps_v1beta2Api(server))
         const namespace = this.getNamespace(group)
         const result: V1beta2DeploymentList = await api.listNamespacedDeployment(namespace).get("body")
@@ -157,7 +141,7 @@ export class KubernetesClusterRepository implements ClusterRepository {
         for (const deployment of snapshot.deployments) {
             const current = result.items.find(d => d.metadata.name === deployment.name)
             const target = deployment.data as V1beta2Deployment
-            if (current !== undefined) {
+            if (ignoreImage && current !== undefined) {
                 const image = this.createImage(current.spec.template.spec.containers)
                 if (image !== undefined) {
                     target.spec.template.spec.containers[0].image = image.url
@@ -165,11 +149,7 @@ export class KubernetesClusterRepository implements ClusterRepository {
             }
             if (this.needsUpdate(current, target)) {
                 try {
-                    await api.replaceNamespacedDeployment(
-                        deployment.name,
-                        namespace,
-                        target
-                    )
+                    await api.replaceNamespacedDeployment(deployment.name, namespace, target)
                     applied.push(`Deployment ${deployment.name}`)
                 } catch (e) {
                     errored.push(`Deployment ${deployment.name}`)
@@ -207,11 +187,10 @@ export class KubernetesClusterRepository implements ClusterRepository {
     private createImage(containers: Array<V1Container> | undefined): Image | undefined {
         if (containers !== undefined && containers.length >= 1) {
             const url = containers[0].image
-            const imageAndTag = url.split(":")
-            const imageParts = imageAndTag[0].split("/")
-            const tag = imageAndTag[1]
+            const imageAndUrl = url.split(/@|:/)
+            const imageParts = imageAndUrl[0].split("/")
             const name = imageParts[imageParts.length - 1]
-            return { url, name, tag }
+            return { url, name }
         }
         return undefined
     }
@@ -235,7 +214,7 @@ export class KubernetesClusterRepository implements ClusterRepository {
         return api
     }
 
-    private minifyDeployment(deployment: V1beta2Deployment): object {
+    private minifyDeployment(deployment: V1beta2Deployment): V1beta2Deployment {
         return {
             metadata: {
                 name: deployment.metadata.name,
@@ -243,7 +222,7 @@ export class KubernetesClusterRepository implements ClusterRepository {
                 annotations: deployment.metadata.annotations
             },
             spec: deployment.spec
-        }
+        } as V1beta2Deployment
     }
 
     private needsUpdate(current: V1beta2Deployment | undefined, target: V1beta2Deployment): boolean {
