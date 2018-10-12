@@ -8,7 +8,6 @@ import { Job } from "../../src/jobs/model/Job"
 import { CronRegistry } from "../../src/crons/CronRegistry"
 
 import { Deployment } from "../../src/cluster/model/Deployment"
-import { Image } from "../../src/images/model/Image"
 
 const mockDeployments: { [key: string]: Deployment[] } = {
     "cluster1": [
@@ -33,18 +32,18 @@ jest.mock("../../src/dispatcher/index", () => ({
             case "cluster": {
                 switch (request.procedure) {
                     case "deployments": {
-                        return (input: { cluster: string }) => (mockDeployments[input.cluster])
+                        return (input: { cluster: string }) => Promise.resolve(mockDeployments[input.cluster])
                     }
                     case "deployments": {
-                        return (input: { cluster: string }) => (mockDeployments[input.cluster])
+                        return (input: { cluster: string }) => Promise.resolve(mockDeployments[input.cluster])
                     }
                     case "namespaces": {
-                        return (input: { cluster: string }) => (mockNamespaces[input.cluster])
+                        return (input: { cluster: string }) => Promise.resolve(mockNamespaces[input.cluster])
                     }
                     case "updateDeployment": {
                         return (input: any) => {
                             mockUpdateDeployment(input)
-                            return mockDeployments[input.group.cluster]
+                            return Promise.resolve(mockDeployments[input.group.cluster])
                         }
                     }
                 }
@@ -53,7 +52,7 @@ jest.mock("../../src/dispatcher/index", () => ({
             case "images": {
                 switch (request.procedure) {
                     case "image": {
-                        return (input: { name: string, tag: string }): Image => ({
+                        return (input: { name: string, tag: string }) => Promise.resolve({
                             name: input.name, tag: input.tag, url: `${input.name}:${input.tag}:otherDigest`
                         })
                     }

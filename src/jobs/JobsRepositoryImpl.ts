@@ -6,17 +6,20 @@ import { DeploymentPlan } from "@/jobs/model/DeploymentPlan"
 import { call } from "@/dispatcher"
 
 import * as clusterModule from "@/cluster/ClusterModule"
-import { Deployment } from "@/cluster/model/Deployment"
 
-import * as imageModule from "@/images/ImageModule"
 import { JobsRepository } from "@/jobs/JobsRepository"
 import { Cron } from "@/jobs/model/Cron"
 import { IO } from "@/IO"
 import { CronRegistry } from "@/crons/CronRegistry"
-import { ServerGroup } from "@/cluster/model/ServerGroup"
 import { Layers } from "@/dispatcher/model/Layers"
 
 import * as eventModule from "@/events/EventModule"
+
+import { ApplyDeployment } from "@/jobs/steps/ApplyDeployment"
+import { PlanDeployment } from "@/jobs/steps/PlanDeployment"
+
+import { pushOf } from "lazy-space"
+import { Eval } from "lazy-space/lib/eval"
 
 export class JobsRepositoryImpl implements JobsRepository {
 
@@ -109,68 +112,17 @@ export class JobsRepositoryImpl implements JobsRepository {
     }
 
     async planDeployments(job: Job, namespace?: string): Promise<DeploymentPlan[]> {
-        const targetDeployments = await call(clusterModule.deployments)({ cluster: job.cluster, namespace })
-        const group: ServerGroup = { cluster: job.cluster, namespace }
-        switch (job.from.type) {
-            case "cluster": return this.planClusterDeployment(job, targetDeployments, group)
-            case "image": return this.planImageDeployment(job, targetDeployments, group)
-        }
-    }
-
-    async planClusterDeployment(job: Job, targetDeployments: Deployment[], group: ServerGroup): Promise<DeploymentPlan[]> {
-        const deployments: DeploymentPlan[] = []
-        const sourceDeployments = await call(clusterModule.deployments)({
-            cluster: job.from.expression!,
-            namespace: group.namespace
+        return new Promise<DeploymentPlan[]>(resolve => {
+            const step = new PlanDeployment()
+            step.subscribe(pushOf(i => {
+                resolve(i)
+                return Eval.noop()
+            }))
+            step.push({ job, namespace })
         })
-        for (const targetDeployment of targetDeployments) {
-            this.io.out(`planning cluster deployment ${targetDeployment.name} in job ${job.name}`)
-            const sourceDeployment = sourceDeployments.find(d => d.name === targetDeployment.name)
-            if (sourceDeployment === undefined) {
-                console.error(`${targetDeployment.name} in cluster ${group.cluster} has no appropriate deployment in cluster ${job.from.expression}`)
-                continue
-            }
-            if (sourceDeployment.image === undefined) {
-                console.error(`${targetDeployment.name} in cluster ${group.cluster} has no image`)
-                continue
-            }
-            if (targetDeployment.image === undefined || targetDeployment.image.url !== sourceDeployment.image.url) {
-                deployments.push({
-                    group,
-                    deployment: targetDeployment,
-                    image: sourceDeployment.image
-                })
-            }
-        }
-        return deployments
-    }
-
-    async planImageDeployment(job: Job, targetDeployments: Deployment[], group: ServerGroup): Promise<DeploymentPlan[]> {
-        const deployments: DeploymentPlan[] = []
-
-        for (const targetDeployment of targetDeployments) {
-            this.io.out(`planning image deployment ${targetDeployment.name} in job ${job.name}`)
-            if (targetDeployment.image === undefined) {
-                console.error(`${targetDeployment.name} in cluster ${group.cluster} has no image, so spacegun cannot determine the right image source`)
-                continue
-            }
-            const image = await call(imageModule.image)({
-                tag: job.from.expression,
-                name: targetDeployment.image.name
-            })
-            if (targetDeployment.image.url !== image.url) {
-                deployments.push({
-                    group,
-                    image,
-                    deployment: targetDeployment,
-                })
-            }
-        }
-        return deployments
     }
 
     async applyDeployment(plan: DeploymentPlan) {
-        await call(clusterModule.updateDeployment)(plan)
-        this.io.out(`sucessfully updated ${plan.deployment.name} with image ${plan.image.name} in cluster ${plan.group.cluster}`)
+        new ApplyDeployment().push(plan)
     }
 }

@@ -4123,6 +4123,10 @@ lazy-cache@^1.0.3:
   version "1.0.4"
   resolved "https://registry.yarnpkg.com/lazy-cache/-/lazy-cache-1.0.4.tgz#a1d78fc3a50474cb80845d3b3b6e1da49a446e8e"
 
+lazy-space@^0.0.8:
+  version "0.0.8"
+  resolved "https://registry.yarnpkg.com/lazy-space/-/lazy-space-0.0.8.tgz#e58cc2bf431bfcb0dde28c8f71e34e938d3050bf"
+
 lcid@^1.0.0:
   version "1.0.0"
   resolved "https://registry.yarnpkg.com/lcid/-/lcid-1.0.0.tgz#308accafa0bc483a3867b4b6f2b9506251d1b835"
