@@ -2,7 +2,7 @@ import * as moment from "moment"
 import { Resource } from "@/dispatcher/resource"
 import { call } from "@/dispatcher"
 import { clusters, namespaces, pods } from "@/cluster/ClusterModule"
-import { jobs, schedules } from "@/jobs/JobsModule"
+import { pipelines, schedules } from "@/jobs/JobsModule"
 import { Config } from "@/config"
 import { list, tags } from "@/images/ImageModule"
 
@@ -34,10 +34,10 @@ export class Module {
 
         let jobsWithSchedules = undefined
         try {
-            const knownJobs = await call(jobs)()
+            const knownPipelines = await call(pipelines)()
             jobsWithSchedules = []
-            for (const job of knownJobs) {
-                let knownSchedules = await call(schedules)(job)
+            for (const pipeline of knownPipelines) {
+                let knownSchedules = await call(schedules)(pipeline)
                 let lastRun: string | undefined
                 let nextRun: string | undefined
                 if (knownSchedules !== undefined) {
@@ -49,7 +49,7 @@ export class Module {
                     }
                 }
                 jobsWithSchedules.push({
-                    job,
+                    pipeline,
                     lastRun,
                     nextRun,
                     config

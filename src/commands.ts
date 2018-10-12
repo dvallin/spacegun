@@ -91,12 +91,12 @@ function logJobHeader(io: IO) {
 }
 
 async function jobsCommand(io: IO) {
-    const jobs = await load(call(jobsModule.jobs)())
+    const jobs = await load(call(jobsModule.pipelines)())
     logJobHeader(io)
     jobs.forEach(job => {
         io.out(
             chalk.bold(pad(job.name, 2))
-            + pad(`${job.from.type} (${job.from.expression})`, 4)
+            + pad(`${job.steps.length}`, 4)
             + pad(job.cluster, 2)
         )
     })
@@ -104,17 +104,17 @@ async function jobsCommand(io: IO) {
 
 async function jobSchedulesCommand(io: IO) {
     io.out("Choose the target job")
-    const jobs = await call(jobsModule.jobs)()
-    jobs.forEach((job, index) => {
+    const pipelines = await call(jobsModule.pipelines)()
+    pipelines.forEach((job, index) => {
         io.out(chalk.bold.cyan(index.toString()) + ": " + pad(job.name, 5))
     })
-    const job = await io.choose('> ', jobs)
-    const schedules = await call(jobsModule.schedules)(job)
+    const pipeline = await io.choose('> ', pipelines)
+    const schedules = await call(jobsModule.schedules)(pipeline)
     logJobHeader(io)
     io.out(
-        chalk.bold(pad(job.name, 2))
-        + pad(`${job.from.type} (${job.from.expression})`, 4)
-        + pad(job.cluster, 2)
+        chalk.bold(pad(pipeline.name, 2))
+        + pad(`${pipeline.steps.length}`, 4)
+        + pad(pipeline.cluster, 2)
     )
     io.out("")
     if (schedules !== undefined && schedules.lastRun !== undefined) {
@@ -135,12 +135,12 @@ async function jobSchedulesCommand(io: IO) {
 
 async function runCommand(io: IO) {
     io.out("Choose the target job")
-    const jobs = await call(jobsModule.jobs)()
-    jobs.forEach((job, index) => {
+    const pipelines = await call(jobsModule.pipelines)()
+    pipelines.forEach((job, index) => {
         io.out(chalk.bold.cyan(index.toString()) + ": " + pad(job.name, 5))
     })
-    const job = await io.choose('> ', jobs)
-    const plan = await call(jobsModule.plan)(job)
+    const pipeline = await io.choose('> ', pipelines)
+    const plan = await call(jobsModule.plan)(pipeline)
 
     io.out(chalk.bold(`planned deployment ${plan.name}`))
     plan.deployments.forEach(deploymentPlan => {

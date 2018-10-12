@@ -30,16 +30,12 @@ body
             thead
                 tr
                     th="Name"
-                    th="Type"
-                    th="Expression"
                     th="Last Run"
                     th="Next Run"
             tbody
                 each job in jobs
                     tr
                         td=job.job.name
-                        td=job.job.from.type
-                        td=job.job.from.expression
                         td=job.lastRun
                         td=job.nextRun
 
