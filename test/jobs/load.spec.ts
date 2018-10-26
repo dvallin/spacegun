@@ -1,69 +1,109 @@
-import { load, validateJob } from "../../src/jobs"
-import { Job } from "../../src/jobs/model/Job"
+import { load, validatePipeline, validateSteps } from "../../src/jobs"
+import { PipelineDescription } from "../../src/jobs/model/PipelineDescription"
+import { StepDescription } from "../../src/jobs/model/Step";
 
 describe("job loading", () => {
 
-    const jobs: Map<string, Job> = load(`${__dirname}/jobs`)
+    const pipelines: Map<string, PipelineDescription> = load(`${__dirname}/pipelines`)
 
     it("loads jobs", () => {
-        expect(jobs.get("job1")).toEqual({
-            name: "job1",
-            cluster: "someCluster",
+        expect(pipelines.get("pipeline1")).toEqual({
+            name: "pipeline1",
+            cluster: "cluster1",
             cron: "0 */5 * * * MON-FRI",
-            from: {
-                type: "image",
-                expression: "^(?!.*latest).*$"
-            }
+            start: "plan1",
+            steps: [
+                { name: "plan1", type: "planImageDeployment", tag: "latest", onSuccess: "apply1" },
+                { name: "apply1", type: "applyDeployment" }
+            ]
         })
-        expect(jobs.get("job2")).toEqual({
-            name: "job2",
-            cluster: "someCluster",
-            from: {
-                type: "cluster",
-                expression: "someOtherCluster"
-            }
+        expect(pipelines.get("pipeline2")).toEqual({
+            cluster: "cluster2",
+            cron: "0 */5 * * * MON-FRI",
+            name: "pipeline2",
+            start: "probe1",
+            steps: [
+                { name: "probe1", type: "clusterProbe", hook: "https://some.hook.com", onSuccess: "deployImage" },
+                { name: "plan1", type: "planClusterDeployment", cluster: "cluster3", onFailure: "rollback1", onSuccess: "apply1", },
+                { name: "apply1", type: "applyDeployment", onFailure: "rollback1", onSuccess: "snapshot1" },
+                { name: "snapshot1", type: "takeSnapshot" },
+                { name: "rollback1", type: "rollback" }]
         })
     })
 })
 
-describe("validateJob", () => {
+describe("validatePipeline", () => {
 
     it("ensures cluster exists", () => {
-        expect(() => validateJob({}, "jobName")).toThrowErrorMatchingSnapshot()
+        expect(() => validatePipeline({}, "jobName")).toThrowErrorMatchingSnapshot()
     })
 
-    it("ensures source exists", () => {
-        expect(() => validateJob({ cluster: "someCluster" }, "jobName")).toThrowErrorMatchingSnapshot()
+    it("ensures steps exists", () => {
+        expect(() => validatePipeline({ cluster: "someCluster" }, "jobName")).toThrowErrorMatchingSnapshot()
     })
 
-    describe("image source", () => {
+    it("ensures that a start step exists", () => {
+        expect(() => validatePipeline({ cluster: "someCluster", steps: [] }, "jobName")).toThrowErrorMatchingSnapshot()
+    })
 
-        it("only needs the type", () => {
-            expect(() => validateJob({
-                cluster: "someCluster", from: {
-                    type: "image"
-                }
-            }, "jobName")).not.toThrow()
+    it("ensures that a start step exists", () => {
+        expect(validatePipeline({ cluster: "someCluster", steps: [], start: "someStart" }, "jobName")).toEqual({
+            cluster: "someCluster", name: "jobName", start: "someStart", steps: []
+        })
+    })
+})
+
+describe("validateSteps", () => {
+
+    it("validates empty array", () => {
+        expect(validateSteps([], "jobname", "clustername")).toEqual([])
+    })
+
+    it("ensures steps have name", () => {
+        expect(() => validateSteps([{}], "jobname", "clustername")).toThrowErrorMatchingSnapshot()
+    })
+
+    it("ensures steps have a type", () => {
+        expect(() => validateSteps([{ name: "stepName" }], "jobname", "clustername")).toThrowErrorMatchingSnapshot()
+    })
+
+    describe("planClusterDeployment", () => {
+
+        it("ensures cluster exists", () => {
+            expect(() => validateSteps([{ name: "stepName", type: "planClusterDeployment" }], "jobname", "clustername")).toThrowErrorMatchingSnapshot()
+        })
+
+        it("ensures cluster is not origin", () => {
+            expect(() => validateSteps([{ name: "stepName", type: "planClusterDeployment", cluster: "clustername" }], "jobname", "clustername")).toThrowErrorMatchingSnapshot()
+        })
+
+        it("validates step", () => {
+            const step: StepDescription = { name: "stepName", type: "planClusterDeployment", cluster: "otherCluster", onFailure: "failure", onSuccess: "success" }
+            expect(validateSteps([step], "jobname", "clustername")).toEqual([step])
         })
     })
 
-    describe("cluster source", () => {
+    describe("clusterProbe", () => {
 
-        it("needs a cluster expression", () => {
-            expect(() => validateJob({
-                cluster: "someCluster", from: {
-                    type: "cluster"
-                }
-            }, "jobName")).toThrowErrorMatchingSnapshot()
+        it("ensures hook exists", () => {
+            expect(() => validateSteps([{ name: "stepName", type: "clusterProbe" }], "jobname", "clustername")).toThrowErrorMatchingSnapshot()
         })
 
-        it("needs a cluster expression not equal to its cluster", () => {
-            expect(() => validateJob({
-                cluster: "someCluster", from: {
-                    type: "cluster",
-                    expression: "someCluster"
-                }
-            }, "jobName")).toThrowErrorMatchingSnapshot()
+        it("validates step", () => {
+            const step: StepDescription = { name: "stepName", type: "clusterProbe", hook: "hook", onFailure: "failure", onSuccess: "success" }
+            expect(validateSteps([step], "jobname", "clustername")).toEqual([step])
+        })
+    })
+
+    describe("planImageDeployment", () => {
+
+        it("ensures hook exists", () => {
+            expect(() => validateSteps([{ name: "stepName", type: "planImageDeployment" }], "jobname", "clustername")).toThrowErrorMatchingSnapshot()
+        })
+
+        it("validates step", () => {
+            const step: StepDescription = { name: "stepName", type: "planImageDeployment", tag: "tag", onFailure: "failure", onSuccess: "success" }
+            expect(validateSteps([step], "jobname", "clustername")).toEqual([step])
         })
     })
 })

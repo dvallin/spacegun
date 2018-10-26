@@ -1,9 +1,19 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`validateJob cluster source needs a cluster expression 1`] = `"the source of job jobName must have a cluster expression"`;
+exports[`validatePipeline ensures cluster exists 1`] = `"job jobName must contain a cluster"`;
 
-exports[`validateJob cluster source needs a cluster expression not equal to its cluster 1`] = `"the source of job jobName cannot be its target"`;
+exports[`validatePipeline ensures steps exists 1`] = `"job jobName must contain steps"`;
 
-exports[`validateJob ensures cluster exists 1`] = `"job jobName must contain a cluster"`;
+exports[`validatePipeline ensures that a start step exists 1`] = `"job jobName must contain an start step"`;
 
-exports[`validateJob ensures source exists 1`] = `"job jobName must contain a source"`;
+exports[`validateSteps clusterProbe ensures hook exists 1`] = `"in step stepName of job jobname the probe is missing"`;
+
+exports[`validateSteps ensures steps have a type 1`] = `"undefined of job jobname is not a valid step type"`;
+
+exports[`validateSteps ensures steps have name 1`] = `"a step of job jobname has no name"`;
+
+exports[`validateSteps planClusterDeployment ensures cluster exists 1`] = `"in step stepName of job jobname the cluster expression is missing"`;
+
+exports[`validateSteps planClusterDeployment ensures cluster is not origin 1`] = `"in step stepName of job jobname the cluster expression cannot be the source"`;
+
+exports[`validateSteps planImageDeployment ensures hook exists 1`] = `"in step stepName of job jobname the tag is missing"`;

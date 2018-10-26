@@ -1,12 +1,12 @@
-import { IO } from "@/IO"
+import { IO } from "../../IO"
 
-import { call } from "@/dispatcher"
+import { call } from "../../dispatcher"
 
-import * as imageModule from "@/images/ImageModule"
+import * as imageModule from "../../images/ImageModule"
 
-import { DeploymentPlan } from "@/jobs/model/DeploymentPlan"
-import { Deployment } from "@/cluster/model/Deployment";
-import { ServerGroup } from "@/cluster/model/ServerGroup";
+import { DeploymentPlan } from "../model/DeploymentPlan"
+import { Deployment } from "../../cluster/model/Deployment"
+import { ServerGroup } from "../../cluster/model/ServerGroup"
 
 export type FetchedDeployment = {}
 
@@ -20,6 +20,7 @@ export class PlanImageDeployment {
     ) { }
 
     public async plan(group: ServerGroup, targetDeployments: Deployment[]): Promise<DeploymentPlan[]> {
+        console.log("enter")
         const deployments: DeploymentPlan[] = []
         for (const targetDeployment of targetDeployments) {
             this.io.out(`planning image deployment ${targetDeployment.name} in ${this.name}`)

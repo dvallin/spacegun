@@ -1,8 +1,8 @@
 import axios, { AxiosRequestConfig, AxiosResponse } from "axios"
 import { stringify } from "querystring"
 
-import { RequestInput } from "@/dispatcher/model/RequestInput"
-import { serverHost, serverPort } from "@/dispatcher/api"
+import { RequestInput } from "./model/RequestInput"
+import { serverHost, serverPort } from "./api"
 
 export async function get<T>(procedureName: string, input: RequestInput = {}): Promise<T | number> {
     let config = buildConfig(input)

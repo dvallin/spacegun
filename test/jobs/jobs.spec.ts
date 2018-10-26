@@ -4,7 +4,7 @@ import { Request } from "../../src/dispatcher/model/Request"
 import { Layers } from "../../src/dispatcher/model/Layers"
 process.env.LAYER = Layers.Standalone
 
-import { Job } from "../../src/jobs/model/Job"
+import { PipelineDescription } from "../../src/jobs/model/PipelineDescription"
 import { CronRegistry } from "../../src/crons/CronRegistry"
 
 import { Deployment } from "../../src/cluster/model/Deployment"
@@ -75,6 +75,7 @@ jest.mock("../../src/dispatcher/index", () => ({
 }))
 
 import { JobsRepositoryImpl } from "../../src/jobs/JobsRepositoryImpl"
+import { StepDescription } from "../../src/jobs/model/Step";
 
 describe("JobsRepositoryImpl", () => {
 
@@ -82,8 +83,11 @@ describe("JobsRepositoryImpl", () => {
     let crons: CronRegistry
     const twelvePMEveryWorkday = "0 0 0 12 * * MON-FRI"
     const everyMinuteEveryWorkday = "0 */5 * * * MON-FRI"
-    const job1: Job = { name: "1->2", cluster: "cluster2", from: { type: "cluster", expression: "cluster1" }, cron: twelvePMEveryWorkday }
-    const job2: Job = { name: "i->1", cluster: "cluster1", from: { type: "image", expression: "latest" }, cron: everyMinuteEveryWorkday }
+    const planClusterStep: StepDescription = { name: "plan", type: "planClusterDeployment", cluster: "cluster1", onSuccess: "apply" }
+    const planImageStep: StepDescription = { name: "plan", type: "planImageDeployment", tag: "latest", onSuccess: "apply" }
+    const applyStep: StepDescription = { name: "apply", type: "applyDeployment" }
+    const job1: PipelineDescription = { name: "1->2", cluster: "cluster2", steps: [planClusterStep, applyStep], start: "plan", cron: twelvePMEveryWorkday }
+    const job2: PipelineDescription = { name: "i->1", cluster: "cluster1", steps: [planImageStep, applyStep], start: "plan", cron: everyMinuteEveryWorkday }
 
     beforeEach(() => {
         process.env.LAYER = Layers.Server
@@ -165,7 +169,7 @@ describe("JobsRepositoryImpl", () => {
 
     it("applies plans", async () => {
         // when
-        await repo.planAndApply("1->2")
+        await repo.run("1->2").toPromise()
 
         // then
         expect(mockUpdateDeployment).toHaveBeenCalledWith({

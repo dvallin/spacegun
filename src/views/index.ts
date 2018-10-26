@@ -1,10 +1,10 @@
 import * as moment from "moment"
-import { Resource } from "@/dispatcher/resource"
-import { call } from "@/dispatcher"
-import { clusters, namespaces, pods } from "@/cluster/ClusterModule"
-import { pipelines, schedules } from "@/jobs/JobsModule"
-import { Config } from "@/config"
-import { list, tags } from "@/images/ImageModule"
+import { call } from "../dispatcher"
+import { Resource } from "../dispatcher/resource"
+import { clusters, namespaces, pods } from "../cluster/ClusterModule"
+import { pipelines, schedules } from "../jobs/JobsModule"
+import { Config } from "../config"
+import { list, tags } from "../images/ImageModule"
 
 let config: Config | undefined
 export function init(c: Config) {

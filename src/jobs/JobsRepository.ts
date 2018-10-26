@@ -1,6 +1,6 @@
-import { JobPlan } from "@/jobs/model/JobPlan"
-import { Cron } from "@/jobs/model/Cron"
-import { PipelineDescription } from "@/jobs/model/PipelineDescription"
+import { JobPlan } from "./model/JobPlan"
+import { Cron } from "./model/Cron"
+import { PipelineDescription } from "./model/PipelineDescription"
 
 export interface JobsRepository {
 

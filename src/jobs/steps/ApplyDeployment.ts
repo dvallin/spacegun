@@ -1,10 +1,10 @@
-import { call } from "@/dispatcher"
-import { IO } from "@/IO"
+import { call } from "../../dispatcher"
+import { IO } from "../../IO"
 
-import * as clusterModule from "@/cluster/ClusterModule"
+import * as clusterModule from "../../cluster/ClusterModule"
 
-import { DeploymentPlan } from "@/jobs/model/DeploymentPlan"
-import { Deployment } from "@/cluster/model/Deployment"
+import { DeploymentPlan } from "../model/DeploymentPlan"
+import { Deployment } from "../../cluster/model/Deployment"
 
 export class ApplyDeployment {
 

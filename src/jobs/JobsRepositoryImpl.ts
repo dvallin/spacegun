@@ -1,28 +1,28 @@
-import { load } from "@/jobs"
-import { PipelineDescription } from "@/jobs/model/PipelineDescription"
-import { JobPlan } from "@/jobs/model/JobPlan"
-import { DeploymentPlan } from "@/jobs/model/DeploymentPlan"
+import { Observable } from "rx"
 
-import { call } from "@/dispatcher"
+import { load } from "."
+import { PipelineDescription } from "./model/PipelineDescription"
+import { JobPlan } from "./model/JobPlan"
+import { DeploymentPlan } from "./model/DeploymentPlan"
+import { JobsRepository } from "./JobsRepository"
+import { Cron } from "./model/Cron"
+import { ApplyDeployment } from "./steps/ApplyDeployment"
+import { PlanImageDeployment } from "./steps/PlanImageDeployment"
+import { PlanClusterDeployment } from "./steps/PlanClusterDeployment"
+import { StepDescription } from "./model/Step"
 
-import * as clusterModule from "@/cluster/ClusterModule"
+import { call } from "../dispatcher"
 
-import { JobsRepository } from "@/jobs/JobsRepository"
-import { Cron } from "@/jobs/model/Cron"
-import { IO } from "@/IO"
-import { CronRegistry } from "@/crons/CronRegistry"
-import { Layers } from "@/dispatcher/model/Layers"
+import * as clusterModule from "../cluster/ClusterModule"
 
-import * as eventModule from "@/events/EventModule"
+import { IO } from "../IO"
+import { CronRegistry } from "../crons/CronRegistry"
+import { Layers } from "../dispatcher/model/Layers"
 
-import { ApplyDeployment } from "@/jobs/steps/ApplyDeployment"
+import * as eventModule from "../events/EventModule"
 
-import { PlanImageDeployment } from "@/jobs/steps/PlanImageDeployment"
-import { PlanClusterDeployment } from "@/jobs/steps/PlanClusterDeployment"
-import { StepDescription } from "@/jobs/model/Step";
-import { Observable } from "rx";
-import { ServerGroup } from "@/cluster/model/ServerGroup"
-import { Deployment } from "@/cluster/model/Deployment"
+import { ServerGroup } from "../cluster/model/ServerGroup"
+import { Deployment } from "../cluster/model/Deployment"
 
 export class JobsRepositoryImpl implements JobsRepository {
 
@@ -41,7 +41,7 @@ export class JobsRepositoryImpl implements JobsRepository {
             Array.from(this.pipelines.keys()).forEach(name => {
                 const job = this.pipelines.get(name)
                 if (job !== undefined && job.cron !== undefined) {
-                    cronRegistry.register(name, job.cron, () => this.run(name))
+                    cronRegistry.register(name, job.cron, () => this.run(name).toPromise())
                 }
             })
         }
@@ -63,33 +63,35 @@ export class JobsRepositoryImpl implements JobsRepository {
         return this.cronRegistry.crons
     }
 
-    async run(name: string): Promise<void> {
+    run(name: string): Observable<void> {
         const pipeline = this.pipelines.get(name)
         if (pipeline) {
-            const namespaces = await call(clusterModule.namespaces)(pipeline)
-            if (namespaces.length === 0) {
-                this.runInNamesspace(pipeline)
-            } else {
-                for (const namespace of namespaces) {
-                    this.runInNamesspace(pipeline, namespace)
-                }
-            }
+            return Observable.fromPromise(call(clusterModule.namespaces)(pipeline))
+                .flatMap(namespaces => {
+                    if (namespaces.length === 0) {
+                        return this.runInNamesspace(pipeline)
+                    }
+                    return Observable
+                        .of(...namespaces)
+                        .flatMap(namespace => this.runInNamesspace(pipeline, namespace))
+                })
+                .map(() => { })
         }
+        return Observable.of()
     }
 
-    runInNamesspace(pipeline: PipelineDescription, namespace?: string) {
+    runInNamesspace(pipeline: PipelineDescription, namespace?: string): Observable<object> {
         const steps: { [name: string]: StepDescription } = {}
         for (const step of pipeline.steps) {
             steps[step.name] = step
         }
 
         const serverGroups = Observable.just<ServerGroup>({ cluster: pipeline.cluster, namespace })
-        const deployments = serverGroups.flatMap(group =>
-            Observable
-                .fromPromise(call(clusterModule.deployments)(group))
-                .map(deployments => ({ group, deployments }))
+        const deployments = serverGroups.flatMap(group => Observable
+            .fromPromise(call(clusterModule.deployments)(group))
+            .map(deployments => ({ group, deployments }))
         )
-        this.step(steps, pipeline.enter, deployments as Observable<object>).subscribe()
+        return this.step(steps, pipeline.start, deployments as Observable<object>)
     }
 
     step(steps: { [name: string]: StepDescription }, name: string, inStream: Observable<object>): Observable<object> {
@@ -100,13 +102,19 @@ export class JobsRepositoryImpl implements JobsRepository {
             case "planClusterDeployment": {
                 const instance = new PlanClusterDeployment(step.name, step.cluster!)
                 const input = inStream as Observable<{ group: ServerGroup, deployments: Deployment[] }>
-                outStream = input.flatMap(s => instance.plan(s.group, s.deployments)) as Observable<object>
+                const output: Observable<DeploymentPlan> = input
+                    .flatMap(s => instance.plan(s.group, s.deployments))
+                    .flatMap(arr => Observable.of(...arr))
+                outStream = output as Observable<object>
                 break
             }
             case "planClusterDeployment": {
                 const instance = new PlanImageDeployment(step.name, step.cluster!)
                 const input = inStream as Observable<{ group: ServerGroup, deployments: Deployment[] }>
-                outStream = input.flatMap(s => instance.plan(s.group, s.deployments)) as Observable<object>
+                const output: Observable<DeploymentPlan> = input
+                    .flatMap(s => instance.plan(s.group, s.deployments))
+                    .flatMap(arr => Observable.of(...arr))
+                outStream = output as Observable<object>
                 break
             }
             case "applyDeployment": {

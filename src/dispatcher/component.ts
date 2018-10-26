@@ -1,10 +1,10 @@
-import { add, path } from "@/dispatcher"
-import { Layers } from "@/dispatcher/model/Layers"
-import { get, post, put } from "@/dispatcher/caller"
-import { register as registerApi } from "@/dispatcher/api"
+import { add, path } from "."
+import { Layers } from "./model/Layers"
+import { get, post, put } from "./caller"
+import { register as registerApi } from "./api"
 
-import { RequestInput } from "@/dispatcher/model/RequestInput"
-import { Methods } from "@/dispatcher/model/Methods"
+import { RequestInput } from "./model/RequestInput"
+import { Methods } from "./model/Methods"
 
 export interface ComponentConfiguration<T> {
     moduleName: string

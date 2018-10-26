@@ -1,8 +1,8 @@
 import { Layers } from "../../src/dispatcher/model/Layers"
 process.env.LAYER = Layers.Standalone
 
-import { init, jobs, plan, run, schedules } from "../../src/jobs/JobsModule"
-import { Job } from "../../src/jobs/model/Job"
+import { init, pipelines, plan, run, schedules } from "../../src/jobs/JobsModule"
+import { PipelineDescription } from "../../src/jobs/model/PipelineDescription"
 import { call } from "../../src/dispatcher"
 import { JobsRepository } from "../../src/jobs/JobsRepository"
 
@@ -10,9 +10,9 @@ const planMock = jest.fn()
 const applyMock = jest.fn()
 const startMock = jest.fn()
 const schedulesMock = jest.fn()
-const list: Job[] = [
-    { name: "job1", cluster: "cluster1", from: { type: "cluster" } },
-    { name: "job2", cluster: "cluster2", from: { type: "cluster" } }
+const list: PipelineDescription[] = [
+    { name: "job1", cluster: "cluster1", steps: [], start: "" },
+    { name: "job2", cluster: "cluster2", steps: [], start: "" }
 ]
 
 const repo: JobsRepository = {
@@ -31,7 +31,7 @@ describe("image module", () => {
 
     it("calls list", async () => {
         // when
-        const result = await call(jobs)()
+        const result = await call(pipelines)()
 
         // then
         expect(result).toEqual(list)

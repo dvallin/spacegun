@@ -1,4 +1,4 @@
-import { Layers } from "@/dispatcher/model/Layers"
+import { Layers } from "./model/Layers"
 
 export interface Next {
     (): Promise<any>;

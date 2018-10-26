@@ -1,6 +1,6 @@
-import { ConfigRepository } from "@/config/ConfigRepository"
-import { Config, GitConfig } from "@/config"
-import { Layers } from "@/dispatcher/model/Layers"
+import { ConfigRepository } from "../../config/ConfigRepository"
+import { Config, GitConfig } from "../../config"
+import { Layers } from "../../dispatcher/model/Layers"
 
 import * as SimpleGit from "simple-git/promise"
 

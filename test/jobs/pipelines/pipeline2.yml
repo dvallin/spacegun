@@ -1,0 +1,25 @@
+cluster: cluster2
+cron: "0 */5 * * * MON-FRI"
+start: "probe1"
+steps:
+- name: "probe1"
+  type: "clusterProbe"
+  hook: "https://some.hook.com"
+  onSuccess: "deployImage"
+
+- name: "plan1"
+  type: "planClusterDeployment"
+  cluster: "cluster3"
+  onSuccess: "apply1"
+  onFailure: "rollback1"
+
+- name: "apply1"
+  type: "applyDeployment"
+  onSuccess: "snapshot1"
+  onFailure: "rollback1"
+
+- name: "snapshot1"
+  type: "takeSnapshot"
+
+- name: "rollback1"
+  type: "rollback"

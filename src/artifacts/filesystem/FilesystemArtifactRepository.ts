@@ -1,6 +1,6 @@
-import { ArtifactRepository } from "@/artifacts/ArtifactRepository"
-import { Config } from "@/config"
-import { save, load } from "@/file-loading"
+import { ArtifactRepository } from "../../artifacts/ArtifactRepository"
+import { Config } from "../../config"
+import { save, load } from "../../file-loading"
 
 export function fromConfig(config: Config): FilesystemArtifactRepository {
     return new FilesystemArtifactRepository(config.artifacts)

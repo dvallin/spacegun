@@ -1,6 +1,6 @@
 import * as commandLineArgs from "command-line-args"
 
-import { Command } from "@/commands"
+import { Command } from "./commands"
 
 export interface Options {
     config?: string
@@ -24,8 +24,8 @@ function parse(): Options {
             case "images":
             case "pods":
             case "deployments":
-            case "jobs":
-            case "jobSchedules":
+            case "pipelines":
+            case "pipelineSchedules":
             case "snapshot":
             case "apply":
             case "run":

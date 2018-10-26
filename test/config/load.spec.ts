@@ -6,7 +6,7 @@ describe("config loading", () => {
         const config = loadConfig('test/test-config/config.yml')
         expect(config).toEqual({
             docker: "https://docker.com",
-            jobs: "test/test-config/jobs",
+            pipelines: "test/test-config/pipelines",
             artifacts: "test/test-config/artifacts",
             kube: "test/test-config/kube/config",
             slack: "https://some.slack.hook",
@@ -25,7 +25,7 @@ describe("validateConfig", () => {
 
     it("defaults values", () => {
         const config = validateConfig("basePath", { docker: "someDocker" })
-        expect(config.jobs).toEqual("basePath/jobs")
+        expect(config.pipelines).toEqual("basePath/pipelines")
         expect(config.kube.endsWith(".kube/config")).toBeTruthy()
         expect(config.git).toBeUndefined()
         expect(config.server).toEqual({
@@ -36,9 +36,9 @@ describe("validateConfig", () => {
     })
 
     it("adds config base path to paths", () => {
-        const config = validateConfig("basePath", { docker: "someDocker", jobs: "some/jobs", kube: "some/kube", artifacts: "some/artifacts" })
+        const config = validateConfig("basePath", { docker: "someDocker", pipelines: "some/pipelines", kube: "some/kube", artifacts: "some/artifacts" })
         expect(config.artifacts).toEqual("basePath/some/artifacts")
-        expect(config.jobs).toEqual("basePath/some/jobs")
+        expect(config.pipelines).toEqual("basePath/some/pipelines")
         expect(config.kube).toEqual("basePath/some/kube")
     })
 })

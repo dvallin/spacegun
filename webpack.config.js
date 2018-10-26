@@ -56,10 +56,7 @@ module.exports = {
         ]
     },
     resolve: {
-        extensions: [".tsx", ".ts", ".js"],
-        alias: {
-            "@": path.resolve(__dirname, "src"),
-        }
+        extensions: [".tsx", ".ts", ".js"]
     },
     plugins,
     devtool: 'cheap-source-map',

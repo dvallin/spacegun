@@ -1,8 +1,8 @@
 import { safeLoad } from "js-yaml"
 import { readFileSync, readdirSync } from "fs"
 
-import { PipelineDescription } from "@/jobs/model/PipelineDescription"
-import { StepDescription } from "@/jobs/model/Step"
+import { PipelineDescription } from "./model/PipelineDescription"
+import { StepDescription } from "./model/Step"
 
 export function load(path: string = "./jobs"): Map<string, PipelineDescription> {
     const files = readdirSync(path)
@@ -24,12 +24,12 @@ export function validatePipeline(partial: Partial<PipelineDescription>, name: st
     if (partial.steps === undefined) {
         throw new Error(`job ${name} must contain steps`)
     }
-    if (partial.enter === undefined) {
-        throw new Error(`job ${name} must contain an enter step`)
+    if (partial.start === undefined) {
+        throw new Error(`job ${name} must contain an start step`)
     }
 
     const steps = validateSteps(partial.steps, name, partial.cluster)
-    return { name, steps, cluster: partial.cluster, cron: partial.cron, enter: partial.enter }
+    return { name, steps, cluster: partial.cluster, cron: partial.cron, start: partial.start }
 }
 
 export function validateSteps(steps: Partial<StepDescription>[], name: string, cluster: string): StepDescription[] {
@@ -66,7 +66,7 @@ export function validateStep(step: Partial<StepDescription>, name: string, clust
         case "rollback":
             break
         default:
-            throw new Error(`${step.name} of job ${name} is not a valid source type`)
+            throw new Error(`${step.type} of job ${name} is not a valid step type`)
     }
     return {
         name: step.name!, type: step.type!,

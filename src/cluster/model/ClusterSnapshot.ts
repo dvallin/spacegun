@@ -1,4 +1,4 @@
-import { DeploymentSnapshot } from "@/cluster/model/DeploymentSnapshot"
+import { DeploymentSnapshot } from "./DeploymentSnapshot"
 
 export interface ClusterSnapshot {
 
