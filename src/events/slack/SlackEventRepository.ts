@@ -1,8 +1,8 @@
 import axios, { AxiosRequestConfig } from "axios"
 
-import { EventRepository } from "@/events/EventRepository"
-import { Event } from "@/events/model/Event"
-import { EventField } from "@/events/model/EventField";
+import { EventRepository } from "../EventRepository"
+import { Event } from "../model/Event"
+import { EventField } from "../model/EventField"
 
 const axiosConfig: AxiosRequestConfig = { timeout: 20000 }
 

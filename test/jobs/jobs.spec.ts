@@ -4,11 +4,16 @@ import { Request } from "../../src/dispatcher/model/Request"
 import { Layers } from "../../src/dispatcher/model/Layers"
 process.env.LAYER = Layers.Standalone
 
-import { Job } from "../../src/jobs/model/Job"
+import { PipelineDescription } from "../../src/jobs/model/PipelineDescription"
 import { CronRegistry } from "../../src/crons/CronRegistry"
 
 import { Deployment } from "../../src/cluster/model/Deployment"
-import { Image } from "../../src/images/model/Image"
+
+import { JobsRepositoryImpl } from "../../src/jobs/JobsRepositoryImpl"
+import { StepDescription } from "../../src/jobs/model/Step"
+import { DeploymentPlan } from "../../src/jobs/model/DeploymentPlan"
+import { JobPlan } from "../../src/jobs/model/JobPlan"
+import { Event } from "../../src/events/model/Event"
 
 const mockDeployments: { [key: string]: Deployment[] } = {
     "cluster1": [
@@ -25,6 +30,7 @@ const mockNamespaces: { [key: string]: string[] } = {
 }
 
 const mockUpdateDeployment = jest.fn()
+const mockSlack = jest.fn()
 
 jest.mock("../../src/dispatcher/index", () => ({
     get: jest.fn(),
@@ -33,18 +39,18 @@ jest.mock("../../src/dispatcher/index", () => ({
             case "cluster": {
                 switch (request.procedure) {
                     case "deployments": {
-                        return (input: { cluster: string }) => (mockDeployments[input.cluster])
+                        return (input: { cluster: string }) => Promise.resolve(mockDeployments[input.cluster])
                     }
                     case "deployments": {
-                        return (input: { cluster: string }) => (mockDeployments[input.cluster])
+                        return (input: { cluster: string }) => Promise.resolve(mockDeployments[input.cluster])
                     }
                     case "namespaces": {
-                        return (input: { cluster: string }) => (mockNamespaces[input.cluster])
+                        return (input: { cluster: string }) => Promise.resolve(mockNamespaces[input.cluster])
                     }
                     case "updateDeployment": {
                         return (input: any) => {
                             mockUpdateDeployment(input)
-                            return mockDeployments[input.group.cluster]
+                            return Promise.resolve(mockDeployments[input.group.cluster])
                         }
                     }
                 }
@@ -53,7 +59,7 @@ jest.mock("../../src/dispatcher/index", () => ({
             case "images": {
                 switch (request.procedure) {
                     case "image": {
-                        return (input: { name: string, tag: string }): Image => ({
+                        return (input: { name: string, tag: string }) => Promise.resolve({
                             name: input.name, tag: input.tag, url: `${input.name}:${input.tag}:otherDigest`
                         })
                     }
@@ -63,7 +69,7 @@ jest.mock("../../src/dispatcher/index", () => ({
             case "events": {
                 switch (request.procedure) {
                     case "log": {
-                        return () => { }
+                        return (message: Event) => { mockSlack(message) }
                     }
                 }
                 break
@@ -75,16 +81,17 @@ jest.mock("../../src/dispatcher/index", () => ({
     path: () => ""
 }))
 
-import { JobsRepositoryImpl } from "../../src/jobs/JobsRepositoryImpl"
-
 describe("JobsRepositoryImpl", () => {
 
     let repo: JobsRepositoryImpl
     let crons: CronRegistry
     const twelvePMEveryWorkday = "0 0 0 12 * * MON-FRI"
     const everyMinuteEveryWorkday = "0 */5 * * * MON-FRI"
-    const job1: Job = { name: "1->2", cluster: "cluster2", from: { type: "cluster", expression: "cluster1" }, cron: twelvePMEveryWorkday }
-    const job2: Job = { name: "i->1", cluster: "cluster1", from: { type: "image", expression: "latest" }, cron: everyMinuteEveryWorkday }
+    const planClusterStep: StepDescription = { name: "plan", type: "planClusterDeployment", cluster: "cluster1", onSuccess: "apply" }
+    const planImageStep: StepDescription = { name: "plan", type: "planImageDeployment", tag: "latest", onSuccess: "apply" }
+    const applyStep: StepDescription = { name: "apply", type: "applyDeployment" }
+    const job1: PipelineDescription = { name: "1->2", cluster: "cluster2", steps: [planClusterStep, applyStep], start: "plan", cron: twelvePMEveryWorkday }
+    const job2: PipelineDescription = { name: "i->1", cluster: "cluster1", steps: [planImageStep, applyStep], start: "plan", cron: everyMinuteEveryWorkday }
 
     beforeEach(() => {
         process.env.LAYER = Layers.Server
@@ -164,9 +171,9 @@ describe("JobsRepositoryImpl", () => {
         expect(deploymentPlan.deployment.image!.url).toBe("imageUrl:tag1:digest1")
     })
 
-    it("applies plans", async () => {
+    it("runs first pipeline", async () => {
         // when
-        await repo.planAndApply("1->2")
+        await repo.run("1->2").toPromise()
 
         // then
         expect(mockUpdateDeployment).toHaveBeenCalledWith({
@@ -176,6 +183,48 @@ describe("JobsRepositoryImpl", () => {
             },
             image: { name: "image1", url: "imageUrl:tag1:digest1" },
             group: { cluster: "cluster2", namespace: "service1" }
+        })
+    })
+
+    it("runs second pipeline", async () => {
+        // when
+        await repo.run("i->1").toPromise()
+
+        // then
+        expect(mockUpdateDeployment).toHaveBeenCalledWith({
+            deployment: {
+                image: { name: "image1", url: "imageUrl:tag1:digest1" },
+                name: "service1"
+            },
+            image: { name: "image1", url: "image1:undefined:otherDigest" },
+            group: { cluster: "cluster1" }
+        })
+    })
+
+    it("calls slack", async () => {
+        // when
+        const deploymentPlan: DeploymentPlan = {
+            deployment: {
+                image: { name: "image1", url: "imageUrl:tag1:digest1" },
+                name: "service1"
+            },
+            image: { name: "image1", url: "image:tag:digest" },
+            group: { cluster: "cluster1", namespace: "namespace1" }
+        }
+        const plan: JobPlan = { name: "pipelineName", deployments: [deploymentPlan] }
+        await repo.apply(plan)
+
+        // then
+        expect(mockSlack).toHaveBeenCalledWith({
+            message: 'Applied pipeline pipelineName',
+            timestamp: 1520899200000,
+            topics: ['slack'],
+            description: 'Applied 1 deployments while executing pipeline pipelineName',
+            fields:
+                [{
+                    title: 'cluster1 ∞ namespace1 ∞ service1',
+                    value: 'updated to image:tag:digest'
+                }]
         })
     })
 

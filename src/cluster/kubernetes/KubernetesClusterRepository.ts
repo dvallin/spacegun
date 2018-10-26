@@ -1,13 +1,13 @@
-import { Pod } from "@/cluster/model/Pod"
-import { Image } from "@/cluster/model/Image"
-import { Deployment } from "@/cluster/model/Deployment"
-import { ServerGroup } from "@/cluster/model/ServerGroup"
-import { ClusterSnapshot } from "@/cluster/model/ClusterSnapshot"
-import { Scaler } from "@/cluster/model/Scaler"
-import { ClusterRepository } from "@/cluster/ClusterRepository"
-import { Cache } from "@/Cache"
+import { Pod } from "../model/Pod"
+import { Image } from "../model/Image"
+import { Deployment } from "../model/Deployment"
+import { ServerGroup } from "../model/ServerGroup"
+import { ClusterSnapshot } from "../model/ClusterSnapshot"
+import { Scaler } from "../model/Scaler"
+import { ClusterRepository } from "../ClusterRepository"
+import { Cache } from "../../Cache"
 
-import * as eventModule from "@/events/EventModule"
+import * as eventModule from "../../events/EventModule"
 
 const cloneDeep = require("lodash.clonedeep")
 
@@ -17,7 +17,7 @@ import {
     Apps_v1beta2Api, V1beta2DeploymentList,
     Autoscaling_v1Api, V1HorizontalPodAutoscalerList, V1beta2Deployment, V1Container, V1NamespaceList, V1PodStatus
 } from '@kubernetes/client-node'
-import { call } from "@/dispatcher";
+import { call } from "../../dispatcher";
 
 interface Api {
     setDefaultAuthentication(config: KubeConfig): void

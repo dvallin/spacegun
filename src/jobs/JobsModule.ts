@@ -1,13 +1,13 @@
-import { Component } from "@/dispatcher/component"
-import { RequestInput } from "@/dispatcher/model/RequestInput"
-import { Request } from "@/dispatcher/model/Request"
-import { Layers } from "@/dispatcher/model/Layers"
+import { Component } from "../dispatcher/component"
+import { RequestInput } from "../dispatcher/model/RequestInput"
+import { Request } from "../dispatcher/model/Request"
+import { Layers } from "../dispatcher/model/Layers"
 
-import { JobsRepository } from "@/jobs/JobsRepository"
-import { JobPlan } from "@/jobs/model/JobPlan"
-import { DeploymentPlan } from "@/jobs/model/DeploymentPlan"
-import { Job } from "@/jobs/model/Job"
-import { Cron } from "@/jobs/model/Cron"
+import { JobsRepository } from "./JobsRepository"
+import { JobPlan } from "./model/JobPlan"
+import { DeploymentPlan } from "./model/DeploymentPlan"
+import { PipelineDescription } from "./model/PipelineDescription"
+import { Cron } from "./model/Cron"
 
 let repo: JobsRepository | undefined = undefined
 export function init(jobs: JobsRepository) {
@@ -18,9 +18,9 @@ export function init(jobs: JobsRepository) {
     }
 }
 
-export const jobs: Request<void, Job[]> = {
+export const pipelines: Request<void, PipelineDescription[]> = {
     module: "jobs",
-    procedure: "jobs"
+    procedure: "pipelines"
 }
 
 export const schedules: Request<{ name: string }, Cron | undefined> = {
@@ -50,10 +50,10 @@ export const run: Request<JobPlan, void> = {
 export class Module {
 
     @Component({
-        moduleName: jobs.module,
+        moduleName: pipelines.module,
         layer: Layers.Server
     })
-    async [jobs.procedure](): Promise<Job[]> {
+    async [pipelines.procedure](): Promise<PipelineDescription[]> {
         return repo!.list
     }
 

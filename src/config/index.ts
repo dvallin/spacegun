@@ -1,6 +1,7 @@
 import { homedir } from "os"
 import { parse } from "path"
-import { load } from "@/file-loading";
+
+import { load } from "../file-loading"
 
 export interface ServerConfig {
     host: string
@@ -15,7 +16,7 @@ export interface GitConfig {
 export interface Config {
     kube: string
     docker: string
-    jobs: string
+    pipelines: string
     artifacts: string
     slack?: string
     git?: GitConfig
@@ -33,7 +34,7 @@ export function validateConfig(configBasePath: string, partial: Partial<Config>)
     let {
         kube,
         namespaces,
-        jobs,
+        pipelines,
         artifacts,
         slack,
         server = {},
@@ -51,10 +52,10 @@ export function validateConfig(configBasePath: string, partial: Partial<Config>)
         kube = `${configBasePath}/${kube}`
     }
 
-    if (jobs === undefined) {
-        jobs = `${configBasePath}/jobs`
+    if (pipelines === undefined) {
+        pipelines = `${configBasePath}/pipelines`
     } else {
-        jobs = `${configBasePath}/${jobs}`
+        pipelines = `${configBasePath}/${pipelines}`
     }
 
     if (artifacts === undefined) {
@@ -63,7 +64,7 @@ export function validateConfig(configBasePath: string, partial: Partial<Config>)
         artifacts = `${configBasePath}/${artifacts}`
     }
 
-    return { kube, jobs, artifacts, slack, namespaces, git, server: validateServerConfig(server), docker }
+    return { kube, pipelines, artifacts, slack, namespaces, git, server: validateServerConfig(server), docker }
 }
 
 export function validateServerConfig(partial: Partial<ServerConfig>): ServerConfig {

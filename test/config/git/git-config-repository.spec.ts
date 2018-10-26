@@ -70,7 +70,7 @@ function createConfig(git?: GitConfig): Config {
         git,
         kube: "",
         docker: "",
-        jobs: "",
+        pipelines: "",
         artifacts: "",
         server: { host: "", port: 2 }
     }

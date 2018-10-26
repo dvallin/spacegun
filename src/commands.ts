@@ -2,19 +2,19 @@ import * as moment from "moment"
 import * as ora from "ora"
 import chalk from "chalk"
 
-import { call } from "@/dispatcher"
-import { pad } from "@/pad"
-import { IO } from "@/IO"
+import { call } from "./dispatcher"
+import { pad } from "./pad"
+import { IO } from "./IO"
 
-import * as jobsModule from "@/jobs/JobsModule"
-import * as clusterModule from "@/cluster/ClusterModule"
-import * as imageModule from "@/images/ImageModule"
-import * as configModule from "@/artifacts/ArtifactModule"
+import * as jobsModule from "./jobs/JobsModule"
+import * as clusterModule from "./cluster/ClusterModule"
+import * as imageModule from "./images/ImageModule"
+import * as configModule from "./artifacts/ArtifactModule"
 
-import { Deployment } from "@/cluster/model/Deployment"
-import { DeploymentSnapshot } from "@/cluster/model/DeploymentSnapshot";
+import { Deployment } from "./cluster/model/Deployment"
+import { DeploymentSnapshot } from "./cluster/model/DeploymentSnapshot"
 
-export type Command = "namespaces" | "pods" | "images" | "jobs" | "jobSchedules"
+export type Command = "namespaces" | "pods" | "images" | "pipelines" | "pipelineSchedules"
     | "run" | "deployments" | "deploy" | "scalers" | "help" | "snapshot" | "apply"
 
 async function load<T>(p: Promise<T>): Promise<T> {
@@ -86,35 +86,35 @@ async function imagesCommand(io: IO) {
     )
 }
 
-function logJobHeader(io: IO) {
+function logPipelineHeader(io: IO) {
     io.out(chalk.bold(pad("name", 2) + pad("from", 4) + pad("to", 2)))
 }
 
-async function jobsCommand(io: IO) {
-    const jobs = await load(call(jobsModule.jobs)())
-    logJobHeader(io)
-    jobs.forEach(job => {
+async function pipelinesCommand(io: IO) {
+    const pipelines = await load(call(jobsModule.pipelines)())
+    logPipelineHeader(io)
+    pipelines.forEach(pipeline => {
         io.out(
-            chalk.bold(pad(job.name, 2))
-            + pad(`${job.from.type} (${job.from.expression})`, 4)
-            + pad(job.cluster, 2)
+            chalk.bold(pad(pipeline.name, 2))
+            + pad(`${pipeline.steps.length}`, 4)
+            + pad(pipeline.cluster, 2)
         )
     })
 }
 
-async function jobSchedulesCommand(io: IO) {
-    io.out("Choose the target job")
-    const jobs = await call(jobsModule.jobs)()
-    jobs.forEach((job, index) => {
-        io.out(chalk.bold.cyan(index.toString()) + ": " + pad(job.name, 5))
+async function pipelineSchedulesCommand(io: IO) {
+    io.out("Choose the target pipeline")
+    const pipelines = await call(jobsModule.pipelines)()
+    pipelines.forEach((pipeline, index) => {
+        io.out(chalk.bold.cyan(index.toString()) + ": " + pad(pipeline.name, 5))
     })
-    const job = await io.choose('> ', jobs)
-    const schedules = await call(jobsModule.schedules)(job)
-    logJobHeader(io)
+    const pipeline = await io.choose('> ', pipelines)
+    const schedules = await call(jobsModule.schedules)(pipeline)
+    logPipelineHeader(io)
     io.out(
-        chalk.bold(pad(job.name, 2))
-        + pad(`${job.from.type} (${job.from.expression})`, 4)
-        + pad(job.cluster, 2)
+        chalk.bold(pad(pipeline.name, 2))
+        + pad(`${pipeline.steps.length}`, 4)
+        + pad(pipeline.cluster, 2)
     )
     io.out("")
     if (schedules !== undefined && schedules.lastRun !== undefined) {
@@ -129,18 +129,18 @@ async function jobSchedulesCommand(io: IO) {
             io.out(moment(run).toISOString())
         })
     } else {
-        io.out("not scheduling this job!")
+        io.out("not scheduling this pipeline!")
     }
 }
 
 async function runCommand(io: IO) {
-    io.out("Choose the target job")
-    const jobs = await call(jobsModule.jobs)()
-    jobs.forEach((job, index) => {
-        io.out(chalk.bold.cyan(index.toString()) + ": " + pad(job.name, 5))
+    io.out("Choose the target pipeline")
+    const pipelines = await call(jobsModule.pipelines)()
+    pipelines.forEach((pipeline, index) => {
+        io.out(chalk.bold.cyan(index.toString()) + ": " + pad(pipeline.name, 5))
     })
-    const job = await io.choose('> ', jobs)
-    const plan = await call(jobsModule.plan)(job)
+    const pipeline = await io.choose('> ', pipelines)
+    const plan = await call(jobsModule.plan)(pipeline)
 
     io.out(chalk.bold(`planned deployment ${plan.name}`))
     plan.deployments.forEach(deploymentPlan => {
@@ -336,9 +336,9 @@ export async function printHelp(io: IO, error?: Error) {
     io.out(pad("deployments", 2) + chalk.bold(pad("a summary of all deployements of all known clusters", 10)))
     io.out(pad("deploy", 2) + chalk.bold(pad("opens an interactive dialog to deploy an image", 10)))
     io.out(pad("scalers", 2) + chalk.bold(pad("a summary of all scalers of all known clusters", 10)))
-    io.out(pad("jobs", 2) + chalk.bold(pad("a summary of all jobs", 10)))
-    io.out(pad("jobSchedules", 2) + chalk.bold(pad("the next executions of a job", 10)))
-    io.out(pad("run", 2) + chalk.bold(pad("run a job manually", 10)))
+    io.out(pad("pipelines", 2) + chalk.bold(pad("a summary of all pipelines", 10)))
+    io.out(pad("pipelineSchedules", 2) + chalk.bold(pad("the next executions of a pipeline", 10)))
+    io.out(pad("run", 2) + chalk.bold(pad("run a pipeline manually", 10)))
     io.out(pad("help", 2) + chalk.bold(pad("renders this summary", 10)))
     io.out('')
     io.out(chalk.bold.underline('Available Options'))
@@ -351,8 +351,8 @@ const commands: { [k in Command]: (io: IO) => Promise<void> } = {
     "apply": async (io: IO) => foreachCluster(io, (io, cluster) => foreachNamespace(io, cluster, applySnapshotCommand)),
     "pods": async (io: IO) => foreachCluster(io, (io, cluster) => foreachNamespace(io, cluster, podsCommand)),
     "images": async (io: IO) => imagesCommand(io),
-    "jobs": async (io: IO) => jobsCommand(io),
-    "jobSchedules": async (io: IO) => jobSchedulesCommand(io),
+    "pipelines": async (io: IO) => pipelinesCommand(io),
+    "pipelineSchedules": async (io: IO) => pipelineSchedulesCommand(io),
     "run": async (io: IO) => runCommand(io),
     "deployments": async (io: IO) => foreachCluster(io, (io, cluster) => foreachNamespace(io, cluster, deployementsCommand)),
     "scalers": async (io: IO) => foreachCluster(io, (io, cluster) => foreachNamespace(io, cluster, scalersCommand)),

@@ -1,10 +1,10 @@
-import { RequestInput } from "@/dispatcher/model/RequestInput"
-import { Request } from "@/dispatcher/model/Request"
-import { Component } from "@/dispatcher/component"
-import { Layers } from "@/dispatcher/model/Layers"
+import { RequestInput } from "../dispatcher/model/RequestInput"
+import { Request } from "../dispatcher/model/Request"
+import { Component } from "../dispatcher/component"
+import { Layers } from "../dispatcher/model/Layers"
 
-import { Event } from "@/events/model/Event"
-import { EventRepository } from "@/events/EventRepository"
+import { Event } from "./model/Event"
+import { EventRepository } from "./EventRepository"
 
 let repos: EventRepository[] = []
 export function init(repositories: (EventRepository | undefined)[]) {

@@ -54,19 +54,19 @@ describe("commands", () => {
         })
     })
 
-    describe(commands.jobs.name, () => {
+    describe(commands.pipelines.name, () => {
 
-        it("calls the jobs backend and prints jobs", async () => {
+        it("calls the jobs backend and prints pipelines", async () => {
             // given
-            const job = { name: "someJob", from: {}, cluster: "cluster" }
-            mockDispatchFn.mockReturnValue([job])
+            const pipeline = { name: "1->2", cluster: "cluster2", steps: [], start: "" }
+            mockDispatchFn.mockReturnValue([pipeline])
 
             // when
-            await commands.jobs(createIO())
+            await commands.pipelines(createIO())
 
             // then
             expect(mockDispatched).toHaveBeenCalledTimes(1)
-            expect(mockDispatched).toBeCalledWith("jobs", "jobs")
+            expect(mockDispatched).toBeCalledWith("jobs", "pipelines")
         })
     })
 
@@ -138,10 +138,10 @@ describe("commands", () => {
 
     describe(commands.run.name, () => {
 
-        it("runs a job if user agrees", async () => {
+        it("runs a pipeline if user agrees", async () => {
             // given
             mockDispatchFn
-                .mockReturnValueOnce([{ name: "job1" }, { name: "job2" }])
+                .mockReturnValueOnce([{ name: "pipeline1" }, { name: "pipeline2" }])
                 .mockReturnValueOnce({
                     name: "plan", deployments: [
                         { name: "deployment1", deployment: {}, image: {} }
@@ -157,15 +157,15 @@ describe("commands", () => {
 
             // then
             expect(mockDispatched).toHaveBeenCalledTimes(3)
-            expect(mockDispatched).toBeCalledWith("jobs", "jobs")
+            expect(mockDispatched).toBeCalledWith("jobs", "pipelines")
             expect(mockDispatched).toBeCalledWith("jobs", "plan")
             expect(mockDispatched).toBeCalledWith("jobs", "run")
         })
 
-        it("does not run a job if user disagrees", async () => {
+        it("does not run a pipeline if user disagrees", async () => {
             // given
             mockDispatchFn
-                .mockReturnValueOnce([{ name: "job1" }, { name: "job2" }])
+                .mockReturnValueOnce([{ name: "pipeline1" }, { name: "pipeline2" }])
                 .mockReturnValueOnce({
                     name: "plan", deployments: [
                         { name: "deployment1", deployment: {}, image: {} }
@@ -271,14 +271,14 @@ describe("commands", () => {
         })
     })
 
-    describe(commands.jobSchedules.name, () => {
+    describe(commands.pipelineSchedules.name, () => {
 
-        it("prints schedules of a job", async () => {
+        it("prints schedules of a pipeline", async () => {
             // given
-            const job = { name: "1->2", cluster: "cluster2", from: { type: "cluster", expression: "cluster1" } }
+            const pipeline = { name: "1->2", cluster: "cluster2", steps: [], start: "" }
             const schedules = { lastRun: undefined, nextRuns: [] }
             mockDispatchFn
-                .mockReturnValueOnce([job])
+                .mockReturnValueOnce([pipeline])
                 .mockReturnValueOnce(schedules)
 
             const choose = jest.fn().mockImplementation(({ }, b) => b[0])
@@ -286,11 +286,11 @@ describe("commands", () => {
             const io = createIO(choose, expectFn)
 
             // when
-            await commands.jobSchedules(io)
+            await commands.pipelineSchedules(io)
 
             // then
             expect(mockDispatched).toHaveBeenCalledTimes(2)
-            expect(mockDispatched).toBeCalledWith("jobs", "jobs")
+            expect(mockDispatched).toBeCalledWith("jobs", "pipelines")
             expect(mockDispatched).toBeCalledWith("jobs", "schedules")
         })
     })

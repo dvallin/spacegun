@@ -1,4 +1,4 @@
-import { EventField } from "@/events/model/EventField"
+import { EventField } from "./EventField"
 
 export interface Event {
 

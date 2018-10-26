@@ -4,16 +4,17 @@
 
 Straight-forward deployment management to get your docker images to kubernetes, without the headaches of fancy ui.
 
+**This project is not quite stable yet. But it is going into a testing phase in our in-house project, so it might be soon**
+
 ## Features
-- deployment jobs
-- managing multiple kuberentes clusters
+- deployment pipelines as yaml
+- managing multiple kubernetes clusters
 - version controlled configuration
-- managing kubernetes deployments
-- crontabs everywhere
 - generating configuration from existing clusters
 - slack integration
 - some colorful cli
 - a static but informative ui
+- more cool features in the backlog
 
 ## Getting Started
 
@@ -64,7 +65,7 @@ A configuration may look like this
 ```
 docker: https://my.docker.repository.com
 artifact: artifactsFolder
-jobs: jobsFolder
+pipelines: pipelinesFolder
 kube: kube/config
 slack: https://hooks.slack.com/services/SOMEFUNKY/ID
 namespaces: ["service1", "service2"]
@@ -78,38 +79,68 @@ git:
 
 `docker` gives a url of a docker repository  
 `artifacts` folder for spacegun to put cluster snapshots  
-`jobs` folder for spacegun to load jobs from  
+`pipelines` folder for spacegun to load pipelines from  
 `kube` gives a path to a kubernetes config file (relative to the config.yml)  
 `slack` optional webhook to get notifactions of cluster updates  
 `namespaces` gives a list of namespaces for spacegun to operate on.  
 `server` gives hostname and port of the server (client uses both, server uses the port)  
 `git` contains the path to the remote git where all configurations are kept. And the (optional) crontab configures how often the service should poll for configuration changes.
 
-#### Jobs
+#### Pipelines
 
-Spacegun is driven by deployment jobs. A job is configured by a `<jobname>.yml`. By default spacegun scans the `configPath/job` folder relative to its configuration file for such files.
+Spacegun is driven by deployment pipelines. A pipeline is configured as a `<pipelinename>.yml`. By default spacegun scans the `configPath/pipelines` folder relative to its configuration file for such files.
 
-Here is an example of a job that deploys the newest images that are not tagged as `latest` from your docker registry to your `develop` kubernetes cluster
+Here is an example of a pipeline that deploys the newest images that are tagged as `latest` from your docker registry to your `develop` kubernetes cluster
 ```
 cluster: k8s.develop.my.cluster.com
 cron: "0 */5 * * * MON-FRI"
-from: 
-  type: image
-  expression: "^(?!.*latest).*$"
-```
-`cron` is just a crontab. This one is defined to trigger the job every 5 minutes from Monday to Friday.  
-`from` describes where Spacegun should get new image versions from. `type` is defined as image, so the docker registry is used.
+start: "plan1"
+steps:
+- name: "plan1"
+  type: "planImageDeployment"
+  tag: "latest"
+  onSuccess: "apply1"
 
-Here is an example of a job that deploys from `develop` to your `prelive` environemt
+- name: "apply1"
+  type: "applyDeployment"
 ```
-cluster: k8s.prelive.my.cluster.com
-cron: "0 0 0 12 * * MON-FRI"
-from:
-  type: cluster
-  expression: k8s.develop.my.cluster.com
+`cluster` is the url of your cluster  
+`cron` is just a crontab. This one is defined to trigger the job every 5 minutes from Monday to Friday.  
+`start` the step to start the execution of the pipeline.  
+`steps` is a list of deployment steps. Please note: Spacegun will not validate semantical correctness of your pipeline. It will only check that you are not missing any filds or have typos in step types.  
+
+`type` describes the type of the Pipeline Step. `planImageDeployment` will look into your cluster and compare the deployments in each namespace with the tag given. In this case it will plan to update all deployments that are not deploying the newest image tagged with `latest`. `applyDeployment` will apply all previously planned deployments. (Note: this distinction in planning and applying is very handy in manual execution via cli, or to implement manual aproval steps in a spacegun pipeline)    
+`onSuccess` defines the action that should be taken after this. `planImageDeployment` will be followed by the `apply1` step
+
+Here is an example of a job that deploys from a `develop` to a `live` environemt
 ```
-`cron` is defined to run this job at 12am every day from Monday to Friday.  
-`from` is defined as cluster. In this mode, Spacegun deploys only those images that are newer on develop than on prelive.
+cluster: k8s.live.my.cluster.com
+start: "probe1"
+steps:
+- name: "probe1"
+  type: "clusterProbe"
+  hook: "https://some.hook.com"
+  onSuccess: "deployImage"
+
+- name: "plan1"
+  type: "planClusterDeployment"
+  cluster: "k8s.develop.my.cluster.com"
+  onSuccess: "apply1"
+  onFailure: "rollback1"
+
+- name: "apply1"
+  type: "applyDeployment"
+  onSuccess: "snapshot1"
+  onFailure: "rollback1"
+
+- name: "snapshot1"
+  type: "takeSnapshot"
+
+- name: "rollback1"
+  type: "rollback"
+```
+This pipeline has a lot more steps. The `planClusterDeployment` step will plan updates by looking into the develop cluster and comparing the versions running with the live cluster. Wherever there is a difference in the image tag or hash it will plan a deployment. (Note: deploying docker images via tag is deprecated. So it is best practice to deploy an immage tagged with `latest`, but deploy using image hashes)  
+The steps `rollback`, `takeSnapshot` and `clusterProbe` are exemplary and will be available in future releases. Track their progress in issues [39](https://github.com/dvallin/spacegun/issues/39), [42](https://github.com/dvallin/spacegun/issues/42) and [43](https://github.com/dvallin/spacegun/issues/42)
 
 If `cron` is not present the server will not create a cronjob and the deployment needs to be manually run by a client.
 
@@ -169,7 +200,9 @@ This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md
 * [koa-static](https://github.com/koajs/static)
 * [koa-views](https://github.com/queckezz/koa-views)
 * [lodash](https://github.com/lodash/lodash)
+* [mkdirp](https://github.com/substack/node-mkdirp)
 * [moment](https://github.com/moment/moment)
 * [ora](https://github.com/sindresorhus/ora)
 * [pug](https://github.com/pugjs/pug)
 * [simple-git](https://github.com/steveukx/git-js)
+* [rx](https://github.com/ReactiveX/rxjs)

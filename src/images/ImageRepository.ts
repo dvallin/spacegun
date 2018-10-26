@@ -1,5 +1,5 @@
-import { Image } from "@/images/model/Image"
-import { Tag } from "@/images/model/Tag"
+import { Image } from "./model/Image"
+import { Tag } from "./model/Tag"
 
 export interface ImageRepository {
     endpoint: string

@@ -1,4 +1,4 @@
-import { Replicas } from "@/cluster/model/Replicas"
+import { Replicas } from "./Replicas"
 
 export interface Scaler {
     name: string

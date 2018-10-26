@@ -1,11 +1,11 @@
-import { RequestInput } from "@/dispatcher/model/RequestInput"
-import { Request } from "@/dispatcher/model/Request"
-import { Component } from "@/dispatcher/component"
-import { Layers } from "@/dispatcher/model/Layers"
+import { RequestInput } from "../dispatcher/model/RequestInput"
+import { Request } from "../dispatcher/model/Request"
+import { Component } from "../dispatcher/component"
+import { Layers } from "../dispatcher/model/Layers"
 
-import { ImageRepository } from "@/images/ImageRepository"
-import { Image } from "@/images/model/Image"
-import { Tag } from "@/images/model/Tag"
+import { ImageRepository } from "../images/ImageRepository"
+import { Image } from "../images/model/Image"
+import { Tag } from "../images/model/Tag"
 
 let repo: ImageRepository | undefined = undefined
 export function init(repository: ImageRepository) {

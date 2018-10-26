@@ -1,4 +1,0 @@
-cluster: cluster3
-from:
-  type: cluster
-  expression: cluster2

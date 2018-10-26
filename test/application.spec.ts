@@ -67,7 +67,7 @@ function createConfig(): Config {
         git: { remote: "someUrl", cron: "someCron" },
         kube: "",
         docker: "",
-        jobs: "",
+        pipelines: "",
         artifacts: "",
         server: { host: "", port: 2 }
     }

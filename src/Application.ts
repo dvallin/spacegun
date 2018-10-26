@@ -1,29 +1,29 @@
-import { loadConfig, Config } from "@/config"
-import { commands, printHelp } from "@/commands"
-import { parse } from "@/options"
+import { loadConfig, Config } from "./config"
+import { commands, printHelp } from "./commands"
+import { parse } from "./options"
 
-import { Layers } from "@/dispatcher/model/Layers"
-import { run as runDispatcher } from "@/dispatcher"
+import { Layers } from "./dispatcher/model/Layers"
+import { run as runDispatcher } from "./dispatcher"
 
-import { IO } from "@/IO"
-import { CronRegistry } from "@/crons/CronRegistry"
+import { IO } from "./IO"
+import { CronRegistry } from "./crons/CronRegistry"
 
-import { GitConfigRepository, fromConfig as gitRepoFromConfig } from "@/config/git/GitConfigRepository"
+import { GitConfigRepository, fromConfig as gitRepoFromConfig } from "./config/git/GitConfigRepository"
 
-import { fromConfig as artifactRepoFromConfig } from "@/artifacts/filesystem/FilesystemArtifactRepository"
-import { KubernetesClusterRepository } from "@/cluster/kubernetes/KubernetesClusterRepository"
-import { DockerImageRepository } from "@/images/docker/DockerImageRepository"
-import { JobsRepositoryImpl } from "@/jobs/JobsRepositoryImpl"
-import { SlackEventRepository } from "@/events/slack/SlackEventRepository"
+import { fromConfig as artifactRepoFromConfig } from "./artifacts/filesystem/FilesystemArtifactRepository"
+import { KubernetesClusterRepository } from "./cluster/kubernetes/KubernetesClusterRepository"
+import { DockerImageRepository } from "./images/docker/DockerImageRepository"
+import { JobsRepositoryImpl } from "./jobs/JobsRepositoryImpl"
+import { SlackEventRepository } from "./events/slack/SlackEventRepository"
 
-import { init as initArtifacts } from "@/artifacts/ArtifactModule"
-import { init as initCluster } from "@/cluster/ClusterModule"
-import { init as initEvents } from "@/events/EventModule"
-import { init as initImages } from "@/images/ImageModule"
-import { init as initJobs } from "@/jobs/JobsModule"
-import { init as initViews } from "@/views"
+import { init as initArtifacts } from "./artifacts/ArtifactModule"
+import { init as initCluster } from "./cluster/ClusterModule"
+import { init as initEvents } from "./events/EventModule"
+import { init as initImages } from "./images/ImageModule"
+import { init as initJobs } from "./jobs/JobsModule"
+import { init as initViews } from "./views"
 
-import { Options } from "@/options"
+import { Options } from "./options"
 
 export class Application {
 
@@ -91,6 +91,6 @@ export class Application {
         ])
         initCluster(KubernetesClusterRepository.fromConfig(config.kube, config.namespaces))
         initImages(DockerImageRepository.fromConfig(config.docker))
-        initJobs(JobsRepositoryImpl.fromConfig(config.jobs, this.crons))
+        initJobs(JobsRepositoryImpl.fromConfig(config.pipelines, this.crons))
     }
 }

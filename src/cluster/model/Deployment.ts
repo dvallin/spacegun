@@ -1,4 +1,4 @@
-import { Image } from "@/cluster/model/Image"
+import { Image } from "./Image"
 
 export interface Deployment {
     name: string

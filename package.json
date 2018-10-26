@@ -1,6 +1,6 @@
 {
     "name": "spacegun",
-    "version": "0.0.14-SNAPSHOT",
+    "version": "0.0.15-SNAPSHOT",
     "main": "index.js",
     "license": "MIT",
     "repository": "github:dvallin/spacegun",
@@ -37,6 +37,7 @@
         "moment": "^2.22.2",
         "ora": "^3.0.0",
         "pug": "^2.0.3",
+        "rx": "^4.1.0",
         "simple-git": "^1.96.0"
     },
     "devDependencies": {
@@ -53,6 +54,7 @@
         "@types/mkdirp": "^0.5.2",
         "@types/node": "^10.9.4",
         "@types/ora": "^1.3.4",
+        "@types/rx": "^4.1.1",
         "awesome-typescript-loader": "^5.2.1",
         "babel": "^6.23.0",
         "babel-jest": "^23.4.2",

@@ -1,4 +1,4 @@
-import { registerResource } from "@/dispatcher/api"
+import { registerResource } from "./api"
 
 export interface ResourceConfiguration {
     path: string

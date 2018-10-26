@@ -1,15 +1,16 @@
 import * as moment from "moment"
 import { CronJob } from "cron"
 
-import { IO } from "@/IO"
-import { Cron } from "@/crons/model/Cron"
+import { IO } from "../IO"
+import { Cron } from "./model/Cron"
+import { IPromise } from "rx";
 
 export class CronRegistry {
     public readonly cronJobs: Map<string, CronJob> = new Map()
-    public readonly running: Map<string, Promise<void>> = new Map()
+    public readonly running: Map<string, IPromise<void>> = new Map()
     private readonly io: IO = new IO()
 
-    public register(name: string, cronTab: string, promiseProvider: () => Promise<void>, started: boolean = false) {
+    public register(name: string, cronTab: string, promiseProvider: () => IPromise<void>, started: boolean = false) {
         const cron = new CronJob(
             cronTab,
             () => this.executeTask(name, promiseProvider),
@@ -59,7 +60,7 @@ export class CronRegistry {
         this.cronJobs.clear()
     }
 
-    private async executeTask(name: string, promiseProvider: () => Promise<void>): Promise<void> {
+    private async executeTask(name: string, promiseProvider: () => IPromise<void>): Promise<void> {
         const currentTask = this.running.get(name)
         if (currentTask !== undefined) {
             this.io.out(`${name} is already running!`)

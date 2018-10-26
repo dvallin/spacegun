@@ -1,22 +1,28 @@
-import { load } from "@/jobs"
-import { Job } from "@/jobs/model/Job"
-import { JobPlan } from "@/jobs/model/JobPlan"
-import { DeploymentPlan } from "@/jobs/model/DeploymentPlan"
+import { Observable } from "rx"
 
-import { call } from "@/dispatcher"
+import { load } from "."
+import { PipelineDescription } from "./model/PipelineDescription"
+import { JobPlan } from "./model/JobPlan"
+import { DeploymentPlan } from "./model/DeploymentPlan"
+import { JobsRepository } from "./JobsRepository"
+import { Cron } from "./model/Cron"
+import { ApplyDeployment } from "./steps/ApplyDeployment"
+import { PlanImageDeployment } from "./steps/PlanImageDeployment"
+import { PlanClusterDeployment } from "./steps/PlanClusterDeployment"
+import { StepDescription } from "./model/Step"
 
-import * as clusterModule from "@/cluster/ClusterModule"
-import { Deployment } from "@/cluster/model/Deployment"
+import { call } from "../dispatcher"
 
-import * as imageModule from "@/images/ImageModule"
-import { JobsRepository } from "@/jobs/JobsRepository"
-import { Cron } from "@/jobs/model/Cron"
-import { IO } from "@/IO"
-import { CronRegistry } from "@/crons/CronRegistry"
-import { ServerGroup } from "@/cluster/model/ServerGroup"
-import { Layers } from "@/dispatcher/model/Layers"
+import * as clusterModule from "../cluster/ClusterModule"
 
-import * as eventModule from "@/events/EventModule"
+import { IO } from "../IO"
+import { CronRegistry } from "../crons/CronRegistry"
+import { Layers } from "../dispatcher/model/Layers"
+
+import * as eventModule from "../events/EventModule"
+
+import { ServerGroup } from "../cluster/model/ServerGroup"
+import { Deployment } from "../cluster/model/Deployment"
 
 export class JobsRepositoryImpl implements JobsRepository {
 
@@ -28,21 +34,21 @@ export class JobsRepositoryImpl implements JobsRepository {
     }
 
     public constructor(
-        public readonly jobs: Map<string, Job>,
+        public readonly pipelines: Map<string, PipelineDescription>,
         private readonly cronRegistry: CronRegistry
     ) {
         if (process.env.LAYER === Layers.Server) {
-            Array.from(this.jobs.keys()).forEach(name => {
-                const job = this.jobs.get(name)
+            Array.from(this.pipelines.keys()).forEach(name => {
+                const job = this.pipelines.get(name)
                 if (job !== undefined && job.cron !== undefined) {
-                    cronRegistry.register(name, job.cron, () => this.planAndApply(name))
+                    cronRegistry.register(name, job.cron, () => this.run(name).toPromise())
                 }
             })
         }
     }
 
-    public get list(): Job[] {
-        return Array.from(this.jobs.values())
+    public get list(): PipelineDescription[] {
+        return Array.from(this.pipelines.values())
     }
 
     public async schedules(name: string): Promise<Cron | undefined> {
@@ -57,20 +63,85 @@ export class JobsRepositoryImpl implements JobsRepository {
         return this.cronRegistry.crons
     }
 
-    async planAndApply(name: string): Promise<void> {
-        const plan = await this.plan(name)
-        if (plan.deployments.length > 0) {
-            await this.apply(plan)
+    run(name: string): Observable<void> {
+        const pipeline = this.pipelines.get(name)
+        if (pipeline) {
+            return Observable.fromPromise(call(clusterModule.namespaces)(pipeline))
+                .flatMap(namespaces => {
+                    if (namespaces.length === 0) {
+                        return this.runInNamesspace(pipeline)
+                    }
+                    return Observable
+                        .of(...namespaces)
+                        .flatMap(namespace => this.runInNamesspace(pipeline, namespace))
+                })
+                .map(() => { })
         }
+        return Observable.of()
+    }
+
+    runInNamesspace(pipeline: PipelineDescription, namespace?: string): Observable<object> {
+        const steps: { [name: string]: StepDescription } = {}
+        for (const step of pipeline.steps) {
+            steps[step.name] = step
+        }
+
+        const serverGroups = Observable.just<ServerGroup>({ cluster: pipeline.cluster, namespace })
+        const deployments = serverGroups.flatMap(group => Observable
+            .fromPromise(call(clusterModule.deployments)(group))
+            .map(deployments => ({ group, deployments }))
+        )
+        return this.step(steps, pipeline.start, deployments as Observable<object>)
+    }
+
+    step(steps: { [name: string]: StepDescription }, name: string, inStream: Observable<object>): Observable<object> {
+        const step = steps[name]
+        let outStream: Observable<object>
+
+        switch (step.type) {
+            case "planClusterDeployment": {
+                const instance = new PlanClusterDeployment(step.name, step.cluster!)
+                const input = inStream as Observable<{ group: ServerGroup, deployments: Deployment[] }>
+                const output: Observable<DeploymentPlan> = input
+                    .flatMap(s => instance.plan(s.group, s.deployments))
+                    .flatMap(arr => Observable.of(...arr))
+                outStream = output as Observable<object>
+                break
+            }
+            case "planImageDeployment": {
+                const instance = new PlanImageDeployment(step.name, step.cluster!)
+                const input = inStream as Observable<{ group: ServerGroup, deployments: Deployment[] }>
+                const output: Observable<DeploymentPlan> = input
+                    .flatMap(s => instance.plan(s.group, s.deployments))
+                    .flatMap(arr => Observable.of(...arr))
+                outStream = output as Observable<object>
+                break
+            }
+            case "applyDeployment": {
+                const instance = new ApplyDeployment()
+                const input = inStream as Observable<DeploymentPlan>
+                outStream = input.flatMap(s => instance.apply(s)) as Observable<object>
+                break
+            }
+            default:
+                throw new Error("not implemented")
+        }
+        if (step.onSuccess) {
+            outStream = this.step(steps, step.onSuccess, outStream)
+        }
+        if (step.onFailure) {
+            outStream.doOnError(e => this.step(steps, step.onFailure!, Observable.just(e)))
+        }
+        return outStream
     }
 
     async plan(name: string): Promise<JobPlan> {
-        const job = this.jobs.get(name)
-        if (job === undefined) {
+        const pipeline = this.pipelines.get(name)
+        if (pipeline === undefined) {
             throw new Error(`could not find job ${name}`)
         }
-        const namespaces = await call(clusterModule.namespaces)(job)
-        const deployments = await this.planDeploymentForNamespaces(job, namespaces)
+        const namespaces = await call(clusterModule.namespaces)(pipeline)
+        const deployments = await this.planDeploymentForNamespaces(pipeline, namespaces)
         this.io.out(`planning finished. ${deployments.length} deployments are planned.`)
         return {
             name,
@@ -83,10 +154,10 @@ export class JobsRepositoryImpl implements JobsRepository {
             await this.applyDeployment(deployment)
         }
         call(eventModule.log)({
-            message: `Applied job ${plan.name}`,
+            message: `Applied pipeline ${plan.name}`,
             timestamp: Date.now(),
             topics: ["slack"],
-            description: `Applied ${plan.deployments.length} deployments while executing job ${plan.name}`,
+            description: `Applied ${plan.deployments.length} deployments while executing pipeline ${plan.name}`,
             fields: plan.deployments.map(deployment => ({
                 title: `${deployment.group.cluster} ∞ ${deployment.group.namespace} ∞ ${deployment.deployment.name}`,
                 value: `updated to ${deployment.image.url}`
@@ -94,83 +165,45 @@ export class JobsRepositoryImpl implements JobsRepository {
         })
     }
 
-    async planDeploymentForNamespaces(job: Job, namespaces: string[]): Promise<DeploymentPlan[]> {
+    async planDeploymentForNamespaces(pipeline: PipelineDescription, namespaces: string[]): Promise<DeploymentPlan[]> {
         const plannedDeployments = []
         if (namespaces.length === 0) {
-            const deployments = await this.planDeployments(job)
+            const deployments = await this.planDeployments(pipeline)
             plannedDeployments.push(...deployments)
         } else {
             for (const namespace of namespaces) {
-                const deployments = await this.planDeployments(job, namespace)
+                const deployments = await this.planDeployments(pipeline, namespace)
                 plannedDeployments.push(...deployments)
             }
         }
         return plannedDeployments
     }
 
-    async planDeployments(job: Job, namespace?: string): Promise<DeploymentPlan[]> {
-        const targetDeployments = await call(clusterModule.deployments)({ cluster: job.cluster, namespace })
-        const group: ServerGroup = { cluster: job.cluster, namespace }
-        switch (job.from.type) {
-            case "cluster": return this.planClusterDeployment(job, targetDeployments, group)
-            case "image": return this.planImageDeployment(job, targetDeployments, group)
+    async planDeployments(pipeline: PipelineDescription, namespace?: string): Promise<DeploymentPlan[]> {
+        let planStep: PlanImageDeployment | PlanClusterDeployment
+        let planStepDescription = pipeline.steps.find(s => s.type === "planImageDeployment" || s.type === "planClusterDeployment")
+        if (planStepDescription !== undefined) {
+            if (planStepDescription.type === "planImageDeployment") {
+                planStep = new PlanImageDeployment(pipeline.name, planStepDescription.tag!)
+            } else {
+                planStep = new PlanClusterDeployment(pipeline.name, planStepDescription.cluster!)
+            }
+        } else {
+            throw new Error("pipeline has no plan step")
         }
-    }
 
-    async planClusterDeployment(job: Job, targetDeployments: Deployment[], group: ServerGroup): Promise<DeploymentPlan[]> {
-        const deployments: DeploymentPlan[] = []
-        const sourceDeployments = await call(clusterModule.deployments)({
-            cluster: job.from.expression!,
-            namespace: group.namespace
-        })
-        for (const targetDeployment of targetDeployments) {
-            this.io.out(`planning cluster deployment ${targetDeployment.name} in job ${job.name}`)
-            const sourceDeployment = sourceDeployments.find(d => d.name === targetDeployment.name)
-            if (sourceDeployment === undefined) {
-                console.error(`${targetDeployment.name} in cluster ${group.cluster} has no appropriate deployment in cluster ${job.from.expression}`)
-                continue
-            }
-            if (sourceDeployment.image === undefined) {
-                console.error(`${targetDeployment.name} in cluster ${group.cluster} has no image`)
-                continue
-            }
-            if (targetDeployment.image === undefined || targetDeployment.image.url !== sourceDeployment.image.url) {
-                deployments.push({
-                    group,
-                    deployment: targetDeployment,
-                    image: sourceDeployment.image
-                })
-            }
-        }
+        const serverGroups = Observable.just<ServerGroup>({ cluster: pipeline.cluster, namespace })
+        const deployments = serverGroups.flatMap(group =>
+            Observable
+                .fromPromise(call(clusterModule.deployments)(group))
+                .map(deployments => ({ group, deployments }))
+        )
         return deployments
+            .flatMap(d => planStep.plan(d.group, d.deployments))
+            .toPromise()
     }
 
-    async planImageDeployment(job: Job, targetDeployments: Deployment[], group: ServerGroup): Promise<DeploymentPlan[]> {
-        const deployments: DeploymentPlan[] = []
-
-        for (const targetDeployment of targetDeployments) {
-            this.io.out(`planning image deployment ${targetDeployment.name} in job ${job.name}`)
-            if (targetDeployment.image === undefined) {
-                console.error(`${targetDeployment.name} in cluster ${group.cluster} has no image, so spacegun cannot determine the right image source`)
-                continue
-            }
-            const image = await call(imageModule.image)({
-                tag: job.from.expression,
-                name: targetDeployment.image.name
-            })
-            if (targetDeployment.image.url !== image.url) {
-                deployments.push({
-                    group,
-                    image,
-                    deployment: targetDeployment,
-                })
-            }
-        }
-        return deployments
-    }
-
-    async applyDeployment(plan: DeploymentPlan) {
-        await call(clusterModule.updateDeployment)(plan)
-        this.io.out(`sucessfully updated ${plan.deployment.name} with image ${plan.image.name} in cluster ${plan.group.cluster}`)
+    async applyDeployment(plan: DeploymentPlan): Promise<Deployment> {
+        return new ApplyDeployment().apply(plan)
     }
 }

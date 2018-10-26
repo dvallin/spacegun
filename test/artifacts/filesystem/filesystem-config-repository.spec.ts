@@ -56,7 +56,7 @@ function createConfig(artifacts: string): Config {
     return {
         kube: "",
         docker: "",
-        jobs: "",
+        pipelines: "",
         artifacts,
         server: { host: "", port: 2 }
     }

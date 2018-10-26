@@ -1,10 +1,10 @@
-import { JobPlan } from "@/jobs/model/JobPlan"
-import { Cron } from "@/jobs/model/Cron"
-import { Job } from "@/jobs/model/Job"
+import { JobPlan } from "./model/JobPlan"
+import { Cron } from "./model/Cron"
+import { PipelineDescription } from "./model/PipelineDescription"
 
 export interface JobsRepository {
 
-    list: Job[]
+    list: PipelineDescription[]
     crons: Cron[]
 
     plan(name: string): Promise<JobPlan>

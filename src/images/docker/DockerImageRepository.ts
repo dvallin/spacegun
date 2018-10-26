@@ -1,9 +1,9 @@
 import axios from "axios"
 
-import { ImageRepository } from "@/images/ImageRepository"
-import { Image } from "@/images/model/Image"
-import { Cache } from "@/Cache"
-import { Tag } from "@/images/model/Tag";
+import { ImageRepository } from "../../images/ImageRepository"
+import { Image } from "../../images/model/Image"
+import { Cache } from "../../Cache"
+import { Tag } from "../../images/model/Tag"
 
 interface DockerRepositoriesResponse {
     repositories: string[]

@@ -1,9 +1,10 @@
-import { RequestInput } from "@/dispatcher/model/RequestInput"
-import { Request } from "@/dispatcher/model/Request"
-import { Component } from "@/dispatcher/component"
-import { Layers } from "@/dispatcher/model/Layers"
-import { Methods } from "@/dispatcher/model/Methods"
-import { ArtifactRepository } from "@/artifacts/ArtifactRepository"
+import { RequestInput } from "../dispatcher/model/RequestInput"
+import { Request } from "../dispatcher/model/Request"
+import { Component } from "../dispatcher/component"
+import { Layers } from "../dispatcher/model/Layers"
+import { Methods } from "../dispatcher/model/Methods"
+
+import { ArtifactRepository } from "./ArtifactRepository"
 
 let repo: ArtifactRepository | undefined = undefined
 export function init(artifactRepository: ArtifactRepository) {

@@ -1,2 +1,2 @@
-import { Application } from "@/Application"
+import { Application } from "./Application"
 Application.create().run()

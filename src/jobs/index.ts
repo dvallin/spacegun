@@ -1,57 +1,76 @@
 import { safeLoad } from "js-yaml"
 import { readFileSync, readdirSync } from "fs"
 
-import { Job } from "@/jobs/model/Job"
-import { JobSource } from "@/jobs/model/JobSource"
+import { PipelineDescription } from "./model/PipelineDescription"
+import { StepDescription } from "./model/Step"
 
-export function load(path: string = "./jobs"): Map<string, Job> {
+export function load(path: string = "./jobs"): Map<string, PipelineDescription> {
     const files = readdirSync(path)
-    const jobs: Map<string, Job> = new Map()
+    const jobs: Map<string, PipelineDescription> = new Map()
     for (const file of files) {
         const name = file.split(".")[0]
         const filePath = `${path}/${file}`
         const fileContent = readFileSync(filePath, 'utf8')
-        const partial = safeLoad(fileContent) as Partial<Job>
-        jobs.set(name, validateJob(partial, name))
+        const partial = safeLoad(fileContent) as Partial<PipelineDescription>
+        jobs.set(name, validatePipeline(partial, name))
     }
     return jobs
 }
 
-export function validateJob(partial: Partial<Job>, name: string): Job {
+export function validatePipeline(partial: Partial<PipelineDescription>, name: string): PipelineDescription {
     if (partial.cluster === undefined) {
         throw new Error(`job ${name} must contain a cluster`)
     }
-    if (partial.from === undefined) {
-        throw new Error(`job ${name} must contain a source`)
+    if (partial.steps === undefined) {
+        throw new Error(`job ${name} must contain steps`)
+    }
+    if (partial.start === undefined) {
+        throw new Error(`job ${name} must contain an start step`)
     }
 
-    const from = validateJobSource(partial.from, name, partial.cluster)
-    return { name, cluster: partial.cluster, from, cron: partial.cron }
+    const steps = validateSteps(partial.steps, name, partial.cluster)
+    return { name, steps, cluster: partial.cluster, cron: partial.cron, start: partial.start }
 }
 
-export function validateJobSource(partial: Partial<JobSource>, name: string, cluster: string): JobSource {
-    let source: JobSource
-    switch (partial.type) {
-        case "cluster": {
-            if (partial.expression === undefined) {
-                throw new Error(`the source of job ${name} must have a cluster expression`)
-            }
-            if (partial.expression === cluster) {
-                throw new Error(`the source of job ${name} cannot be its target`)
-            }
-            source = { type: "cluster", expression: partial.expression }
-            break
-        }
-        case "image": {
-            if (partial.expression === undefined) {
-                source = { type: "image", expression: "^.*$" }
-            } else {
-                source = { type: "image", expression: partial.expression }
-            }
-            break
-        }
-        default:
-            throw new Error(`${partial.type} of job ${name} is not a valid source type`)
+export function validateSteps(steps: Partial<StepDescription>[], name: string, cluster: string): StepDescription[] {
+    return steps.map(step => validateStep(step, name, cluster))
+}
+
+export function validateStep(step: Partial<StepDescription>, name: string, cluster: string): StepDescription {
+    if (step.name === undefined) {
+        throw new Error(`a step of job ${name} has no name`)
     }
-    return source
+    switch (step.type) {
+        case "planClusterDeployment": {
+            if (step.cluster === undefined) {
+                throw new Error(`in step ${step.name} of job ${name} the cluster expression is missing`)
+            }
+            if (step.cluster === cluster) {
+                throw new Error(`in step ${step.name} of job ${name} the cluster expression cannot be the source`)
+            }
+            break
+        }
+        case "clusterProbe": {
+            if (step.hook === undefined) {
+                throw new Error(`in step ${step.name} of job ${name} the probe is missing`)
+            }
+            break
+        }
+        case "planImageDeployment":
+            if (step.tag === undefined) {
+                throw new Error(`in step ${step.name} of job ${name} the tag is missing`)
+            }
+            break
+        case "applyDeployment":
+        case "takeSnapshot":
+        case "rollback":
+            break
+        default:
+            throw new Error(`${step.type} of job ${name} is not a valid step type`)
+    }
+    return {
+        name: step.name!, type: step.type!,
+        onSuccess: step.onSuccess, onFailure: step.onFailure,
+        cluster: step.cluster, tag: step.tag, hook: step.hook
+    }
 }

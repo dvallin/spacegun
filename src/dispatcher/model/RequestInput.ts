@@ -1,4 +1,4 @@
-import { Params } from "@/dispatcher/model/Params"
+import { Params } from "./Params"
 
 export class RequestInput {
     constructor(

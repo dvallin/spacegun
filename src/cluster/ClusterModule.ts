@@ -1,16 +1,16 @@
-import { ClusterRepository } from "@/cluster/ClusterRepository"
-import { Pod } from "@/cluster/model/Pod"
-import { Deployment } from "@/cluster/model/Deployment"
-import { Scaler } from "@/cluster/model/Scaler"
-import { Image } from "@/cluster/model/Image"
-import { ServerGroup } from "@/cluster/model/ServerGroup"
-import { ClusterSnapshot } from "@/cluster/model/ClusterSnapshot"
+import { ClusterRepository } from "./ClusterRepository"
+import { Pod } from "./model/Pod"
+import { Deployment } from "./model/Deployment"
+import { Scaler } from "./model/Scaler"
+import { Image } from "./model/Image"
+import { ServerGroup } from "./model/ServerGroup"
+import { ClusterSnapshot } from "./model/ClusterSnapshot"
 
-import { RequestInput } from "@/dispatcher/model/RequestInput"
-import { Request } from "@/dispatcher/model/Request"
-import { Component } from "@/dispatcher/component"
-import { Layers } from "@/dispatcher/model/Layers"
-import { Methods } from "@/dispatcher/model/Methods"
+import { RequestInput } from "../dispatcher/model/RequestInput"
+import { Request } from "../dispatcher/model/Request"
+import { Component } from "../dispatcher/component"
+import { Layers } from "../dispatcher/model/Layers"
+import { Methods } from "../dispatcher/model/Methods"
 
 let repo: ClusterRepository | undefined = undefined
 export function init(clusterRepository: ClusterRepository) {
