@@ -108,7 +108,7 @@ export class JobsRepositoryImpl implements JobsRepository {
                 outStream = output as Observable<object>
                 break
             }
-            case "planClusterDeployment": {
+            case "planImageDeployment": {
                 const instance = new PlanImageDeployment(step.name, step.cluster!)
                 const input = inStream as Observable<{ group: ServerGroup, deployments: Deployment[] }>
                 const output: Observable<DeploymentPlan> = input
@@ -154,10 +154,10 @@ export class JobsRepositoryImpl implements JobsRepository {
             await this.applyDeployment(deployment)
         }
         call(eventModule.log)({
-            message: `Applied job ${plan.name}`,
+            message: `Applied pipeline ${plan.name}`,
             timestamp: Date.now(),
             topics: ["slack"],
-            description: `Applied ${plan.deployments.length} deployments while executing job ${plan.name}`,
+            description: `Applied ${plan.deployments.length} deployments while executing pipeline ${plan.name}`,
             fields: plan.deployments.map(deployment => ({
                 title: `${deployment.group.cluster} ∞ ${deployment.group.namespace} ∞ ${deployment.deployment.name}`,
                 value: `updated to ${deployment.image.url}`
