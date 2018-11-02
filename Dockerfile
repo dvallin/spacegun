@@ -9,7 +9,7 @@ RUN yarn install
 COPY src src
 COPY test test
 COPY .babelrc jest.conf.js tsconfig.json webpack.config.js ./
-RUN yarn build:server
+RUN yarn test && yarn build:server
 
 
 FROM node:alpine
