@@ -1,9 +1,9 @@
 import { Autoscaling_v1Api as api3, Apps_v1beta2Api as api2, Core_v1Api as api1, KubeConfig } from '@kubernetes/client-node'
 
-function mockPod(name: string, image: string, restartCount: number, ready: boolean = true): object {
+function mockPod(name: string, creationTimestamp: Date, image: string, restartCount: number, ready: boolean = true): object {
     const readyCondition = ready ? { type: 'Ready', status: 'True' } : { type: 'Ready', status: 'False' }
     return {
-        metadata: { name },
+        metadata: { name, creationTimestamp },
         spec: {
             containers: [{ image }]
         },
@@ -47,10 +47,27 @@ function mockScaler(name: string, currentReplicas: number, minReplicas: number, 
 }
 
 const Core_v1Api = jest.fn<api1>().mockImplementation(function () {
+    const oneDayInMS = 24 * 60 * 60 * 1000
+    const fourHoursInMS = 4 * 60 * 60 * 1000
     const mockedApi = new api1()
     mockedApi.listNamespacedPod = jest.fn().mockReturnValue({
         get: () => ({
-            items: [mockPod("pod1", "repo/image1:tag@some:digest", 0, true), mockPod("pod2", "repo/image2:tag@some:digest", 1, false)]
+            items: [
+                mockPod(
+                    "pod1",
+                    new Date(Date.now() - oneDayInMS),
+                    "repo/image1:tag@some:digest",
+                    0,
+                    true
+                ),
+                mockPod(
+                    "pod2",
+                    new Date(Date.now() - fourHoursInMS),
+                    "repo/image2:tag@some:digest",
+                    1,
+                    false
+                )
+            ]
         })
     })
     mockedApi.listNamespace = jest.fn().mockReturnValue({

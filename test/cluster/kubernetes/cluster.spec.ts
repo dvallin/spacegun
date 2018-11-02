@@ -68,8 +68,8 @@ describe("KubernetesClusterProvider", () => {
                 cluster: cluster.clusters[0]
             })
             expect(pods).toEqual([
-                { image: image1, name: "pod1", restarts: 0, ready: true },
-                { image: image2, name: "pod2", restarts: 1, ready: false },
+                { image: image1, age: "a day", name: "pod1", restarts: 0, ready: true },
+                { image: image2, age: "4 hours", name: "pod2", restarts: 1, ready: false },
             ])
         })
     })

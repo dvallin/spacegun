@@ -17,7 +17,8 @@ import {
     Apps_v1beta2Api, V1beta2DeploymentList,
     Autoscaling_v1Api, V1HorizontalPodAutoscalerList, V1beta2Deployment, V1Container, V1NamespaceList, V1PodStatus
 } from '@kubernetes/client-node'
-import { call } from "../../dispatcher";
+import { call } from "../../dispatcher"
+import * as moment from "moment"
 
 interface Api {
     setDefaultAuthentication(config: KubeConfig): void
@@ -63,6 +64,7 @@ export class KubernetesClusterRepository implements ClusterRepository {
         const namespace = this.getNamespace(group)
         const result: V1PodList = await api.listNamespacedPod(namespace).get("body")
         return result.items.map(item => {
+            const age = moment(item.metadata.creationTimestamp).toNow(true)
             const image = this.createImage(item.spec.containers)
             let restarts
             if (item.status.containerStatuses != undefined && item.status.containerStatuses.length >= 1) {
@@ -71,7 +73,7 @@ export class KubernetesClusterRepository implements ClusterRepository {
             const ready = this.isReady(item.status)
             return {
                 name: item.metadata.name,
-                image, restarts, ready
+                age, image, restarts, ready
             }
         })
     }
