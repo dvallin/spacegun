@@ -3,12 +3,12 @@ FROM node:alpine as builder
 WORKDIR /build
 
 # Create the build environment (will not change often, will be cached in docker)
-COPY package.json ./
-RUN yarn
+COPY package.json yarn.lock ./
+RUN yarn install
 
 COPY src src
 COPY test test
-COPY .babelrc jest.conf.js tsconfig.json webpack.config.js yarn.lock ./
+COPY .babelrc jest.conf.js tsconfig.json webpack.config.js ./
 RUN yarn build:server
 
 
@@ -17,7 +17,7 @@ FROM node:alpine
 WORKDIR /srv
 
 # Create the run environment (will not change often, will be cached in docker)
-COPY package.json ./
+COPY package.json yarn.lock ./
 ENV NODE_ENV production
 RUN yarn install
 
