@@ -67,7 +67,7 @@
         "webpack": "^4.17.2",
         "webpack-bundle-analyzer": "^2.13.1",
         "webpack-cli": "^3.1.0",
-        "webpack-dev-server": "^3.1.8",
+        "webpack-dev-server": "^3.1.10",
         "yarn": "^1.12.1"
     }
 }
