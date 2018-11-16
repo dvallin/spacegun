@@ -10,7 +10,7 @@ import { CronRegistry } from "../src/crons/CronRegistry"
 import { GitConfigRepository, fromConfig } from "../src/config/git/GitConfigRepository"
 
 import { Options } from "../src/options"
-import { Config } from "../src/config";
+import { Config, loadConfig } from "../src/config";
 
 describe("Application", () => {
 
@@ -28,9 +28,21 @@ describe("Application", () => {
     })
 
     it("calls the help function with error", () => {
+        while (configFileAvailable(app.options.config)) {
+            app.options.config = Math.random().toString()
+        }
         app.run()
         expect(printHelp).toHaveBeenCalledTimes(1)
     })
+
+    function configFileAvailable(filePath: string | undefined): boolean {
+        try {
+            (typeof filePath === "string") ? loadConfig(filePath) : loadConfig()
+        } catch (e) {
+            return false
+        }
+        return true
+    }
 
     it("registers the cronjobs", async () => {
         app.options.config = "test/test-config/config.yml"
