@@ -48,6 +48,7 @@ export function validateConfig(configBasePath: string, partial: Partial<Config>)
 
     if (kube === undefined) {
         kube = homedir() + "/.kube/config"
+        console.log("fallback to " + kube)
     } else {
         kube = `${configBasePath}/${kube}`
     }

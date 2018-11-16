@@ -14,12 +14,6 @@ interface DockerTagsResponse {
     tags: string[]
 }
 
-interface DockerManifestsReponse {
-    config: {
-        digest: string
-    }
-}
-
 export class DockerImageRepository implements ImageRepository {
 
     private listCache: Cache<null, string[]> = new Cache(30 * 60)
@@ -54,11 +48,11 @@ export class DockerImageRepository implements ImageRepository {
 
     public async image(name: string, tag: string = "latest"): Promise<Image> {
         return this.imageCache.calculate(`${name}:${tag}`, async () => {
-            const manifest = await axios.get<DockerManifestsReponse>(
+            const manifest = await axios.get(
                 `${this.endpoint}/v2/${name}/manifests/${tag}`,
                 { headers: { accept: "application/vnd.docker.distribution.manifest.v2+json" } }
             )
-            const digest = manifest.data.config.digest
+            const digest = manifest.headers["docker-content-digest"]
             const url = this.createUrl(name, tag, digest)
             return { name, tag, url }
         })
