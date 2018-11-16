@@ -48,15 +48,15 @@ function mockScaler(name: string, currentReplicas: number, minReplicas: number, 
 
 const Core_v1Api = jest.fn<api1>().mockImplementation(function () {
     const mockedApi = new api1()
-    mockedApi.listNamespacedPod = jest.fn().mockReturnValue({
-        get: () => ({
+    mockedApi.listNamespacedPod = jest.fn().mockResolvedValue({
+        body: {
             items: [mockPod("pod1", "repo/image1:tag@some:digest", 0, true), mockPod("pod2", "repo/image2:tag@some:digest", 1, false)]
-        })
+        }
     })
-    mockedApi.listNamespace = jest.fn().mockReturnValue({
-        get: () => ({
+    mockedApi.listNamespace = jest.fn().mockResolvedValue({
+        body: {
             items: [mockNamespace("namespace1"), mockNamespace("namespace2")]
-        })
+        }
     })
     return mockedApi
 });
@@ -65,18 +65,18 @@ export const replaceDeploymentMock = jest.fn()
 
 const Apps_v1beta2Api = jest.fn<api2>().mockImplementation(function () {
     const mockedApi = new api2()
-    mockedApi.listNamespacedDeployment = jest.fn().mockReturnValue({
-        get: () => ({
+    mockedApi.listNamespacedDeployment = jest.fn().mockResolvedValue({
+        body: {
             items: [mockDeployment("deployment1", "repo/image1:tag@some:digest"), mockDeployment("deployment2", "repo/image2:tag@some:digest")]
-        })
+        }
     })
-    mockedApi.readNamespacedDeployment = jest.fn().mockReturnValue({
-        get: () => mockDeployment("deployment1", "repo/image1:tag@some:digest")
+    mockedApi.readNamespacedDeployment = jest.fn().mockResolvedValue({
+        body: mockDeployment("deployment1", "repo/image1:tag@some:digest")
     })
     mockedApi.replaceNamespacedDeployment = jest.fn().mockImplementation((name, namespace, body) => {
         if (name !== "deployment2") {
             replaceDeploymentMock(name, namespace, body)
-            return { get: () => body }
+            return { body }
         } else {
             throw Error()
         }
@@ -86,10 +86,10 @@ const Apps_v1beta2Api = jest.fn<api2>().mockImplementation(function () {
 
 const Autoscaling_v1Api = jest.fn<api3>().mockImplementation(function () {
     const mockedApi = new api3()
-    mockedApi.listNamespacedHorizontalPodAutoscaler = jest.fn().mockReturnValue({
-        get: () => ({
+    mockedApi.listNamespacedHorizontalPodAutoscaler = jest.fn().mockResolvedValue({
+        body: {
             items: [mockScaler("pod1", 0, 1, 2), mockScaler("pod2", 1, 2, 3)]
-        })
+        }
     })
     return mockedApi
 })

@@ -1,3 +1,6 @@
+import { KubeConfig, Core_v1Api, Apps_v1beta2Api, Autoscaling_v1Api, V1beta2Deployment, V1Container, V1PodStatus } from '@kubernetes/client-node'
+const cloneDeep = require("lodash.clonedeep")
+
 import { Pod } from "../model/Pod"
 import { Image } from "../model/Image"
 import { Deployment } from "../model/Deployment"
@@ -9,15 +12,8 @@ import { Cache } from "../../Cache"
 
 import * as eventModule from "../../events/EventModule"
 
-const cloneDeep = require("lodash.clonedeep")
 
-import {
-    KubeConfig,
-    Core_v1Api, V1PodList,
-    Apps_v1beta2Api, V1beta2DeploymentList,
-    Autoscaling_v1Api, V1HorizontalPodAutoscalerList, V1beta2Deployment, V1Container, V1NamespaceList, V1PodStatus
-} from '@kubernetes/client-node'
-import { call } from "../../dispatcher";
+import { call } from "../../dispatcher"
 
 interface Api {
     setDefaultAuthentication(config: KubeConfig): void
@@ -51,8 +47,8 @@ export class KubernetesClusterRepository implements ClusterRepository {
     async namespaces(context: string): Promise<string[]> {
         return this.namespacesCache.calculate(context, async () => {
             const api = this.build(context, (server: string) => new Core_v1Api(server))
-            const result: V1NamespaceList = await api.listNamespace().get("body")
-            return result.items
+            const result = await api.listNamespace()
+            return result.body.items
                 .map(namespace => namespace.metadata.name)
                 .filter(namespace => this.isNamespaceAllowed(namespace))
         })
@@ -61,8 +57,8 @@ export class KubernetesClusterRepository implements ClusterRepository {
     async pods(group: ServerGroup): Promise<Pod[]> {
         const api = this.build(group.cluster, (server: string) => new Core_v1Api(server))
         const namespace = this.getNamespace(group)
-        const result: V1PodList = await api.listNamespacedPod(namespace).get("body")
-        return result.items.map(item => {
+        const result = await api.listNamespacedPod(namespace)
+        return result.body.items.map(item => {
             const image = this.createImage(item.spec.containers)
             let restarts
             if (item.status.containerStatuses != undefined && item.status.containerStatuses.length >= 1) {
@@ -79,8 +75,8 @@ export class KubernetesClusterRepository implements ClusterRepository {
     async deployments(cluster: ServerGroup): Promise<Deployment[]> {
         const api = this.build(cluster.cluster, (server: string) => new Apps_v1beta2Api(server))
         const namespace = this.getNamespace(cluster)
-        const result: V1beta2DeploymentList = await api.listNamespacedDeployment(namespace).get("body")
-        return result.items.map(item => {
+        const result = await api.listNamespacedDeployment(namespace)
+        return result.body.items.map(item => {
             const image = this.createImage(item.spec.template.spec.containers)
             return {
                 name: item.metadata.name,
@@ -92,8 +88,8 @@ export class KubernetesClusterRepository implements ClusterRepository {
     async scalers(group: ServerGroup): Promise<Scaler[]> {
         const api = this.build(group.cluster, (server: string) => new Autoscaling_v1Api(server))
         const namespace = this.getNamespace(group)
-        const result: V1HorizontalPodAutoscalerList = await api.listNamespacedHorizontalPodAutoscaler(namespace).get("body")
-        return result.items.map(item => ({
+        const result = await api.listNamespacedHorizontalPodAutoscaler(namespace)
+        return result.body.items.map(item => ({
             name: item.metadata.name,
             replicas: {
                 current: item.status.currentReplicas,
@@ -106,25 +102,25 @@ export class KubernetesClusterRepository implements ClusterRepository {
     async updateDeployment(group: ServerGroup, deployment: Deployment, targetImage: Image): Promise<Deployment> {
         const api = this.build(group.cluster, (server: string) => new Apps_v1beta2Api(server))
         const namespace = this.getNamespace(group)
-        const current: V1beta2Deployment = await api.readNamespacedDeployment(deployment.name, namespace).get("body")
+        const response = await api.readNamespacedDeployment(deployment.name, namespace)
 
-        const target = this.minifyDeployment(current)
+        const target = this.minifyDeployment(response.body)
         target.spec.template.spec.containers[0].image = targetImage.url
 
-        let result: V1beta2Deployment = await api.replaceNamespacedDeployment(deployment.name, namespace, target).get("body")
+        let result = await api.replaceNamespacedDeployment(deployment.name, namespace, target)
 
         return {
-            name: result.metadata.name,
-            image: this.createImage(result.spec.template.spec.containers)
+            name: result.body.metadata.name,
+            image: this.createImage(result.body.spec.template.spec.containers)
         }
     }
 
     async takeSnapshot(group: ServerGroup): Promise<ClusterSnapshot> {
         const api = this.build(group.cluster, (server: string) => new Apps_v1beta2Api(server))
         const namespace = this.getNamespace(group)
-        const result: V1beta2DeploymentList = await api.listNamespacedDeployment(namespace).get("body")
+        const result = await api.listNamespacedDeployment(namespace)
         return {
-            deployments: result.items.map(d => ({
+            deployments: result.body.items.map(d => ({
                 name: d.metadata.name,
                 data: this.minifyDeployment(d)
             }))
@@ -134,12 +130,12 @@ export class KubernetesClusterRepository implements ClusterRepository {
     async applySnapshot(group: ServerGroup, snapshot: ClusterSnapshot, ignoreImage: boolean): Promise<void> {
         const api = this.build(group.cluster, (server: string) => new Apps_v1beta2Api(server))
         const namespace = this.getNamespace(group)
-        const result: V1beta2DeploymentList = await api.listNamespacedDeployment(namespace).get("body")
+        const result = await api.listNamespacedDeployment(namespace)
 
         const applied: string[] = []
         const errored: string[] = []
         for (const deployment of snapshot.deployments) {
-            const current = result.items.find(d => d.metadata.name === deployment.name)
+            const current = result.body.items.find(d => d.metadata.name === deployment.name)
             const target = deployment.data as V1beta2Deployment
             if (ignoreImage && current !== undefined) {
                 const image = this.createImage(current.spec.template.spec.containers)
@@ -204,7 +200,7 @@ export class KubernetesClusterRepository implements ClusterRepository {
     }
 
     private getServer(config: KubeConfig): string {
-        return config.getCurrentCluster().server
+        return config.getCurrentCluster()!.server
     }
 
     private build<T extends Api>(cluster: string, apiProvider: (server: string) => T): T {

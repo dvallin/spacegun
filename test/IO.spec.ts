@@ -21,7 +21,8 @@ describe('out', () => {
 })
 
 describe('expect', () => {
-    it('should print question', () => {
+
+    it('should print question', async () => {
         // given
         jest.spyOn(process.stdout, 'write')
         const response: string = 'any'
@@ -29,61 +30,63 @@ describe('expect', () => {
         const message = 'test message for expect'
 
         // when
-        return io.expect(message, response)
-            .finally(() => {
-                // then
-                expect(process.stdout.write).toHaveBeenCalledWith(message)
-            })
+        await io.expect(message, response)
+
+        // then
+        expect(process.stdout.write).toHaveBeenCalledWith(message)
     })
 
-    it('should accept expected answer', () => {
+    it('should accept expected answer', async () => {
         // given
         const expectedAnswer: string = 'yes'
         const io: IO = new IO(new RespondOnce(expectedAnswer))
 
-        // when + then
-        return expect(
-            io.expect('', expectedAnswer)
-        ).resolves.toEqual(true)
+        // when
+        const answer = await io.expect('', expectedAnswer)
+
+        // then
+        expect(answer).toEqual(true)
     })
 
-    it('should reject unexpected answer', () => {
+    it('should reject unexpected answer', async () => {
         // given
         const expectedAnswer: string = 'yes'
         const io: IO = new IO(new RespondOnce('no'))
 
-        // when + then
-        return expect(
-            io.expect('', expectedAnswer)
-        ).resolves.toEqual(false)
+        // when
+        const answer = await io.expect('', expectedAnswer)
+
+        // then
+        expect(answer).toEqual(false)
     })
 })
 
 describe('choose', () => {
-    it('should print question', () => {
+
+    it('should print question', async () => {
         // given
         jest.spyOn(process.stdout, 'write')
         const io: IO = new IO(new RespondOnce(0))
         const message = 'test message for expect'
 
         // when
-        return io.choose(message, ['1'])
-            .finally(() => {
-                // then
-                expect(process.stdout.write).toHaveBeenCalledWith(message)
-            })
+        await io.choose(message, ['1'])
+
+        // then
+        expect(process.stdout.write).toHaveBeenCalledWith(message)
     })
 
-    it('should accept on one of the options', () => {
+    it('should accept on one of the options', async () => {
         // given
         const responseIndex: number = 1
         const options: string[] = ['1', '2', '3']
         const io: IO = new IO(new RespondOnce(responseIndex))
 
-        // when + then
-        return expect(
-            io.choose('', options)
-        ).resolves.toEqual(options[responseIndex])
+        // when
+        const answer = await io.choose('', options)
+
+        // then
+        expect(answer).toEqual(options[responseIndex])
     })
 
     const outOfRangeIndices: number[] = [-1, 3]

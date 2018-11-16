@@ -47,7 +47,7 @@ export class Application {
 
             runDispatcher(config.server.host, config.server.port)
             if (process.env.LAYER === Layers.Standalone || process.env.LAYER === Layers.Client) {
-                await commands[this.options.command](this.io)
+                await commands[this.options.command](this.options, this.io)
             }
         } catch (e) {
             printHelp(this.io, e)
@@ -67,7 +67,7 @@ export class Application {
         try {
             const config = loadConfig(this.options.config)
             this.initialize(config)
-            commands.apply(this.io)
+            commands.apply(this.options, this.io)
         } catch (e) {
             this.io.out(`could not reload config ${e.message}`)
         }
