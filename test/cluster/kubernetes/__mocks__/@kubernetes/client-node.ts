@@ -47,22 +47,20 @@ function mockScaler(name: string, currentReplicas: number, minReplicas: number, 
 }
 
 const Core_v1Api = jest.fn<api1>().mockImplementation(function () {
-    const oneDayInMS = 24 * 60 * 60 * 1000
-    const fourHoursInMS = 4 * 60 * 60 * 1000
     const mockedApi = new api1()
     mockedApi.listNamespacedPod = jest.fn().mockReturnValue({
         get: () => ({
             items: [
                 mockPod(
                     "pod1",
-                    new Date(Date.now() - oneDayInMS),
+                    new Date(2018, 11, 16),
                     "repo/image1:tag@some:digest",
                     0,
                     true
                 ),
                 mockPod(
                     "pod2",
-                    new Date(Date.now() - fourHoursInMS),
+                    new Date(2018, 11, 15),
                     "repo/image2:tag@some:digest",
                     1,
                     false

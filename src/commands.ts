@@ -85,12 +85,13 @@ async function podsCommand(io: IO, cluster: string, namespace?: string) {
         pad("age", 1)
     ))
     pods.forEach(pod => {
+        const age: string = pad(moment(pod.creationTimeMS).fromNow(true), 1)
         io.out(
             pad(pod.name, 5) +
             getURLText(pod.image) +
             getRestartText(pod.restarts) +
             getReadyText(pod.ready) +
-            pad(pod.age, 1)
+            age
         )
     })
 }

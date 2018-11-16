@@ -16,6 +16,7 @@ jest.mock("../src/dispatcher/index", () => ({
 }))
 
 import { commands } from "../src/commands"
+import * as moment from "moment"
 
 describe("commands", () => {
     beforeEach(() => {
@@ -93,14 +94,43 @@ describe("commands", () => {
 
         it("prints out the pods correctly", async () => {
             // given
+            const withAgeOf = function (amount: moment.DurationInputArg1, unit: moment.DurationInputArg2): number {
+                let now = moment()
+                now.subtract(amount, unit)
+                return now.valueOf()
+            }
             mockDispatchFn
                 .mockReturnValueOnce(["cluster1"])
                 .mockReturnValueOnce([])
                 .mockReturnValueOnce([
-                    { name: "service1", image: undefined, restarts: undefined, ready: true, age: "a day" },
-                    { name: "service2", image: { url: "url1" }, restarts: 1, ready: false, age: "2 days" },
-                    { name: "service3", image: undefined, restarts: 11, ready: true, age: "3 days" },
-                    { name: "service4", image: { url: "url2" }, restarts: 111, ready: false, age: "4 days" }
+                    {
+                        name: "service1",
+                        image: undefined,
+                        restarts: undefined,
+                        ready: true,
+                        creationTimeMS: withAgeOf(1, "day")
+                    },
+                    {
+                        name: "service2",
+                        image: { url: "url1" },
+                        restarts: 1,
+                        ready: false,
+                        creationTimeMS: withAgeOf(2, "days")
+                    },
+                    {
+                        name: "service3",
+                        image: undefined,
+                        restarts: 11,
+                        ready: true,
+                        creationTimeMS: withAgeOf(3, "days")
+                    },
+                    {
+                        name: "service4",
+                        image: { url: "url2" },
+                        restarts: 111,
+                        ready: false,
+                        creationTimeMS: withAgeOf(4, "days")
+                    }
                 ])
             let output: string[] = []
             const out = jest.fn((text: string) => {

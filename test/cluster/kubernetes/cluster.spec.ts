@@ -15,6 +15,7 @@ jest.mock("../../../src/dispatcher/index", () => ({
     path: () => ""
 }))
 
+import * as moment from "moment"
 import { KubernetesClusterRepository } from "../../../src/cluster/kubernetes/KubernetesClusterRepository"
 import { Pod } from "../../../src/cluster/model/Pod"
 import { Deployment } from "../../../src/cluster/model/Deployment"
@@ -54,7 +55,7 @@ describe("KubernetesClusterProvider", () => {
             expect(namespaces).toEqual(["namespace1", "namespace2"])
         })
 
-        it("returns only namespaces thate are allowed namespaces", async () => {
+        it("returns only namespaces that are allowed namespaces", async () => {
             const cluster2 = KubernetesClusterRepository.fromConfig("./test/test-config/kube/config", ["namespace2"])
             const namespaces: string[] = await cluster2.namespaces("dev")
             expect(namespaces).toEqual(["namespace2"])
@@ -68,8 +69,20 @@ describe("KubernetesClusterProvider", () => {
                 cluster: cluster.clusters[0]
             })
             expect(pods).toEqual([
-                { image: image1, age: "a day", name: "pod1", restarts: 0, ready: true },
-                { image: image2, age: "4 hours", name: "pod2", restarts: 1, ready: false },
+                {
+                    image: image1,
+                    creationTimeMS: moment({ year: 2018, month: 11, day: 16 }).valueOf(),
+                    name: "pod1",
+                    restarts: 0,
+                    ready: true
+                },
+                {
+                    image: image2,
+                    creationTimeMS: moment({ year: 2018, month: 11, day: 15 }).valueOf(),
+                    name: "pod2",
+                    restarts: 1,
+                    ready: false
+                },
             ])
         })
     })
