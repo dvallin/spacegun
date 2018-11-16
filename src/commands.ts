@@ -13,6 +13,7 @@ import * as configModule from "./artifacts/ArtifactModule"
 
 import { Deployment } from "./cluster/model/Deployment"
 import { DeploymentSnapshot } from "./cluster/model/DeploymentSnapshot"
+import { Image } from "./cluster/model/Image"
 
 export type Command = "namespaces" | "pods" | "images" | "pipelines" | "pipelineSchedules"
     | "run" | "deployments" | "deploy" | "scalers" | "help" | "snapshot" | "apply"
@@ -46,28 +47,51 @@ async function foreachNamespace(io: IO, cluster: string, command: (io: IO, clust
     }
 }
 
+function getRestartText(restarts: number | undefined): string {
+    let restartText: string
+    if (restarts === undefined) {
+        restartText = chalk.bold.cyan(pad("na!", 1))
+    } else if (restarts > 30) {
+        restartText = chalk.bold.cyan(pad(restarts.toString() + "!", 1))
+    } else if (restarts > 10) {
+        restartText = chalk.bold.magenta(pad(restarts.toString(), 1))
+    } else {
+        restartText = pad(restarts.toString(), 1)
+    }
+    return restartText;
+}
+
+function getURLText(image: Image | undefined): string {
+    let urlText: string
+    if (image === undefined) {
+        urlText = chalk.bold.magenta(pad("missing", 5))
+    } else {
+        urlText = pad(image.url, 5)
+    }
+    return urlText;
+}
+
+function getReadyText(ready: boolean): string {
+    return ready ? chalk.bold.magenta(pad("up", 1)) : chalk.bold.cyan(pad("down!", 1))
+}
+
 async function podsCommand(io: IO, cluster: string, namespace?: string) {
     const pods = await load(call(clusterModule.pods)({ cluster, namespace }))
-    io.out(chalk.bold(pad("pod name", 5) + pad("image url", 5) + pad("starts", 1) + pad("status", 1)))
+    io.out(chalk.bold(
+        pad("pod name", 5) +
+        pad("image url", 5) +
+        pad("starts", 1) +
+        pad("status", 1) +
+        pad("age", 1)
+    ))
     pods.forEach(pod => {
-        let restartText
-        if (pod.restarts === undefined) {
-            restartText = chalk.bold.cyan(pad("na!", 1))
-        } else if (pod.restarts > 30) {
-            restartText = chalk.bold.cyan(pad(pod.restarts.toString() + "!", 1))
-        } else if (pod.restarts > 10) {
-            restartText = chalk.bold.magenta(pad(pod.restarts.toString(), 1))
-        } else {
-            restartText = pad(pod.restarts.toString(), 1)
-        }
-        const statusText = pod.ready ? chalk.bold.magenta(pad("up", 1)) : chalk.bold.cyan(pad("down!", 1))
-        let urlText
-        if (pod.image === undefined) {
-            urlText = chalk.bold.magenta(pad("missing", 5))
-        } else {
-            urlText = pad(pod.image.url, 5)
-        }
-        io.out(pad(pod.name, 5) + urlText + restartText + statusText)
+        io.out(
+            pad(pod.name, 5) +
+            getURLText(pod.image) +
+            getRestartText(pod.restarts) +
+            getReadyText(pod.ready) +
+            pad(pod.age, 1)
+        )
     })
 }
 
