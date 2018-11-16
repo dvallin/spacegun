@@ -1,10 +1,10 @@
 import { AxiosResponse } from "axios"
 
-function success<T>(data: T): AxiosResponse<T> {
+function success<T>(data: T, headers: object = {}): AxiosResponse<T> {
     return {
         config: {},
         data,
-        headers: {},
+        headers,
         request: undefined,
         status: 200,
         statusText: "Ok",
@@ -25,6 +25,12 @@ function failure(): AxiosResponse<undefined> {
 export function axiosSuccess(...data: object[]): jest.Mock<{}> {
     let mock = jest.fn()
     data.forEach(d => mock.mockReturnValue(Promise.resolve(success(d))))
+    return mock
+}
+
+export function axiosSuccessHeader(headers: object): jest.Mock<{}> {
+    let mock = jest.fn()
+    mock.mockReturnValue(Promise.resolve(success({}, headers)))
     return mock
 }
 

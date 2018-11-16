@@ -1,0 +1,9 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`view index reports errors 1`] = `
+Array [
+  "Clusters could not be loaded: error1",
+  "Jobs could not be loaded: error2",
+  "Images could not be loaded: error3",
+]
+`;

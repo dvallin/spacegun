@@ -4,7 +4,7 @@ import { Resource } from "../dispatcher/resource"
 import { clusters, namespaces, pods } from "../cluster/ClusterModule"
 import { pipelines, schedules } from "../jobs/JobsModule"
 import { Config } from "../config"
-import { list, tags } from "../images/ImageModule"
+import { list, tags, image } from "../images/ImageModule"
 
 let config: Config | undefined
 export function init(c: Config) {
@@ -51,8 +51,7 @@ export class Module {
                 jobsWithSchedules.push({
                     pipeline,
                     lastRun,
-                    nextRun,
-                    config
+                    nextRun
                 })
             }
         } catch (e) {
@@ -98,20 +97,24 @@ export class Module {
             namespaces: namespacesWithPods
         }
     }
-    @Resource({ path: "/images/:image" })
-    public async images(params: { image: string }): Promise<object> {
-        const image = params.image
-        const knownTags = await call(tags)({ name: image })
-        const versionsWithDates = knownTags.map(tag => ({
-            url: "tbd...",
-            name: image,
-            tag: tag,
-        }))
+
+    @Resource({ path: "/images/:image/:tag?" })
+    public async images(params: { image: string, tag?: string }): Promise<object> {
+        const name = params.image
+        const tag = params.tag || "latest"
+        const knownTags = await call(tags)({ name })
+        const knownImages = knownTags.map(t => ({ name, tag: t }))
+
+        let focusedImage
+        if (knownTags.some(t => tag === t)) {
+            focusedImage = await call(image)({ name, tag })
+        }
 
         return {
             title: "Spacegun ∞ Images ∞ " + image,
-            name: image,
-            versions: versionsWithDates
+            name,
+            images: knownImages,
+            focusedImage
         }
     }
 }
