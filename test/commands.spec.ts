@@ -78,9 +78,9 @@ describe("commands", () => {
             mockDispatchFn
                 .mockReturnValueOnce(["cluster1", "cluster2"])
                 .mockReturnValueOnce([])
-                .mockReturnValueOnce([{ name: "service1", age: "2 days" }])
+                .mockReturnValueOnce([{ name: "service1", creationTimeMS: 1542379151000 }])
                 .mockReturnValueOnce(["service1"])
-                .mockReturnValueOnce([{ name: "service1", age: "2 days" }])
+                .mockReturnValueOnce([{ name: "service1", creationTimeMS: 1542379151000 }])
 
             // when
             await commands.pods(createIO())
