@@ -90,6 +90,26 @@ describe("commands", () => {
             expect(mockDispatched).toBeCalledWith("cluster", "namespaces")
             expect(mockDispatched).toBeCalledWith("cluster", "pods")
         })
+
+        it("prints out the pods correctly", async () => {
+            // given
+            mockDispatchFn
+                .mockReturnValueOnce(["cluster1"])
+                .mockReturnValueOnce([])
+                .mockReturnValueOnce([
+                    { name: "service1", image: undefined, restarts: undefined, ready: true, age: "a day" },
+                    { name: "service2", image: { url: "url1" }, restarts: 1, ready: false, age: "2 days" },
+                    { name: "service3", image: undefined, restarts: 11, ready: true, age: "3 days" },
+                    { name: "service4", image: { url: "url2" }, restarts: 111, ready: false, age: "4 days" }
+                ])
+            const io = createIO()
+
+            // when
+            await commands.pods(io)
+
+            // then
+            expect(io).toMatchSnapshot()
+        })
     })
 
     describe(commands.scalers.name, () => {
