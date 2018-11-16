@@ -395,16 +395,10 @@ describe("commands", () => {
     })
 })
 
-function createIO(mocks?: { out?: jest.Mock<{}>, choose?: jest.Mock<{}>, expect?: jest.Mock<{}> }): IO {
+function createIO(mocks: Partial<{ choose: jest.Mock<{}>, expect: jest.Mock<{}>, out: jest.Mock<{}> }> = {}): IO {
     const io = new IO()
-    if (mocks == undefined) {
-        io.out = jest.fn()
-        io.expect = jest.fn()
-        io.choose = jest.fn()
-    } else {
-        io.out = mocks.out || jest.fn()
-        io.expect = mocks.expect || jest.fn()
-        io.choose = mocks.choose || jest.fn()
-    }
+    io.out = mocks.out || jest.fn()
+    io.expect = mocks.expect || jest.fn()
+    io.choose = mocks.choose || jest.fn()
     return io
 }
