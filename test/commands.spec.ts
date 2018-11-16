@@ -16,6 +16,9 @@ jest.mock("../src/dispatcher/index", () => ({
 }))
 
 import { commands } from "../src/commands"
+import { Options } from "../src/options"
+
+const emptyOptions: Options = { command: "help" }
 
 describe("commands", () => {
     beforeEach(() => {
@@ -31,7 +34,7 @@ describe("commands", () => {
             mockDispatchFn.mockReturnValue([image])
 
             // when
-            await commands.images(createIO())
+            await commands.images(emptyOptions, createIO())
 
             // then
             expect(mockDispatched).toHaveBeenCalledTimes(1)
@@ -46,7 +49,7 @@ describe("commands", () => {
             mockDispatchFn.mockReturnValue(["namespace1", "namespace2"])
 
             // when
-            await commands.namespaces(createIO())
+            await commands.namespaces(emptyOptions, createIO())
 
             // then
             expect(mockDispatched).toHaveBeenCalledTimes(3)
@@ -62,7 +65,7 @@ describe("commands", () => {
             mockDispatchFn.mockReturnValue([pipeline])
 
             // when
-            await commands.pipelines(createIO())
+            await commands.pipelines(emptyOptions, createIO())
 
             // then
             expect(mockDispatched).toHaveBeenCalledTimes(1)
@@ -82,7 +85,7 @@ describe("commands", () => {
                 .mockReturnValueOnce([{ name: "service1" }])
 
             // when
-            await commands.pods(createIO())
+            await commands.pods(emptyOptions, createIO())
 
             // then
             expect(mockDispatched).toHaveBeenCalledTimes(5)
@@ -104,7 +107,7 @@ describe("commands", () => {
                 .mockReturnValueOnce([{ name: "scaler1", replicas: { current: 1, minimum: 1, maximum: 1 } }])
 
             // when
-            await commands.scalers(createIO())
+            await commands.scalers(emptyOptions, createIO())
 
             // then
             expect(mockDispatched).toHaveBeenCalledTimes(5)
@@ -126,7 +129,7 @@ describe("commands", () => {
                 .mockReturnValueOnce([{ name: "deployment2" }])
 
             // when
-            await commands.deployments(createIO())
+            await commands.deployments(emptyOptions, createIO())
 
             // then
             expect(mockDispatched).toHaveBeenCalledTimes(5)
@@ -153,7 +156,7 @@ describe("commands", () => {
             const io = createIO(choose, expectFn)
 
             // when
-            await commands.run(io)
+            await commands.run(emptyOptions, io)
 
             // then
             expect(mockDispatched).toHaveBeenCalledTimes(3)
@@ -177,7 +180,7 @@ describe("commands", () => {
             const io = createIO(choose, expectFn)
 
             // when
-            await commands.run(io)
+            await commands.run(emptyOptions, io)
 
             // then
             expect(mockDispatched).toHaveBeenCalledTimes(2)
@@ -207,7 +210,7 @@ describe("commands", () => {
             const io = createIO(choose, expectFn)
 
             // when
-            await commands.deploy(io)
+            await commands.deploy(emptyOptions, io)
 
             // then
             expect(choose).toHaveBeenCalledTimes(3)
@@ -239,7 +242,7 @@ describe("commands", () => {
             const io = createIO(choose, expectFn)
 
             // when
-            await commands.deploy(io)
+            await commands.deploy(emptyOptions, io)
 
             // then
             expect(choose).toHaveBeenCalledTimes(4)
@@ -263,7 +266,7 @@ describe("commands", () => {
             const io = createIO(choose, expectFn)
 
             // when
-            await commands.deploy(io)
+            await commands.deploy(emptyOptions, io)
 
             // then
             expect(mockDispatched).toHaveBeenCalledTimes(5)
@@ -286,7 +289,7 @@ describe("commands", () => {
             const io = createIO(choose, expectFn)
 
             // when
-            await commands.pipelineSchedules(io)
+            await commands.pipelineSchedules(emptyOptions, io)
 
             // then
             expect(mockDispatched).toHaveBeenCalledTimes(2)
@@ -304,7 +307,7 @@ describe("commands", () => {
                 .mockReturnValueOnce("someEndpoint")
 
             // when
-            await commands.help(createIO())
+            await commands.help(emptyOptions, createIO())
 
             // then
             expect(mockDispatched).toHaveBeenCalledTimes(2)
@@ -328,7 +331,7 @@ describe("commands", () => {
                 })
 
             // when
-            await commands.snapshot(createIO())
+            await commands.snapshot(emptyOptions, createIO())
 
             // then
             expect(mockDispatched).toHaveBeenCalledTimes(5)
@@ -356,7 +359,7 @@ describe("commands", () => {
                 .mockReturnValueOnce({})
 
             // when
-            await commands.apply(createIO())
+            await commands.apply(emptyOptions, createIO())
 
             // then
             expect(mockDispatched).toHaveBeenCalledTimes(6)
