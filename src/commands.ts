@@ -107,7 +107,7 @@ async function podsCommand(io: IO, cluster: string, namespace?: string) {
     })
 }
 
-async function namespacesCommand({}: Options, io: IO, cluster: string) {
+async function namespacesCommand({ }: Options, io: IO, cluster: string) {
     io.out(chalk.underline.bold(pad(`${cluster}`)))
     const namespaces = await load(call(clusterModule.namespaces)({ cluster }))
     namespaces.forEach(namespace =>
@@ -456,15 +456,15 @@ const commands: { [k in Command]: (options: Options, io: IO) => Promise<void> } 
     "snapshot": async (options: Options, io: IO) => foreachCluster(options, io, (options, io, cluster) => foreachNamespace(options, io, cluster, snapshotCommand)),
     "apply": async (options: Options, io: IO) => foreachCluster(options, io, (options, io, cluster) => foreachNamespace(options, io, cluster, applySnapshotCommand)),
     "pods": async (options: Options, io: IO) => foreachCluster(options, io, (options, io, cluster) => foreachNamespace(options, io, cluster, podsCommand)),
-    "images": async ({}: Options, io: IO) => imagesCommand(io),
-    "pipelines": async ({}: Options, io: IO) => pipelinesCommand(io),
+    "images": async ({ }: Options, io: IO) => imagesCommand(io),
+    "pipelines": async ({ }: Options, io: IO) => pipelinesCommand(io),
     "pipelineSchedules": async (options: Options, io: IO) => pipelineSchedulesCommand(options, io),
     "run": async (options: Options, io: IO) => runCommand(options, io),
     "deployments": async (options: Options, io: IO) => foreachCluster(options, io, (options, io, cluster) => foreachNamespace(options, io, cluster, deployementsCommand)),
     "scalers": async (options: Options, io: IO) => foreachCluster(options, io, (options, io, cluster) => foreachNamespace(options, io, cluster, scalersCommand)),
     "deploy": async (options: Options, io: IO) => deployCommand(options, io),
-    "help": async ({}: Options, io: IO) => printHelp(io),
-    "version": async ({}: Options, io: IO) => printVersion(io),
+    "help": async ({ }: Options, io: IO) => printHelp(io),
+    "version": async ({ }: Options, io: IO) => printVersion(io),
 }
 
 export { commands }
