@@ -14,7 +14,7 @@ body
                 tr
                     th="Name"
                     th="State"
-                    th="Image Tag"
+                    th="Current Image Url"
                     th="Restarts"
             tbody
                 each pod in n.pods
@@ -24,5 +24,5 @@ body
                             td="Up"
                         else
                             td="Down"
-                        td=pod.image.tag
+                        td=pod.image.url
                         td=pod.restarts

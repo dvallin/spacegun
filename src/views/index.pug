@@ -43,7 +43,7 @@ body
         h2="Images"
         each image in images
             div(class="u-pull-left")
-                a(href=`images/${image}`, class="card")=image
+                a(href=`images/${encodeURIComponent(image)}`, class="card")=image
         div(class="u-cf")
 
     h2="Configuration"

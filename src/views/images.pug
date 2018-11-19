@@ -4,19 +4,21 @@ html(lang="en")
 body
     h1
         a(href="/")="Home"
-        span=" ∞ Images"
+        span=` ∞ Images ∞ ${name}`
     
+    if focusedImage
+        h3= `${focusedImage.name} Ξ ${focusedImage.tag}`
+        p=focusedImage.url
 
-    h3=name
     table(class="u-full-width")
         thead
             tr
                 th="Name"
                 th="Tag"
-                th="Url"
         tbody
-            each version in versions
-                tr
-                    td=version.name
-                    td=version.tag
-                    td=version.url
+            each image in images
+                if !focusedImage || focusedImage.tag !== image.tag
+                    tr
+                        td=image.name
+                        td
+                            a(href=`/images/${encodeURIComponent(image.name)}/${encodeURIComponent(image.tag)}`)=image.tag

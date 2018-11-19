@@ -1,7 +1,7 @@
 import { DockerImageRepository } from "../../../src/images/docker/DockerImageRepository"
 import axios from "axios"
 
-import { axiosSuccess } from "../../test-utils/axios"
+import { axiosSuccess, axiosSuccessHeader } from "../../test-utils/axios"
 
 describe("DockerImageProvider", () => {
 
@@ -56,7 +56,7 @@ describe("DockerImageProvider", () => {
     describe("image", () => {
 
         beforeEach(() => {
-            axios.get = axiosSuccess({ config: { digest: "abcd" } })
+            axios.get = axiosSuccessHeader({ "docker-content-digest": "abcd" })
         })
 
         it("retrieves images", () => {

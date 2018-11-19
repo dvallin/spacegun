@@ -13,10 +13,12 @@ import * as configModule from "./artifacts/ArtifactModule"
 
 import { Deployment } from "./cluster/model/Deployment"
 import { DeploymentSnapshot } from "./cluster/model/DeploymentSnapshot"
+import { Options } from "./options"
+import { PipelineDescription } from "./jobs/model/PipelineDescription"
 import { Image } from "./cluster/model/Image"
 
 export type Command = "namespaces" | "pods" | "images" | "pipelines" | "pipelineSchedules"
-    | "run" | "deployments" | "deploy" | "scalers" | "help" | "snapshot" | "apply"
+    | "run" | "deployments" | "deploy" | "scalers" | "help" | "version" | "snapshot" | "apply"
 
 async function load<T>(p: Promise<T>): Promise<T> {
     const progress = ora()
@@ -26,23 +28,32 @@ async function load<T>(p: Promise<T>): Promise<T> {
     return result
 }
 
-async function foreachCluster(io: IO, command: (io: IO, cluster: string) => void) {
-    const clusters = await load(call(clusterModule.clusters)())
-    for (const cluster of clusters) {
-        io.out("")
-        await command(io, cluster)
+async function foreachCluster(options: Options, io: IO, command: (options: Options, io: IO, cluster: string) => void) {
+    if (options.cluster) {
+        await command(options, io, options.cluster)
+    } else {
+        const clusters = await load(call(clusterModule.clusters)())
+        for (const cluster of clusters) {
+            io.out("")
+            await command(options, io, cluster)
+        }
     }
 }
 
-async function foreachNamespace(io: IO, cluster: string, command: (io: IO, cluster: string, namespace?: string) => void) {
-    const namespaces = await load(call(clusterModule.namespaces)({ cluster }))
-    if (namespaces.length === 0) {
-        await command(io, cluster)
+async function foreachNamespace(options: Options, io: IO, cluster: string, command: (io: IO, cluster: string, namespace?: string) => void) {
+    if (options.namespace) {
+        io.out(chalk.underline.bold(pad(`${cluster} :: ${options.namespace}`)))
+        await command(io, cluster, options.namespace)
     } else {
-        for (const namespace of namespaces) {
-            io.out(chalk.bold(pad(``)))
-            io.out(chalk.underline.bold(pad(`${cluster} :: ${namespace}`)))
-            await command(io, cluster, namespace)
+        const namespaces = await load(call(clusterModule.namespaces)({ cluster }))
+        if (namespaces.length === 0) {
+            await command(io, cluster)
+        } else {
+            for (const namespace of namespaces) {
+                io.out(chalk.bold(pad(``)))
+                io.out(chalk.underline.bold(pad(`${cluster} :: ${namespace}`)))
+                await command(io, cluster, namespace)
+            }
         }
     }
 }
@@ -96,7 +107,7 @@ async function podsCommand(io: IO, cluster: string, namespace?: string) {
     })
 }
 
-async function namespacesCommand(io: IO, cluster: string) {
+async function namespacesCommand({}: Options, io: IO, cluster: string) {
     io.out(chalk.underline.bold(pad(`${cluster}`)))
     const namespaces = await load(call(clusterModule.namespaces)({ cluster }))
     namespaces.forEach(namespace =>
@@ -127,13 +138,28 @@ async function pipelinesCommand(io: IO) {
     })
 }
 
-async function pipelineSchedulesCommand(io: IO) {
-    io.out("Choose the target pipeline")
+async function choosePipeline(options: Options, io: IO): Promise<PipelineDescription> {
     const pipelines = await call(jobsModule.pipelines)()
-    pipelines.forEach((pipeline, index) => {
-        io.out(chalk.bold.cyan(index.toString()) + ": " + pad(pipeline.name, 5))
-    })
-    const pipeline = await io.choose('> ', pipelines)
+
+    if (options.pipeline) {
+        const pipeline = pipelines.find(p => p.name === options.pipeline)
+        if (!pipeline) {
+            throw new Error(`pipeline ${options.pipeline} does not exist`)
+        }
+        return pipeline
+    } else {
+        io.out("Choose the target pipeline")
+        pipelines.forEach((pipeline, index) => {
+            io.out(chalk.bold.cyan(index.toString()) + ": " + pad(pipeline.name, 5))
+        })
+        return io.choose('> ', pipelines)
+    }
+}
+
+async function pipelineSchedulesCommand(options: Options, io: IO) {
+
+    const pipeline = await choosePipeline(options, io)
+
     const schedules = await call(jobsModule.schedules)(pipeline)
     logPipelineHeader(io)
     io.out(
@@ -158,13 +184,22 @@ async function pipelineSchedulesCommand(io: IO) {
     }
 }
 
-async function runCommand(io: IO) {
-    io.out("Choose the target pipeline")
-    const pipelines = await call(jobsModule.pipelines)()
-    pipelines.forEach((pipeline, index) => {
-        io.out(chalk.bold.cyan(index.toString()) + ": " + pad(pipeline.name, 5))
-    })
-    const pipeline = await io.choose('> ', pipelines)
+async function applyWithConsent(options: Options, io: IO, f: () => Promise<void>) {
+    if (options.yes) {
+        return f()
+    } else {
+        io.out("Answer `yes` to apply.")
+        const userAgrees = await io.expect('> ', "yes")
+        if (userAgrees) {
+            return f()
+        }
+    }
+}
+
+async function runCommand(options: Options, io: IO) {
+
+    const pipeline = await choosePipeline(options, io)
+
     const plan = await call(jobsModule.plan)(pipeline)
 
     io.out(chalk.bold(`planned deployment ${plan.name}`))
@@ -180,11 +215,7 @@ async function runCommand(io: IO) {
             + chalk.bold(pad(`${deploymentPlan.image.url}`, 5)))
     })
 
-    io.out("Answer `yes` to apply.")
-    const userAgrees = await io.expect('> ', "yes")
-    if (userAgrees) {
-        await call(jobsModule.run)(plan)
-    }
+    await applyWithConsent(options, io, () => call(jobsModule.run)(plan))
 }
 
 function logDeploymentHeader(io: IO) {
@@ -246,40 +277,88 @@ async function deployementsCommand(io: IO, cluster: string, namespace?: string) 
     })
 }
 
-async function deployCommand(io: IO) {
-    io.out("Choose the target cluster")
+async function chooseCluster(options: Options, io: IO): Promise<string> {
     const clusters = await load(call(clusterModule.clusters)())
-    clusters.forEach((cluster, index) => {
-        io.out(chalk.bold.cyan(index.toString()) + ": " + pad(cluster, 5))
-    })
-    const cluster = await io.choose('> ', clusters)
 
-    const namespaces = await call(clusterModule.namespaces)({ cluster })
-    let namespace = undefined
-    if (namespaces.length > 0) {
-        io.out("Choose the target namespace")
-        namespaces.forEach((namespace, index) => {
-            io.out(chalk.bold.cyan(index.toString()) + ": " + pad(namespace, 5))
+    if (options.cluster) {
+        const cluster = clusters.find(n => n === options.cluster)
+        if (!cluster) {
+            throw new Error(`namespace ${options.namespace} does not exist`)
+        }
+        return cluster
+    } else {
+        io.out("Choose the target cluster")
+        clusters.forEach((cluster, index) => {
+            io.out(chalk.bold.cyan(index.toString()) + ": " + pad(cluster, 5))
         })
-        namespace = await io.choose('> ', namespaces)
+        return await io.choose('> ', clusters)
     }
+}
 
+async function chooseNamespace(options: Options, io: IO, cluster: string): Promise<string | undefined> {
+    const namespaces = await call(clusterModule.namespaces)({ cluster })
+
+    if (options.namespace) {
+        const namespace = namespaces.find(n => n === options.namespace)
+        if (!namespace) {
+            throw new Error(`namespace ${options.namespace} does not exist`)
+        }
+        return namespace
+    } else {
+        if (namespaces.length > 0) {
+            io.out("Choose the target namespace")
+            namespaces.forEach((namespace, index) => {
+                io.out(chalk.bold.cyan(index.toString()) + ": " + pad(namespace, 5))
+            })
+            return await io.choose('> ', namespaces)
+        }
+        return Promise.resolve(undefined)
+    }
+}
+
+async function chooseDeployment(options: Options, io: IO, cluster: string, namespace: string | undefined): Promise<Deployment> {
     const deployments = await load(call(clusterModule.deployments)({ cluster, namespace }))
 
-    io.out("Choose the target deployment")
-    deployments.forEach((deployment, index) => {
-        io.out(chalk.bold.cyan(index.toString()) + ": " + pad(deployment.name, 5))
-    })
-    const deployment = await io.choose('> ', deployments)
+    if (options.deployment) {
+        const deployment = deployments.find(d => d.name === options.deployment)
+        if (!deployment) {
+            throw new Error(`deployment ${options.deployment} does not exist`)
+        }
+        return deployment
+    } else {
+        io.out("Choose the target deployment")
+        deployments.forEach((deployment, index) => {
+            io.out(chalk.bold.cyan(index.toString()) + ": " + pad(deployment.name, 5))
+        })
+        return await io.choose('> ', deployments)
+    }
+}
 
-    const tags = await load(call(imageModule.tags)(deployment.image!))
-    tags.sort()
+async function chooseTag(options: Options, io: IO, image: Image): Promise<string> {
+    const tags = await load(call(imageModule.tags)(image))
 
-    io.out("Choose the target image")
-    tags.forEach((tag, index) => {
-        io.out(chalk.bold.cyan(index.toString()) + ": " + pad(tag, 5))
-    })
-    const tag = await io.choose('> ', tags)
+    if (options.tag) {
+        const tag = tags.find(t => t === options.tag)
+        if (!tag) {
+            throw new Error(`tag ${options.tag} does not exist`)
+        }
+        return tag
+    } else {
+        tags.sort()
+
+        io.out("Choose the target image")
+        tags.forEach((tag, index) => {
+            io.out(chalk.bold.cyan(index.toString()) + ": " + pad(tag, 5))
+        })
+        return await io.choose('> ', tags)
+    }
+}
+
+async function deployCommand(options: Options, io: IO) {
+    const cluster = await chooseCluster(options, io)
+    const namespace = await chooseNamespace(options, io, cluster)
+    const deployment = await chooseDeployment(options, io, cluster, namespace)
+    const tag = await chooseTag(options, io, deployment.image!)
 
     const image = await load(call(imageModule.image)({
         name: deployment.image!.name,
@@ -287,9 +366,7 @@ async function deployCommand(io: IO) {
     }))
 
     io.out("deploy " + chalk.cyan(image.url) + " into " + chalk.cyan(cluster + "::" + deployment.name))
-    io.out("Answer `yes` to apply.")
-    const userAgrees = await io.expect('> ', "yes")
-    if (userAgrees) {
+    await applyWithConsent(options, io, async () => {
         const updated = await load(call(clusterModule.updateDeployment)({
             deployment,
             image,
@@ -297,7 +374,7 @@ async function deployCommand(io: IO) {
         }))
         logDeploymentHeader(io)
         logDeployment(io, updated)
-    }
+    })
 }
 
 async function scalersCommand(io: IO, cluster: string, namespace?: string) {
@@ -370,19 +447,24 @@ export async function printHelp(io: IO, error?: Error) {
     io.out(pad("config, c", 2) + chalk.bold(pad("path to the config.yml. Default: `config.yml`", 10)))
 }
 
-const commands: { [k in Command]: (io: IO) => Promise<void> } = {
-    "namespaces": async (io: IO) => foreachCluster(io, namespacesCommand),
-    "snapshot": async (io: IO) => foreachCluster(io, (io, cluster) => foreachNamespace(io, cluster, snapshotCommand)),
-    "apply": async (io: IO) => foreachCluster(io, (io, cluster) => foreachNamespace(io, cluster, applySnapshotCommand)),
-    "pods": async (io: IO) => foreachCluster(io, (io, cluster) => foreachNamespace(io, cluster, podsCommand)),
-    "images": async (io: IO) => imagesCommand(io),
-    "pipelines": async (io: IO) => pipelinesCommand(io),
-    "pipelineSchedules": async (io: IO) => pipelineSchedulesCommand(io),
-    "run": async (io: IO) => runCommand(io),
-    "deployments": async (io: IO) => foreachCluster(io, (io, cluster) => foreachNamespace(io, cluster, deployementsCommand)),
-    "scalers": async (io: IO) => foreachCluster(io, (io, cluster) => foreachNamespace(io, cluster, scalersCommand)),
-    "deploy": async (io: IO) => deployCommand(io),
-    "help": async (io: IO) => printHelp(io)
+export async function printVersion(io: IO) {
+    io.out(process.env.VERSION || "unkown version")
+}
+
+const commands: { [k in Command]: (options: Options, io: IO) => Promise<void> } = {
+    "namespaces": async (options: Options, io: IO) => foreachCluster(options, io, namespacesCommand),
+    "snapshot": async (options: Options, io: IO) => foreachCluster(options, io, (options, io, cluster) => foreachNamespace(options, io, cluster, snapshotCommand)),
+    "apply": async (options: Options, io: IO) => foreachCluster(options, io, (options, io, cluster) => foreachNamespace(options, io, cluster, applySnapshotCommand)),
+    "pods": async (options: Options, io: IO) => foreachCluster(options, io, (options, io, cluster) => foreachNamespace(options, io, cluster, podsCommand)),
+    "images": async ({}: Options, io: IO) => imagesCommand(io),
+    "pipelines": async ({}: Options, io: IO) => pipelinesCommand(io),
+    "pipelineSchedules": async (options: Options, io: IO) => pipelineSchedulesCommand(options, io),
+    "run": async (options: Options, io: IO) => runCommand(options, io),
+    "deployments": async (options: Options, io: IO) => foreachCluster(options, io, (options, io, cluster) => foreachNamespace(options, io, cluster, deployementsCommand)),
+    "scalers": async (options: Options, io: IO) => foreachCluster(options, io, (options, io, cluster) => foreachNamespace(options, io, cluster, scalersCommand)),
+    "deploy": async (options: Options, io: IO) => deployCommand(options, io),
+    "help": async ({}: Options, io: IO) => printHelp(io),
+    "version": async ({}: Options, io: IO) => printVersion(io),
 }
 
 export { commands }
