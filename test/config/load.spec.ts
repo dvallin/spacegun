@@ -12,7 +12,8 @@ describe("config loading", () => {
             slack: "https://some.slack.hook",
             git: { remote: "https://some.git" },
             namespaces: ["service1", "service2"],
-            server: { "host": "localhost", "port": 8080 }
+            server: { "host": "localhost", "port": 8080 },
+            configBasePath: "test/test-config"
         })
     })
 })

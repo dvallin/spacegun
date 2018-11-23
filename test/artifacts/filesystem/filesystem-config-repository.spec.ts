@@ -58,6 +58,7 @@ function createConfig(artifacts: string): Config {
         docker: "",
         pipelines: "",
         artifacts,
-        server: { host: "", port: 2 }
+        server: { host: "", port: 2 },
+        configBasePath: "./"
     }
 }

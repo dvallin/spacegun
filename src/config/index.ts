@@ -18,6 +18,7 @@ export interface Config {
     docker: string
     pipelines: string
     artifacts: string
+    configBasePath: string
     slack?: string
     git?: GitConfig
     server: ServerConfig
@@ -64,7 +65,7 @@ export function validateConfig(configBasePath: string, partial: Partial<Config>)
         artifacts = `${configBasePath}/${artifacts}`
     }
 
-    return { kube, pipelines, artifacts, slack, namespaces, git, server: validateServerConfig(server), docker }
+    return { configBasePath, kube, pipelines, artifacts, slack, namespaces, git, server: validateServerConfig(server), docker }
 }
 
 export function validateServerConfig(partial: Partial<ServerConfig>): ServerConfig {

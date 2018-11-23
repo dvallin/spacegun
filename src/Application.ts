@@ -57,6 +57,7 @@ export class Application {
     public async checkForConfigChange(git: GitConfigRepository) {
         const hasNewConfig = await git.hasNewConfig()
         if (hasNewConfig) {
+            this.io.out('New config found. Will try to load it.')
             await git.fetchNewConfig()
             this.crons.removeAllCrons()
             this.reload()
@@ -76,12 +77,7 @@ export class Application {
     private initialize(config: Config) {
         const gitRepo = gitRepoFromConfig(config)
         if (gitRepo !== undefined) {
-            this.crons.register(
-                "config-reload",
-                config.git!.cron,
-                () => this.checkForConfigChange(gitRepo),
-                true
-            )
+            this.crons.register("config-reload", config.git!.cron, () => this.checkForConfigChange(gitRepo))
         }
 
         initArtifacts(artifactRepoFromConfig(config))

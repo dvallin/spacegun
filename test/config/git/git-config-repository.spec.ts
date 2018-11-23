@@ -40,6 +40,18 @@ describe("GitConfigRepository", () => {
                 expect(repo.git.clone).toBeCalledWith("remotePath", "./")
             })
 
+            it("calls fetch and status repo", async () => {
+                repo.git.checkIsRepo = jest.fn().mockReturnValue(Promise.resolve(true))
+                repo.git.fetch = jest.fn().mockReturnValue(Promise.resolve())
+                repo.git.status = jest.fn().mockReturnValue(Promise.resolve({ behind: 1 }))
+
+                const newConfig = await repo.hasNewConfig()
+
+                expect(newConfig).toBeTruthy()
+                expect(repo.git.status).toHaveBeenCalledTimes(1)
+                expect(repo.git.fetch).toHaveBeenCalledTimes(1)
+            })
+
             it("returns false if status is not behind", async () => {
                 repo.git.checkIsRepo = jest.fn().mockReturnValue(Promise.resolve(true))
                 repo.git.status = jest.fn().mockReturnValue(Promise.resolve({ behind: 0 }))
@@ -72,6 +84,7 @@ function createConfig(git?: GitConfig): Config {
         docker: "",
         pipelines: "",
         artifacts: "",
-        server: { host: "", port: 2 }
+        server: { host: "", port: 2 },
+        configBasePath: "./"
     }
 }

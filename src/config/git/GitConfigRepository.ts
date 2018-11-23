@@ -6,18 +6,20 @@ import * as SimpleGit from "simple-git/promise"
 
 export function fromConfig(config: Config): GitConfigRepository | undefined {
     if (config.git && process.env.LAYER === Layers.Server) {
-        const g = SimpleGit("./")
-        return new GitConfigRepository(g, config.git)
+        return new GitConfigRepository(config.configBasePath, config.git)
     }
     return undefined
 }
 
 export class GitConfigRepository implements ConfigRepository {
 
+    public readonly git: SimpleGit.SimpleGit
+
     constructor(
-        public readonly git: SimpleGit.SimpleGit,
+        basePath: string,
         public readonly config: GitConfig
     ) {
+        this.git = SimpleGit(basePath)
     }
 
     public async hasNewConfig(): Promise<boolean> {
@@ -25,6 +27,7 @@ export class GitConfigRepository implements ConfigRepository {
             await this.git.clone(this.config.remote, "./")
             return true
         } else {
+            await this.git.fetch()
             const status = await this.git.status()
             return status.behind > 0
         }

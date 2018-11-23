@@ -69,18 +69,18 @@ export class JobsRepositoryImpl implements JobsRepository {
             return Observable.fromPromise(call(clusterModule.namespaces)(pipeline))
                 .flatMap(namespaces => {
                     if (namespaces.length === 0) {
-                        return this.runInNamesspace(pipeline)
+                        return this.runInNamespace(pipeline)
                     }
                     return Observable
                         .of(...namespaces)
-                        .flatMap(namespace => this.runInNamesspace(pipeline, namespace))
+                        .flatMap(namespace => this.runInNamespace(pipeline, namespace))
                 })
                 .map(() => { })
         }
         return Observable.of()
     }
 
-    runInNamesspace(pipeline: PipelineDescription, namespace?: string): Observable<object> {
+    runInNamespace(pipeline: PipelineDescription, namespace?: string): Observable<object> {
         const steps: { [name: string]: StepDescription } = {}
         for (const step of pipeline.steps) {
             steps[step.name] = step
@@ -124,7 +124,7 @@ export class JobsRepositoryImpl implements JobsRepository {
                 break
             }
             default:
-                throw new Error("not implemented")
+                throw new Error(`step type ${step.type} not implemented`)
         }
         if (step.onSuccess) {
             outStream = this.step(steps, step.onSuccess, outStream)

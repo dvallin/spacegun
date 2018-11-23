@@ -20,7 +20,6 @@ export class PlanImageDeployment {
     ) { }
 
     public async plan(group: ServerGroup, targetDeployments: Deployment[]): Promise<DeploymentPlan[]> {
-        console.log("enter")
         const deployments: DeploymentPlan[] = []
         for (const targetDeployment of targetDeployments) {
             this.io.out(`planning image deployment ${targetDeployment.name} in ${this.name}`)

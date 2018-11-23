@@ -65,7 +65,7 @@ export class CronRegistry {
         if (currentTask !== undefined) {
             this.io.out(`${name} is already running!`)
         } else {
-            this.io.out(`executing of cron job ${name}`)
+            this.io.out(`executing cron job ${name}`)
             const task = promiseProvider()
             this.running.set(name, task)
             await task
