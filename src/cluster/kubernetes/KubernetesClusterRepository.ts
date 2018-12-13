@@ -137,26 +137,32 @@ export class KubernetesClusterRepository implements ClusterRepository {
         const result = await api.listNamespacedDeployment(namespace)
 
         const applied: string[] = []
+        const created: string[] = []
         const errored: string[] = []
         for (const deployment of snapshot.deployments) {
             const current = result.body.items.find(d => d.metadata.name === deployment.name)
             const target = deployment.data as V1beta2Deployment
-            if (ignoreImage && current !== undefined) {
-                const image = this.createImage(current.spec.template.spec.containers)
-                if (image !== undefined) {
-                    target.spec.template.spec.containers[0].image = image.url
+            if (current === undefined) {
+                await api.createNamespacedDeployment(namespace, target)
+                created.push(`Deployment ${deployment.name}`)
+            } else {
+                if (ignoreImage) {
+                    const image = this.createImage(current.spec.template.spec.containers)
+                    if (image !== undefined) {
+                        target.spec.template.spec.containers[0].image = image.url
+                    }
                 }
-            }
-            if (this.needsUpdate(current, target)) {
-                try {
-                    await api.replaceNamespacedDeployment(deployment.name, namespace, target)
-                    applied.push(`Deployment ${deployment.name}`)
-                } catch (e) {
-                    errored.push(`Deployment ${deployment.name}`)
+                if (this.needsUpdate(current, target)) {
+                    try {
+                        await api.replaceNamespacedDeployment(deployment.name, namespace, target)
+                        applied.push(`Deployment ${deployment.name}`)
+                    } catch (e) {
+                        errored.push(`Deployment ${deployment.name}`)
+                    }
                 }
             }
         }
-        if (applied.length + errored.length > 0) {
+        if (created.length + applied.length + errored.length > 0) {
             call(eventModule.log)({
                 message: `Applied Snapshots`,
                 timestamp: Date.now(),
@@ -164,7 +170,8 @@ export class KubernetesClusterRepository implements ClusterRepository {
                 description: `Applied Snapshots in ${group.cluster} ∞ ${group.namespace}`,
                 fields: [
                     ...errored.map(value => ({ value, title: "Failure" })),
-                    ...applied.map(value => ({ value, title: "Success" })),
+                    ...applied.map(value => ({ value, title: "Updated" })),
+                    ...created.map(value => ({ value, title: "Created" })),
                 ]
             })
         }
@@ -246,10 +253,7 @@ export class KubernetesClusterRepository implements ClusterRepository {
         } as V1beta2Deployment
     }
 
-    private needsUpdate(current: V1beta2Deployment | undefined, target: V1beta2Deployment): boolean {
-        if (current === undefined) {
-            return true
-        }
+    private needsUpdate(current: V1beta2Deployment, target: V1beta2Deployment): boolean {
         return JSON.stringify(this.minifyDeployment(target)) !== JSON.stringify(this.minifyDeployment(current))
     }
 }

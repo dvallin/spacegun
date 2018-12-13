@@ -29,13 +29,14 @@ const image2 = { name: "image2", url: "repo/image2:tag@some:digest" }
 
 const mockLog = jest.fn()
 
-import { replaceDeploymentMock } from "./__mocks__/@kubernetes/client-node"
+import { replaceDeploymentMock, createDeploymentMock } from "./__mocks__/@kubernetes/client-node"
 import { V1Deployment } from "@kubernetes/client-node"
 
 
 describe("KubernetesClusterProvider", () => {
 
     beforeEach(() => {
+        createDeploymentMock.mockReset()
         replaceDeploymentMock.mockReset()
     })
 
@@ -208,7 +209,7 @@ describe("KubernetesClusterProvider", () => {
             expect(replaceDeploymentMock).not.toHaveBeenCalled()
         })
 
-        it("calls endpoints if deployment is not known yet", async () => {
+        it("creates deployments if deployment is not known yet", async () => {
             const snapshot: ClusterSnapshot = await cluster.takeSnapshot({
                 cluster: cluster.clusters[0]
             })
@@ -220,8 +221,8 @@ describe("KubernetesClusterProvider", () => {
 
             await cluster.applySnapshot({ cluster: cluster.clusters[0] }, snapshot, false)
 
-            expect(replaceDeploymentMock).toHaveBeenCalledTimes(1)
-            expect(replaceDeploymentMock).toHaveBeenCalledWith("somesillydeployment", "default", {
+            expect(createDeploymentMock).toHaveBeenCalledTimes(1)
+            expect(createDeploymentMock).toHaveBeenCalledWith("default", {
                 metadata: { name: "somesillydeployment" },
                 spec: { replicas: 2, template: { metadata: { annotations: {} }, spec: { containers: [{ image: "somenewsillyimage" }] } } }
             })
@@ -243,7 +244,7 @@ describe("KubernetesClusterProvider", () => {
                 description: "Applied Snapshots in dev ∞ undefined",
                 fields: [
                     { title: "Failure", value: "Deployment deployment2" },
-                    { title: "Success", value: "Deployment deployment1" }
+                    { title: "Updated", value: "Deployment deployment1" }
                 ],
                 message: "Applied Snapshots",
                 timestamp: 1520899200000,
