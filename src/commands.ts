@@ -18,7 +18,7 @@ import { PipelineDescription } from "./jobs/model/PipelineDescription"
 import { Image } from "./cluster/model/Image"
 
 export type Command = "namespaces" | "pods" | "images" | "pipelines" | "pipelineSchedules"
-    | "run" | "deployments" | "deploy" | "scalers" | "help" | "version" | "snapshot" | "apply"
+    | "run" | "deployments" | "deploy" | "restart" | "scalers" | "help" | "version" | "snapshot" | "apply"
 
 async function load<T>(p: Promise<T>): Promise<T> {
     const progress = ora()
@@ -377,6 +377,22 @@ async function deployCommand(options: Options, io: IO) {
     })
 }
 
+async function restartCommand(options: Options, io: IO) {
+    const cluster = await chooseCluster(options, io)
+    const namespace = await chooseNamespace(options, io, cluster)
+    const deployment = await chooseDeployment(options, io, cluster, namespace)
+
+    io.out("restart deployment " + chalk.cyan(cluster + "::" + deployment.name))
+    await applyWithConsent(options, io, async () => {
+        const updated = await load(call(clusterModule.restartDeployment)({
+            deployment,
+            group: { cluster, namespace }
+        }))
+        logDeploymentHeader(io)
+        logDeployment(io, updated)
+    })
+}
+
 async function scalersCommand(io: IO, cluster: string, namespace?: string) {
     const scalers = await load(call(clusterModule.scalers)({ cluster, namespace }))
     io.out(chalk.bold(pad("scaler name", 5) + pad("replication", 7)))
@@ -437,14 +453,24 @@ export async function printHelp(io: IO, error?: Error) {
     io.out(pad("images", 2) + chalk.bold(pad("a list of all images in the docker registry", 10)))
     io.out(pad("deployments", 2) + chalk.bold(pad("a summary of all deployements of all known clusters", 10)))
     io.out(pad("deploy", 2) + chalk.bold(pad("opens an interactive dialog to deploy an image", 10)))
+    io.out(pad("restart", 2) + chalk.bold(pad("opens an interactive dialog to restart a deployment", 10)))
     io.out(pad("scalers", 2) + chalk.bold(pad("a summary of all scalers of all known clusters", 10)))
     io.out(pad("pipelines", 2) + chalk.bold(pad("a summary of all pipelines", 10)))
     io.out(pad("pipelineSchedules", 2) + chalk.bold(pad("the next executions of a pipeline", 10)))
     io.out(pad("run", 2) + chalk.bold(pad("run a pipeline manually", 10)))
     io.out(pad("help", 2) + chalk.bold(pad("renders this summary", 10)))
     io.out('')
-    io.out(chalk.bold.underline('Available Options'))
-    io.out(pad("config, c", 2) + chalk.bold(pad("path to the config.yml. Default: `config.yml`", 10)))
+    io.out(chalk.bold.underline('General Options'))
+    io.out(pad("version, b", 2) + chalk.bold(pad("renders the current version", 10)))
+    io.out(pad("help, h", 2) + chalk.bold(pad("renders this summary", 10)))
+    io.out(pad("config", 2) + chalk.bold(pad("path to the config.yml. Default: `config.yml`", 10)))
+    io.out('')
+    io.out(chalk.bold.underline('Interactive Options'))
+    io.out(pad("yes, y", 2) + chalk.bold(pad("answer accept prompts with yes", 10)))
+    io.out(pad("cluster, c", 2) + chalk.bold(pad("answer cluster prompts with given value", 10)))
+    io.out(pad("namespace, n", 2) + chalk.bold(pad("answer namespace prompts with given value", 10)))
+    io.out(pad("pipeline, p", 2) + chalk.bold(pad("answer pipeline prompts with given value", 10)))
+    io.out(pad("tag, t", 2) + chalk.bold(pad("answer tag prompts with given value", 10)))
 }
 
 export async function printVersion(io: IO) {
@@ -463,6 +489,7 @@ const commands: { [k in Command]: (options: Options, io: IO) => Promise<void> } 
     "deployments": async (options: Options, io: IO) => foreachCluster(options, io, (options, io, cluster) => foreachNamespace(options, io, cluster, deployementsCommand)),
     "scalers": async (options: Options, io: IO) => foreachCluster(options, io, (options, io, cluster) => foreachNamespace(options, io, cluster, scalersCommand)),
     "deploy": async (options: Options, io: IO) => deployCommand(options, io),
+    "restart": async (options: Options, io: IO) => restartCommand(options, io),
     "help": async ({ }: Options, io: IO) => printHelp(io),
     "version": async ({ }: Options, io: IO) => printVersion(io),
 }

@@ -110,19 +110,13 @@ export class KubernetesClusterRepository implements ClusterRepository {
     }
 
     async updateDeployment(group: ServerGroup, deployment: Deployment, targetImage: Image): Promise<Deployment> {
-        const api = this.build(group.cluster, (server: string) => new Apps_v1beta2Api(server))
-        const namespace = this.getNamespace(group)
-        const response = await api.readNamespacedDeployment(deployment.name, namespace)
+        return this.replaceDeployment(group, deployment, d => {
+            d.spec.template.spec.containers[0].image = targetImage.url
+        })
+    }
 
-        const target = this.minifyDeployment(response.body)
-        target.spec.template.spec.containers[0].image = targetImage.url
-
-        let result = await api.replaceNamespacedDeployment(deployment.name, namespace, target)
-
-        return {
-            name: result.body.metadata.name,
-            image: this.createImage(result.body.spec.template.spec.containers)
-        }
+    async restartDeployment(group: ServerGroup, deployment: Deployment): Promise<Deployment> {
+        return this.replaceDeployment(group, deployment, () => { })
     }
 
     async takeSnapshot(group: ServerGroup): Promise<ClusterSnapshot> {
@@ -220,7 +214,28 @@ export class KubernetesClusterRepository implements ClusterRepository {
         return api
     }
 
+    private async replaceDeployment(group: ServerGroup, deployment: Deployment, replacer: (d: V1beta2Deployment) => void): Promise<Deployment> {
+        const api = this.build(group.cluster, (server: string) => new Apps_v1beta2Api(server))
+        const namespace = this.getNamespace(group)
+        const response = await api.readNamespacedDeployment(deployment.name, namespace)
+
+        const target = this.minifyDeployment(response.body)
+        replacer(target)
+
+        target.spec.template.metadata.annotations["spacegun.deployment"] = Date.now().toString()
+
+        let result = await api.replaceNamespacedDeployment(deployment.name, namespace, target)
+
+        return {
+            name: result.body.metadata.name,
+            image: this.createImage(result.body.spec.template.spec.containers)
+        }
+    }
+
     private minifyDeployment(deployment: V1beta2Deployment): V1beta2Deployment {
+        // delete spacegun related annotations
+        delete deployment.spec.template.metadata.annotations["spacegun.deployment"]
+
         return {
             metadata: {
                 name: deployment.metadata.name,

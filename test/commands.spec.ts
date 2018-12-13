@@ -329,6 +329,80 @@ describe("commands", () => {
         })
     })
 
+    describe(commands.restart.name, () => {
+        const clusters = ["cluster1", "cluster2"]
+        const namespaces: string[] = []
+        const deployments = [{ name: "deployment1", image: { name: "image" } }]
+
+        it("restarts an image if user agrees", async () => {
+            // given
+            mockDispatchFn
+                .mockReturnValueOnce(clusters)
+                .mockReturnValueOnce(namespaces)
+                .mockReturnValueOnce(deployments)
+                .mockReturnValueOnce({ name: "deployment1" })
+
+            const choose = jest.fn().mockImplementation(({ }, b) => b[0])
+            const expectFn = jest.fn().mockImplementation(() => true)
+            const io = createIO({ choose, expect: expectFn })
+
+            // when
+            await commands.restart(emptyOptions, io)
+
+            // then
+            expect(choose).toHaveBeenCalledTimes(2)
+            expect(choose).toHaveBeenCalledWith("> ", clusters)
+            expect(choose).toHaveBeenCalledWith("> ", deployments)
+
+            expect(mockDispatched).toHaveBeenCalledTimes(4)
+            expect(mockDispatched).toBeCalledWith("cluster", "clusters")
+            expect(mockDispatched).toBeCalledWith("cluster", "namespaces")
+            expect(mockDispatched).toBeCalledWith("cluster", "deployments")
+            expect(mockDispatched).toBeCalledWith("cluster", "restartDeployment")
+        })
+
+        it("asks user for namespace if there are any", async () => {
+            // given
+            mockDispatchFn
+                .mockReturnValueOnce(clusters)
+                .mockReturnValueOnce(["service1"])
+                .mockReturnValueOnce(deployments)
+                .mockReturnValueOnce({ name: "deployment1" })
+
+            const choose = jest.fn().mockImplementation(({ }, b) => b[0])
+            const expectFn = jest.fn().mockImplementation(() => true)
+            const io = createIO({ choose, expect: expectFn })
+
+            // when
+            await commands.restart(emptyOptions, io)
+
+            // then
+            expect(choose).toHaveBeenCalledTimes(3)
+            expect(choose).toHaveBeenCalledWith("> ", clusters)
+            expect(choose).toHaveBeenCalledWith("> ", deployments)
+        })
+
+        it("does not deploy an image if user disagrees", async () => {
+            // given
+            mockDispatchFn
+                .mockReturnValueOnce(clusters)
+                .mockReturnValueOnce(namespaces)
+                .mockReturnValueOnce(deployments)
+                .mockReturnValueOnce({ name: "deployment1" })
+
+            const choose = jest.fn().mockImplementation(({ }, b) => b[0])
+            const expectFn = jest.fn().mockImplementation(() => false)
+            const io = createIO({ choose, expect: expectFn })
+
+            // when
+            await commands.restart(emptyOptions, io)
+
+            // then
+            expect(mockDispatched).toHaveBeenCalledTimes(3)
+            expect(mockDispatched).not.toBeCalledWith("cluster", "restartDeployment")
+        })
+    })
+
     describe(commands.pipelineSchedules.name, () => {
 
         it("prints schedules of a pipeline", async () => {
@@ -368,6 +442,21 @@ describe("commands", () => {
             expect(mockDispatched).toHaveBeenCalledTimes(2)
             expect(mockDispatched).toBeCalledWith("cluster", "clusters")
             expect(mockDispatched).toBeCalledWith("images", "endpoint")
+        })
+    })
+
+    describe(commands.version.name, () => {
+
+        it("returns current version", async () => {
+            // given
+            const out = jest.fn()
+            const io = createIO({ out })
+
+            // when
+            await commands.version(emptyOptions, io)
+
+            // then
+            expect(io.out).toHaveBeenCalledTimes(1)
         })
     })
 
