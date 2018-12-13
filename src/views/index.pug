@@ -35,7 +35,7 @@ body
             tbody
                 each job in jobs
                     tr
-                        td=job.job.name
+                        td=job.pipeline.name
                         td=job.lastRun
                         td=job.nextRun
 
