@@ -78,6 +78,7 @@ const Core_v1Api = jest.fn<api1>().mockImplementation(function () {
 });
 
 export const replaceDeploymentMock = jest.fn()
+export const createDeploymentMock = jest.fn()
 
 const Apps_v1beta2Api = jest.fn<api2>().mockImplementation(function () {
     const mockedApi = new api2()
@@ -88,6 +89,10 @@ const Apps_v1beta2Api = jest.fn<api2>().mockImplementation(function () {
     })
     mockedApi.readNamespacedDeployment = jest.fn().mockResolvedValue({
         body: mockDeployment("deployment1", "repo/image1:tag@some:digest")
+    })
+    mockedApi.createNamespacedDeployment = jest.fn().mockImplementation((namespace, body) => {
+        createDeploymentMock(namespace, body)
+        return { body }
     })
     mockedApi.replaceNamespacedDeployment = jest.fn().mockImplementation((name, namespace, body) => {
         if (name !== "deployment2") {

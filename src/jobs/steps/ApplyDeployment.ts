@@ -12,7 +12,7 @@ export class ApplyDeployment {
 
     public async apply(plan: DeploymentPlan): Promise<Deployment> {
         const deployment = await call(clusterModule.updateDeployment)(plan)
-        this.io.out(`sucessfully updated ${deployment.name} with image ${deployment.image!}`)
+        this.io.out(`sucessfully updated ${deployment.name} with image ${JSON.stringify(deployment.image)}`)
         return deployment
     }
 }
