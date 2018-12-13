@@ -37,7 +37,6 @@ function parse(): Options {
             version?: boolean,
             yes?: boolean
         }
-
     let command: Command = "help"
     if (internalOptions.help) {
         command = "help"
@@ -47,6 +46,7 @@ function parse(): Options {
         switch (internalOptions.command) {
             case "apply":
             case "deploy":
+            case "restart":
             case "deployments":
             case "images":
             case "namespaces":

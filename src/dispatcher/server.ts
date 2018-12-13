@@ -50,7 +50,7 @@ export function createServer(): Server {
         const koaStatic = require("koa-static")
         const app = new koa()
         app.use(koaBody({
-            jsonLimit: "1kb"
+            jsonLimit: "100kb"
         }))
         app.use(koaStatic(process.env.ASSET_PATH || __dirname + "/assets"))
         server = app as Server

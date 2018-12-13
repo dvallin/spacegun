@@ -56,6 +56,23 @@ export const updateDeployment: Request<UpdateDeploymentParameters, Deployment> =
     })
 }
 
+export const restartDeployment: Request<RestartDeploymentParameters, Deployment> = {
+    module: "cluster",
+    procedure: "restartDeployment",
+    input: (input: RestartDeploymentParameters | undefined) => RequestInput.ofData(
+        { deployment: input!.deployment },
+        ["cluster", input!.group.cluster],
+        ["namespace", input!.group.namespace]
+    ),
+    mapper: (p: RequestInput): RestartDeploymentParameters => ({
+        group: {
+            cluster: p.params!["cluster"],
+            namespace: p.params!["namespace"]
+        } as ServerGroup,
+        deployment: p.data.deployment as Deployment
+    })
+}
+
 export const pods: Request<ServerGroup, Pod[]> = {
     module: "cluster",
     procedure: "pods",
@@ -107,6 +124,10 @@ export interface UpdateDeploymentParameters {
     group: ServerGroup, deployment: Deployment, image: Image
 }
 
+export interface RestartDeploymentParameters {
+    group: ServerGroup, deployment: Deployment
+}
+
 export interface ApplySnapshotParameters {
     group: ServerGroup, snapshot: ClusterSnapshot, ignoreImage?: boolean
 }
@@ -147,6 +168,16 @@ export class Module {
     })
     [updateDeployment.procedure](input: UpdateDeploymentParameters): Promise<Deployment> {
         return repo!.updateDeployment(input.group, input.deployment, input.image)
+    }
+
+    @Component({
+        moduleName: restartDeployment.module,
+        layer: Layers.Server,
+        mapper: restartDeployment.mapper,
+        method: Methods.Put
+    })
+    [restartDeployment.procedure](input: RestartDeploymentParameters): Promise<Deployment> {
+        return repo!.restartDeployment(input.group, input.deployment)
     }
 
     @Component({

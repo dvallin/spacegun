@@ -95,6 +95,40 @@ describe("KubernetesClusterProvider", () => {
             expect(deployment).toEqual(
                 { image: { name: "image2", url: "repo/image2:tag@some:digest" }, name: "deployment1" }
             )
+            expect(replaceDeploymentMock).toHaveBeenCalledWith(
+                "deployment1", "default",
+                {
+                    metadata: { name: "deployment1" },
+                    spec: {
+                        template: {
+                            metadata: { annotations: { "spacegun.deployment": "1520899200000" } },
+                            spec: { containers: [{ image: "repo/image2:tag@some:digest" }] }
+                        }
+                    }
+                }
+            )
+        })
+
+        it("restarts deployments", async () => {
+            const deployment: Deployment = await cluster.restartDeployment(
+                { cluster: cluster.clusters[0] },
+                { image: image1, name: "deployment1" }
+            )
+            expect(deployment).toEqual(
+                { image: { name: "image1", url: "repo/image1:tag@some:digest" }, name: "deployment1" }
+            )
+            expect(replaceDeploymentMock).toHaveBeenCalledWith(
+                "deployment1", "default",
+                {
+                    metadata: { name: "deployment1" },
+                    spec: {
+                        template: {
+                            metadata: { annotations: { "spacegun.deployment": "1520899200000" } },
+                            spec: { containers: [{ image: "repo/image1:tag@some:digest" }] }
+                        }
+                    }
+                }
+            )
         })
     })
 
@@ -135,7 +169,7 @@ describe("KubernetesClusterProvider", () => {
             expect(replaceDeploymentMock).toHaveBeenCalledTimes(1)
             expect(replaceDeploymentMock).toHaveBeenCalledWith("deployment1", "default", {
                 metadata: { name: "deployment1" },
-                spec: { replicas: 2, template: { spec: { containers: [{ image: "repo/image1:tag@some:digest" }] } } }
+                spec: { replicas: 2, template: { metadata: { annotations: {} }, spec: { containers: [{ image: "repo/image1:tag@some:digest" }] } } }
             })
         })
 
@@ -176,7 +210,7 @@ describe("KubernetesClusterProvider", () => {
             expect(replaceDeploymentMock).toHaveBeenCalledTimes(1)
             expect(replaceDeploymentMock).toHaveBeenCalledWith("somesillydeployment", "default", {
                 metadata: { name: "somesillydeployment" },
-                spec: { replicas: 2, template: { spec: { containers: [{ image: "somenewsillyimage" }] } } }
+                spec: { replicas: 2, template: { metadata: { annotations: {} }, spec: { containers: [{ image: "somenewsillyimage" }] } } }
             })
         })
 

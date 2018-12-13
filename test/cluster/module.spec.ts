@@ -1,7 +1,7 @@
 import { Layers } from "../../src/dispatcher/model/Layers"
 process.env.LAYER = Layers.Standalone
 
-import { init, clusters, pods, scalers, deployments, updateDeployment, namespaces, takeSnapshot, applySnapshot, UpdateDeploymentParameters } from "../../src/cluster/ClusterModule"
+import { init, clusters, pods, scalers, deployments, updateDeployment, namespaces, takeSnapshot, applySnapshot, UpdateDeploymentParameters, restartDeployment, RestartDeploymentParameters } from "../../src/cluster/ClusterModule"
 import { ClusterRepository } from "../../src/cluster/ClusterRepository"
 import { ApplySnapshotParameters } from "../../src/cluster/ClusterModule"
 import { call } from "../../src/dispatcher"
@@ -10,6 +10,7 @@ const podsMock = jest.fn()
 const namespacesMock = jest.fn()
 const deploymentsMock = jest.fn()
 const updateDeploymentMock = jest.fn()
+const restartDeploymentMock = jest.fn()
 const scalersMock = jest.fn()
 const takeSnapshotMock = jest.fn()
 const applySnapshotMock = jest.fn()
@@ -19,6 +20,7 @@ const repo: ClusterRepository = {
     namespaces: namespacesMock,
     deployments: deploymentsMock,
     updateDeployment: updateDeploymentMock,
+    restartDeployment: restartDeploymentMock,
     scalers: scalersMock,
     takeSnapshot: takeSnapshotMock,
     applySnapshot: applySnapshotMock,
@@ -92,7 +94,7 @@ describe("cluster module", async () => {
         expect(deploymentsMock).toHaveBeenCalledWith({ cluster: "clusterName" })
     })
 
-    it("calls deployments", async () => {
+    it("calls update deployment", async () => {
         // given
         updateDeploymentMock.mockReturnValueOnce({})
         const deployment = { id: 1, name: "deployment1" }
@@ -110,6 +112,24 @@ describe("cluster module", async () => {
         expect(result).toEqual({})
         expect(updateDeploymentMock).toHaveBeenCalledTimes(1)
         expect(updateDeploymentMock).toHaveBeenCalledWith({ cluster: "clusterName" }, deployment, image)
+    })
+
+    it("calls restart deployment", async () => {
+        // given
+        restartDeploymentMock.mockReturnValueOnce({})
+        const deployment = { id: 1, name: "deployment1" }
+        const params: RestartDeploymentParameters = {
+            deployment,
+            group: { cluster: "clusterName" }
+        }
+
+        // when
+        const result = await call(restartDeployment)(params)
+
+        // then
+        expect(result).toEqual({})
+        expect(restartDeploymentMock).toHaveBeenCalledTimes(1)
+        expect(restartDeploymentMock).toHaveBeenCalledWith({ cluster: "clusterName" }, deployment)
     })
 
     it("calls take snapshot", async () => {

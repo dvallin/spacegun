@@ -12,6 +12,7 @@ export interface ClusterRepository {
     pods(group: ServerGroup): Promise<Pod[]>
     deployments(group: ServerGroup): Promise<Deployment[]>
     updateDeployment(group: ServerGroup, deployment: Deployment, targetImage: Image): Promise<Deployment>
+    restartDeployment(group: ServerGroup, deployment: Deployment): Promise<Deployment>
     scalers(group: ServerGroup): Promise<Scaler[]>
 
     takeSnapshot(group: ServerGroup): Promise<ClusterSnapshot>

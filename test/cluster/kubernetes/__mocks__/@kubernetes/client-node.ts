@@ -25,6 +25,7 @@ function mockDeployment(name: string, image: string): object {
         metadata: { name },
         spec: {
             template: {
+                metadata: { annotations: {} },
                 spec: {
                     containers: [{ image }]
                 }
