@@ -1,0 +1,14 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`commands pods prints out the pods correctly 1`] = `
+Array [
+  "",
+  "[1mpod name                                image url                               starts  status  age     [22m",
+  "service1                                [1m[35mmissing                                 [39m[22m[1m[36mna!     [39m[22m[1m[35mup      [39m[22ma day   ",
+  "service2                                url1                                    1       [1m[36mdown!   [39m[22m2 days  ",
+  "service3                                [1m[35mmissing                                 [39m[22m[1m[35m11      [39m[22m[1m[35mup      [39m[22m3 days  ",
+  "service4                                url2                                    [1m[36m111!    [39m[22m[1m[36mdown!   [39m[22m4 days  ",
+  "
+",
+]
+`;

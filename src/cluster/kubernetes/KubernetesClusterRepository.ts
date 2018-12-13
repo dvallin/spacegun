@@ -1,4 +1,13 @@
-import { KubeConfig, Core_v1Api, Apps_v1beta2Api, Autoscaling_v1Api, V1beta2Deployment, V1Container, V1PodStatus } from '@kubernetes/client-node'
+import {
+    KubeConfig,
+    Core_v1Api,
+    Apps_v1beta2Api,
+    Autoscaling_v1Api,
+    V1beta2Deployment,
+    V1Container,
+    V1PodStatus
+} from '@kubernetes/client-node'
+
 const cloneDeep = require("lodash.clonedeep")
 
 import { Pod } from "../model/Pod"
@@ -67,6 +76,7 @@ export class KubernetesClusterRepository implements ClusterRepository {
             const ready = this.isReady(item.status)
             return {
                 name: item.metadata.name,
+                creationTimeMS: item.metadata.creationTimestamp.getTime(),
                 image, restarts, ready
             }
         })

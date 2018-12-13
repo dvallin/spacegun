@@ -16,6 +16,7 @@ jest.mock("../src/dispatcher/index", () => ({
 }))
 
 import { commands } from "../src/commands"
+import * as moment from "moment"
 import { Options } from "../src/options"
 
 const emptyOptions: Options = { command: "help" }
@@ -80,9 +81,9 @@ describe("commands", () => {
             mockDispatchFn
                 .mockReturnValueOnce(["cluster1", "cluster2"])
                 .mockReturnValueOnce([])
-                .mockReturnValueOnce([{ name: "service1" }])
+                .mockReturnValueOnce([{ name: "service1", creationTimeMS: 1542379151000 }])
                 .mockReturnValueOnce(["service1"])
-                .mockReturnValueOnce([{ name: "service1" }])
+                .mockReturnValueOnce([{ name: "service1", creationTimeMS: 1542379151000 }])
 
             // when
             await commands.pods(emptyOptions, createIO())
@@ -92,6 +93,60 @@ describe("commands", () => {
             expect(mockDispatched).toBeCalledWith("cluster", "clusters")
             expect(mockDispatched).toBeCalledWith("cluster", "namespaces")
             expect(mockDispatched).toBeCalledWith("cluster", "pods")
+        })
+
+        it("prints out the pods correctly", async () => {
+            // given
+            const withAgeOf = function (amount: moment.DurationInputArg1, unit: moment.DurationInputArg2): number {
+                let now = moment()
+                now.subtract(amount, unit)
+                return now.valueOf()
+            }
+            mockDispatchFn
+                .mockReturnValueOnce(["cluster1"])
+                .mockReturnValueOnce([])
+                .mockReturnValueOnce([
+                    {
+                        name: "service1",
+                        image: undefined,
+                        restarts: undefined,
+                        ready: true,
+                        creationTimeMS: withAgeOf(1, "day")
+                    },
+                    {
+                        name: "service2",
+                        image: { url: "url1" },
+                        restarts: 1,
+                        ready: false,
+                        creationTimeMS: withAgeOf(2, "days")
+                    },
+                    {
+                        name: "service3",
+                        image: undefined,
+                        restarts: 11,
+                        ready: true,
+                        creationTimeMS: withAgeOf(3, "days")
+                    },
+                    {
+                        name: "service4",
+                        image: { url: "url2" },
+                        restarts: 111,
+                        ready: false,
+                        creationTimeMS: withAgeOf(4, "days")
+                    }
+                ])
+            let output: string[] = []
+            const out = jest.fn((text: string) => {
+                output.push(text)
+                return text
+            })
+            const io = createIO({ out })
+
+            // when
+            await commands.pods(emptyOptions, io)
+
+            // then
+            expect(output.concat("\n")).toMatchSnapshot()
         })
     })
 
@@ -153,7 +208,7 @@ describe("commands", () => {
 
             const choose = jest.fn().mockImplementation(({ }, b) => b[0])
             const expectFn = jest.fn().mockImplementation(() => true)
-            const io = createIO(choose, expectFn)
+            const io = createIO({ choose, expect: expectFn })
 
             // when
             await commands.run(emptyOptions, io)
@@ -177,7 +232,7 @@ describe("commands", () => {
 
             const choose = jest.fn().mockImplementation(({ }, b) => b[0])
             const expectFn = jest.fn().mockImplementation(() => false)
-            const io = createIO(choose, expectFn)
+            const io = createIO({ choose, expect: expectFn })
 
             // when
             await commands.run(emptyOptions, io)
@@ -207,7 +262,7 @@ describe("commands", () => {
 
             const choose = jest.fn().mockImplementation(({ }, b) => b[0])
             const expectFn = jest.fn().mockImplementation(() => true)
-            const io = createIO(choose, expectFn)
+            const io = createIO({ choose, expect: expectFn })
 
             // when
             await commands.deploy(emptyOptions, io)
@@ -239,7 +294,7 @@ describe("commands", () => {
 
             const choose = jest.fn().mockImplementation(({ }, b) => b[0])
             const expectFn = jest.fn().mockImplementation(() => true)
-            const io = createIO(choose, expectFn)
+            const io = createIO({ choose, expect: expectFn })
 
             // when
             await commands.deploy(emptyOptions, io)
@@ -263,7 +318,7 @@ describe("commands", () => {
 
             const choose = jest.fn().mockImplementation(({ }, b) => b[0])
             const expectFn = jest.fn().mockImplementation(() => false)
-            const io = createIO(choose, expectFn)
+            const io = createIO({ choose, expect: expectFn })
 
             // when
             await commands.deploy(emptyOptions, io)
@@ -289,7 +344,7 @@ describe("commands", () => {
 
             const choose = jest.fn().mockImplementation(({ }, b) => b[0])
             const expectFn = jest.fn().mockImplementation(() => true)
-            const io = createIO(choose, expectFn)
+            const io = createIO({ choose, expect: expectFn })
 
             // when
             await commands.restart(emptyOptions, io)
@@ -316,7 +371,7 @@ describe("commands", () => {
 
             const choose = jest.fn().mockImplementation(({ }, b) => b[0])
             const expectFn = jest.fn().mockImplementation(() => true)
-            const io = createIO(choose, expectFn)
+            const io = createIO({ choose, expect: expectFn })
 
             // when
             await commands.restart(emptyOptions, io)
@@ -337,7 +392,7 @@ describe("commands", () => {
 
             const choose = jest.fn().mockImplementation(({ }, b) => b[0])
             const expectFn = jest.fn().mockImplementation(() => false)
-            const io = createIO(choose, expectFn)
+            const io = createIO({ choose, expect: expectFn })
 
             // when
             await commands.restart(emptyOptions, io)
@@ -360,7 +415,7 @@ describe("commands", () => {
 
             const choose = jest.fn().mockImplementation(({ }, b) => b[0])
             const expectFn = jest.fn().mockImplementation(() => true)
-            const io = createIO(choose, expectFn)
+            const io = createIO({ choose, expect: expectFn })
 
             // when
             await commands.pipelineSchedules(emptyOptions, io)
@@ -387,6 +442,21 @@ describe("commands", () => {
             expect(mockDispatched).toHaveBeenCalledTimes(2)
             expect(mockDispatched).toBeCalledWith("cluster", "clusters")
             expect(mockDispatched).toBeCalledWith("images", "endpoint")
+        })
+    })
+
+    describe(commands.version.name, () => {
+
+        it("returns current version", async () => {
+            // given
+            const out = jest.fn()
+            const io = createIO({ out })
+
+            // when
+            await commands.version(emptyOptions, io)
+
+            // then
+            expect(io.out).toHaveBeenCalledTimes(1)
         })
     })
 
@@ -447,10 +517,10 @@ describe("commands", () => {
     })
 })
 
-function createIO(choose?: jest.Mock<{}>, expect?: jest.Mock<{}>): IO {
+function createIO(mocks: Partial<{ choose: jest.Mock<{}>, expect: jest.Mock<{}>, out: jest.Mock<{}> }> = {}): IO {
     const io = new IO()
-    io.out = jest.fn()
-    io.expect = expect || jest.fn()
-    io.choose = choose || jest.fn()
+    io.out = mocks.out || jest.fn()
+    io.expect = mocks.expect || jest.fn()
+    io.choose = mocks.choose || jest.fn()
     return io
 }
