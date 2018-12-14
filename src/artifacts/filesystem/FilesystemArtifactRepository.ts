@@ -1,28 +1,34 @@
 import { ArtifactRepository } from "../../artifacts/ArtifactRepository"
 import { Config } from "../../config"
-import { save, load } from "../../file-loading"
+import { save, load, list } from "../../file-loading"
+import { Artifact } from "../model/Artifact"
 
 export function fromConfig(config: Config): FilesystemArtifactRepository {
     return new FilesystemArtifactRepository(config.artifacts)
 }
 
+const YML_EXT: string = ".yml"
+
 export class FilesystemArtifactRepository implements ArtifactRepository {
+
 
     constructor(
         public readonly artifactPath: string
     ) {
     }
 
-    public saveArtifact(name: string, path: string, data: object): Promise<void> {
-        save(`${this.artifactPath}/${path}/${name}.yml`, data)
+    public saveArtifact(path: string, artifact: Artifact): Promise<void> {
+        save(`${this.artifactPath}/${path}/${artifact.name}${YML_EXT}`, artifact.data)
         return Promise.resolve()
     }
 
-    public async loadArtifact(name: string, path: string): Promise<object | undefined> {
-        try {
-            return load(`${this.artifactPath}/${path}/${name}.yml`)
-        } catch (e) {
-            return undefined
-        }
+    public async listArtifacts(path: string): Promise<Artifact[]> {
+        const filenames = list(`${this.artifactPath}/${path}`)
+        return filenames
+            .filter(name => name.endsWith(YML_EXT))
+            .map(name => name.substr(0, name.length - YML_EXT.length))
+            .map(name => ({
+                name, data: load(`${this.artifactPath}/${path}/${name}${YML_EXT}`)
+            }))
     }
 }

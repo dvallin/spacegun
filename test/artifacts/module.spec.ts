@@ -3,15 +3,15 @@ process.env.LAYER = Layers.Standalone
 
 import { call } from "../../src/dispatcher"
 
-import { init, saveArtifact, loadArtifact } from "../../src/artifacts/ArtifactModule"
+import { init, saveArtifact, listArtifacts } from "../../src/artifacts/ArtifactModule"
 import { FilesystemArtifactRepository } from "../../src/artifacts/filesystem/FilesystemArtifactRepository"
 
 const saveArtifactMock = jest.fn()
-const loadArtifactMock = jest.fn()
+const listArtifactsMock = jest.fn()
 const repo: FilesystemArtifactRepository = {
     artifactPath: "",
     saveArtifact: saveArtifactMock,
-    loadArtifact: loadArtifactMock
+    listArtifacts: listArtifactsMock
 }
 
 init(repo)
@@ -24,28 +24,27 @@ describe("config module", () => {
 
         // when
         await call(saveArtifact)({
-            data: {},
-            name: "name",
-            path: "path"
+            path: "path",
+            artifact: {
+                data: {},
+                name: "name",
+            }
         })
 
         // then
         expect(saveArtifactMock).toHaveBeenCalledTimes(1)
-        expect(saveArtifactMock).toHaveBeenCalledWith("name", "path", {})
+        expect(saveArtifactMock).toHaveBeenCalledWith("path", { data: {}, name: "name" })
     })
 
-    it("loads artifacts", async () => {
+    it("lists artifacts", async () => {
         // given
-        loadArtifactMock.mockReturnValueOnce({})
+        listArtifactsMock.mockReturnValueOnce({})
 
         // when
-        await call(loadArtifact)({
-            name: "name",
-            path: "path"
-        })
+        await call(listArtifacts)("path")
 
         // then
-        expect(loadArtifactMock).toHaveBeenCalledTimes(1)
-        expect(loadArtifactMock).toHaveBeenCalledWith("name", "path")
+        expect(listArtifactsMock).toHaveBeenCalledTimes(1)
+        expect(listArtifactsMock).toHaveBeenCalledWith("path")
     })
 })

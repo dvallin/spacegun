@@ -3,13 +3,21 @@ import { Config } from "../../../src/config/index"
 
 const mockSave = jest.fn()
 const mockLoad = jest.fn()
+const mockList = jest.fn()
 jest.mock("../../../src/file-loading", () => ({
     save: (path: string, data: object) => mockSave(path, data),
-    load: (path: string) => mockLoad(path)
+    load: (path: string) => mockLoad(path),
+    list: (path: string) => mockList(path)
 }))
 
 
 describe("FileSystemConfigRepository", () => {
+
+    beforeEach(() => {
+        mockSave.mockReset()
+        mockLoad.mockReset()
+        mockList.mockReset()
+    })
 
     const repo: FilesystemArtifactRepository = fromConfig(createConfig("test/test-config/artifacts"))
 
@@ -22,31 +30,28 @@ describe("FileSystemConfigRepository", () => {
 
     describe("FilesystemConfigRepository", () => {
 
-        describe("loadArtifact", () => {
-
-            it("loads artifacts", async () => {
-                mockLoad.mockReturnValue({ some: "artifact" })
-
-                const artifact = await repo.loadArtifact("artifact", "some/path")
-
-                expect(artifact).toEqual({ some: "artifact" })
-                expect(mockLoad).toHaveBeenCalledWith("test/test-config/artifacts/some/path/artifact.yml")
-            })
-
-            it("wraps errors to undefined", async () => {
-                mockLoad.mockImplementation(() => { throw Error("") })
-
-                const artifact = await repo.loadArtifact("artifact", "some/path")
-
-                expect(artifact).toBeUndefined()
-            })
-        })
-
         describe("saveArtifact", () => {
 
             it("saves artifacts", async () => {
-                await repo.saveArtifact("artifact", "some/path", { some: "Artifact" })
+                await repo.saveArtifact("some/path", { name: "artifact", data: { some: "Artifact" } })
                 expect(mockSave).toHaveBeenCalledWith("test/test-config/artifacts/some/path/artifact.yml", { some: "Artifact" })
+            })
+        })
+
+        describe("listArtifacts", () => {
+
+            it("lists artifacts", async () => {
+                mockList.mockReturnValue(["not/even/a/file/", "artifact2.yml", "some.xml", "artifact1.yml"])
+                mockLoad.mockImplementation(artifactName => ({ artifactName }))
+
+                const artifacts = await repo.listArtifacts("some/path")
+
+                expect(artifacts).toEqual([
+                    { data: { artifactName: "test/test-config/artifacts/some/path/artifact2.yml" }, name: "artifact2" },
+                    { data: { artifactName: "test/test-config/artifacts/some/path/artifact1.yml" }, name: "artifact1" },
+                ])
+                expect(mockLoad).toHaveBeenCalledWith("test/test-config/artifacts/some/path/artifact1.yml")
+                expect(mockLoad).toHaveBeenCalledWith("test/test-config/artifacts/some/path/artifact2.yml")
             })
         })
     })

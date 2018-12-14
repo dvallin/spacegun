@@ -12,7 +12,6 @@ import * as imageModule from "./images/ImageModule"
 import * as configModule from "./artifacts/ArtifactModule"
 
 import { Deployment } from "./cluster/model/Deployment"
-import { DeploymentSnapshot } from "./cluster/model/DeploymentSnapshot"
 import { Options } from "./options"
 import { PipelineDescription } from "./jobs/model/PipelineDescription"
 import { Image } from "./cluster/model/Image"
@@ -22,10 +21,12 @@ export type Command = "namespaces" | "pods" | "images" | "pipelines" | "pipeline
 
 async function load<T>(p: Promise<T>): Promise<T> {
     const progress = ora()
-    progress.start("loading")
-    const result = await p
-    progress.stop()
-    return result
+    try {
+        progress.start("loading")
+        return await p
+    } finally {
+        progress.stop()
+    }
 }
 
 async function foreachCluster(options: Options, io: IO, command: (options: Options, io: IO, cluster: string) => void) {
@@ -35,7 +36,11 @@ async function foreachCluster(options: Options, io: IO, command: (options: Optio
         const clusters = await load(call(clusterModule.clusters)())
         for (const cluster of clusters) {
             io.out("")
-            await command(options, io, cluster)
+            try {
+                await command(options, io, cluster)
+            } catch (e) {
+                io.error(e)
+            }
         }
     }
 }
@@ -52,7 +57,11 @@ async function foreachNamespace(options: Options, io: IO, cluster: string, comma
             for (const namespace of namespaces) {
                 io.out(chalk.bold(pad(``)))
                 io.out(chalk.underline.bold(pad(`${cluster} :: ${namespace}`)))
-                await command(io, cluster, namespace)
+                try {
+                    await command(io, cluster, namespace)
+                } catch (e) {
+                    io.error(e)
+                }
             }
         }
     }
@@ -239,33 +248,24 @@ async function snapshotCommand(io: IO, cluster: string, namespace?: string) {
     io.out(`Saving snapshot`)
     for (const deployment of snapshot.deployments) {
         await call(configModule.saveArtifact)({
-            data: deployment.data,
-            name: deployment.name,
-            path: `${cluster}/${namespace}/deployments`
+            path: `${cluster}/${namespace}/deployments`,
+            artifact: {
+                name: deployment.name,
+                data: deployment.data
+            }
         })
     }
 }
 
 async function applySnapshotCommand(io: IO, cluster: string, namespace?: string) {
-    const deployments: DeploymentSnapshot[] = []
-    const knownDeployments = await load(call(clusterModule.deployments)({ cluster, namespace }))
-
-    for (const deployment of knownDeployments) {
-        io.out(`Loading snapshot for ${deployment.name}`)
-        const snapshot = await load(call(configModule.loadArtifact)({
-            name: deployment.name,
-            path: `${cluster}/${namespace}/deployments`
-        }))
-        if (snapshot !== undefined) {
-            deployments.push({
-                name: deployment.name,
-                data: snapshot
-            })
-        }
+    console.log(`${cluster}/${namespace}/deployments`)
+    const knownArtifacts = await load(call(configModule.listArtifacts)(`${cluster}/${namespace}/deployments`))
+    for (const artifact of knownArtifacts) {
+        io.out(`Found snapshot for ${artifact.name}`)
     }
     await call(clusterModule.applySnapshot)({
         group: { cluster, namespace },
-        snapshot: { deployments }
+        snapshot: { deployments: knownArtifacts }
     })
 }
 
@@ -420,7 +420,6 @@ export async function printHelp(io: IO, error?: Error) {
     const CLI_TITLE = chalk.bold.underline('Spacegun-CLI')
     const CLI_DESCRIPTION = 'Space age deployment manager'
     const CLI_USAGE = 'Usage: \`spacegun <command> [options ...]\`'
-
     const HELP_HEADER = `
         ${b('/\\')} ${c('*')}    
        ${b('/__\\')}     ${CLI_TITLE}   ${b(`version ${process.env.VERSION}`)}
@@ -430,47 +429,48 @@ export async function printHelp(io: IO, error?: Error) {
    ${b('/__\\')}${m('/__\\')}     ${CLI_USAGE}
   ${b('/\\')}  ${m('/')}    ${m('\\')}
 `
-    io.out(HELP_HEADER)
 
     if (error !== undefined) {
-        io.out(c("An error occured"))
-        io.out(c(error.message))
-        io.out("")
+        io.out("spacegun version " + b(process.env.VERSION || "") + " encountered an error")
+        io.out(m(error.message))
+        io.out(error.stack || "")
     } else {
+        io.out(HELP_HEADER)
+
         const clusters = await call(clusterModule.clusters)()
         io.out('configured clusters: ' + m(clusters.join(", ")))
 
         const endpoint = await call(imageModule.endpoint)()
         io.out('configured image endpoint: ' + m(endpoint))
-    }
 
-    io.out('')
-    io.out(chalk.bold.underline('Available Commands'))
-    io.out(pad("namespaces", 2) + chalk.bold(pad("lists all namespaces of all known clusters", 10)))
-    io.out(pad("pods", 2) + chalk.bold(pad("a summary of all pods of all known clusters", 10)))
-    io.out(pad("snapshot", 2) + chalk.bold(pad("take a snapshot of the cluster and save it as an artifact", 10)))
-    io.out(pad("apply", 2) + chalk.bold(pad("apply the snapshot of the cluster", 10)))
-    io.out(pad("images", 2) + chalk.bold(pad("a list of all images in the docker registry", 10)))
-    io.out(pad("deployments", 2) + chalk.bold(pad("a summary of all deployements of all known clusters", 10)))
-    io.out(pad("deploy", 2) + chalk.bold(pad("opens an interactive dialog to deploy an image", 10)))
-    io.out(pad("restart", 2) + chalk.bold(pad("opens an interactive dialog to restart a deployment", 10)))
-    io.out(pad("scalers", 2) + chalk.bold(pad("a summary of all scalers of all known clusters", 10)))
-    io.out(pad("pipelines", 2) + chalk.bold(pad("a summary of all pipelines", 10)))
-    io.out(pad("pipelineSchedules", 2) + chalk.bold(pad("the next executions of a pipeline", 10)))
-    io.out(pad("run", 2) + chalk.bold(pad("run a pipeline manually", 10)))
-    io.out(pad("help", 2) + chalk.bold(pad("renders this summary", 10)))
-    io.out('')
-    io.out(chalk.bold.underline('General Options'))
-    io.out(pad("version, b", 2) + chalk.bold(pad("renders the current version", 10)))
-    io.out(pad("help, h", 2) + chalk.bold(pad("renders this summary", 10)))
-    io.out(pad("config", 2) + chalk.bold(pad("path to the config.yml. Default: `config.yml`", 10)))
-    io.out('')
-    io.out(chalk.bold.underline('Interactive Options'))
-    io.out(pad("yes, y", 2) + chalk.bold(pad("answer accept prompts with yes", 10)))
-    io.out(pad("cluster, c", 2) + chalk.bold(pad("answer cluster prompts with given value", 10)))
-    io.out(pad("namespace, n", 2) + chalk.bold(pad("answer namespace prompts with given value", 10)))
-    io.out(pad("pipeline, p", 2) + chalk.bold(pad("answer pipeline prompts with given value", 10)))
-    io.out(pad("tag, t", 2) + chalk.bold(pad("answer tag prompts with given value", 10)))
+        io.out('')
+        io.out(chalk.bold.underline('Available Commands'))
+        io.out(pad("namespaces", 2) + chalk.bold(pad("lists all namespaces of all known clusters", 10)))
+        io.out(pad("pods", 2) + chalk.bold(pad("a summary of all pods of all known clusters", 10)))
+        io.out(pad("snapshot", 2) + chalk.bold(pad("take a snapshot of the cluster and save it as an artifact", 10)))
+        io.out(pad("apply", 2) + chalk.bold(pad("apply the snapshot of the cluster", 10)))
+        io.out(pad("images", 2) + chalk.bold(pad("a list of all images in the docker registry", 10)))
+        io.out(pad("deployments", 2) + chalk.bold(pad("a summary of all deployements of all known clusters", 10)))
+        io.out(pad("deploy", 2) + chalk.bold(pad("opens an interactive dialog to deploy an image", 10)))
+        io.out(pad("restart", 2) + chalk.bold(pad("opens an interactive dialog to restart a deployment", 10)))
+        io.out(pad("scalers", 2) + chalk.bold(pad("a summary of all scalers of all known clusters", 10)))
+        io.out(pad("pipelines", 2) + chalk.bold(pad("a summary of all pipelines", 10)))
+        io.out(pad("pipelineSchedules", 2) + chalk.bold(pad("the next executions of a pipeline", 10)))
+        io.out(pad("run", 2) + chalk.bold(pad("run a pipeline manually", 10)))
+        io.out(pad("help", 2) + chalk.bold(pad("renders this summary", 10)))
+        io.out('')
+        io.out(chalk.bold.underline('General Options'))
+        io.out(pad("version, b", 2) + chalk.bold(pad("renders the current version", 10)))
+        io.out(pad("help, h", 2) + chalk.bold(pad("renders this summary", 10)))
+        io.out(pad("config", 2) + chalk.bold(pad("path to the config.yml. Default: `config.yml`", 10)))
+        io.out('')
+        io.out(chalk.bold.underline('Interactive Options'))
+        io.out(pad("yes, y", 2) + chalk.bold(pad("answer accept prompts with yes", 10)))
+        io.out(pad("cluster, c", 2) + chalk.bold(pad("answer cluster prompts with given value", 10)))
+        io.out(pad("namespace, n", 2) + chalk.bold(pad("answer namespace prompts with given value", 10)))
+        io.out(pad("pipeline, p", 2) + chalk.bold(pad("answer pipeline prompts with given value", 10)))
+        io.out(pad("tag, t", 2) + chalk.bold(pad("answer tag prompts with given value", 10)))
+    }
 }
 
 export async function printVersion(io: IO) {

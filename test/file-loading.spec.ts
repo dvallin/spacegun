@@ -1,12 +1,14 @@
-import { load, save } from "../src/file-loading"
+import { load, save, list } from "../src/file-loading"
 
 const mockReadFile = jest.fn()
+const mockListFiles = jest.fn()
 const mockWriteFile = jest.fn()
 const mockMkdir = jest.fn()
 let mockMkdirError: Error | undefined = undefined
 
 jest.mock("fs", () => ({
     readFileSync: (path: string) => mockReadFile(path),
+    readdirSync: (path: string) => mockListFiles(path),
     writeFileSync: (path: string, data: string) => mockWriteFile(path, data)
 }))
 
@@ -43,5 +45,17 @@ describe(save.name, () => {
         mockMkdirError = new Error("some issue happened")
 
         return expect(save("some/path/file.yml", testObject)).rejects.toMatchSnapshot()
+    })
+})
+
+describe(list.name, () => {
+
+    it("loads yaml files", () => {
+        mockListFiles.mockReturnValue(["file1.yml", "file2.yml"])
+
+        const files = list("test/test-config/config.yml")
+
+        expect(files).toEqual(["file1.yml", "file2.yml"])
+        expect(mockListFiles).toHaveBeenCalledWith("test/test-config/config.yml")
     })
 })

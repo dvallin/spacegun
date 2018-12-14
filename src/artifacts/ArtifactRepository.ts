@@ -1,5 +1,7 @@
+import { Artifact } from "./model/Artifact"
+
 export interface ArtifactRepository {
 
-    saveArtifact(name: string, path: string, data: object): Promise<void>
-    loadArtifact(name: string, path: string): Promise<object | undefined>
+    saveArtifact(path: string, artifact: Artifact): Promise<void>
+    listArtifacts(path: string): Promise<Artifact[]>
 }

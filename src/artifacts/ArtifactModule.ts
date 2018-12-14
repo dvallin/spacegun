@@ -5,6 +5,7 @@ import { Layers } from "../dispatcher/model/Layers"
 import { Methods } from "../dispatcher/model/Methods"
 
 import { ArtifactRepository } from "./ArtifactRepository"
+import { Artifact } from "./model/Artifact"
 
 let repo: ArtifactRepository | undefined = undefined
 export function init(artifactRepository: ArtifactRepository) {
@@ -12,8 +13,7 @@ export function init(artifactRepository: ArtifactRepository) {
 }
 
 export interface SaveArtifactParameters {
-    data: object
-    name: string
+    artifact: Artifact
     path: string
 }
 
@@ -26,25 +26,22 @@ export const saveArtifact: Request<SaveArtifactParameters, void> = {
     module: "artifacts",
     procedure: "saveArtifact",
     input: (input: SaveArtifactParameters | undefined) => RequestInput.ofData(
-        input!.data, ["path", input!.path], ["name", input!.name]
+        input!.artifact.data, ["path", input!.path], ["name", input!.artifact.name]
     ),
     mapper: (input: RequestInput) => ({
-        data: input.data,
-        name: input.params!["name"] as string,
-        path: input.params!["path"] as string
+        path: input.params!["path"] as string,
+        artifact: {
+            data: input.data,
+            name: input.params!["name"] as string
+        }
     })
 }
 
-export const loadArtifact: Request<LoadArtifactParameters, object | undefined> = {
+export const listArtifacts: Request<string, Artifact[]> = {
     module: "artifacts",
-    procedure: "loadArtifact",
-    input: (input: LoadArtifactParameters | undefined) => RequestInput.of(
-        ["path", input!.path], ["name", input!.name]
-    ),
-    mapper: (input: RequestInput) => ({
-        name: input.params!["name"] as string,
-        path: input.params!["path"] as string
-    })
+    procedure: "listArtifacts",
+    input: (input: string | undefined) => RequestInput.of(["path", input!]),
+    mapper: (input: RequestInput) => input.params!["path"] as string
 }
 
 export class Module {
@@ -56,16 +53,16 @@ export class Module {
         mapper: saveArtifact.mapper
     })
     [saveArtifact.procedure](params: SaveArtifactParameters): Promise<void> {
-        return repo!.saveArtifact(params.name, params.path, params.data)
+        return repo!.saveArtifact(params.path, params.artifact)
     }
 
     @Component({
-        moduleName: loadArtifact.module,
+        moduleName: listArtifacts.module,
         layer: Layers.Standalone,
-        method: Methods.Post,
-        mapper: loadArtifact.mapper
+        method: Methods.Get,
+        mapper: listArtifacts.mapper
     })
-    [loadArtifact.procedure](params: LoadArtifactParameters): Promise<object | undefined> {
-        return repo!.loadArtifact(params.name, params.path)
+    [listArtifacts.procedure](path: string | undefined): Promise<Artifact[]> {
+        return repo!.listArtifacts(path!)
     }
 }

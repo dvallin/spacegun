@@ -506,12 +506,10 @@ describe("commands", () => {
             await commands.apply(emptyOptions, createIO())
 
             // then
-            expect(mockDispatched).toHaveBeenCalledTimes(6)
+            expect(mockDispatched).toHaveBeenCalledTimes(4)
             expect(mockDispatched).toBeCalledWith("cluster", "clusters")
             expect(mockDispatched).toBeCalledWith("cluster", "namespaces")
-            expect(mockDispatched).toBeCalledWith("cluster", "deployments")
-            expect(mockDispatched).toBeCalledWith("artifacts", "loadArtifact")
-            expect(mockDispatched).toBeCalledWith("artifacts", "loadArtifact")
+            expect(mockDispatched).toBeCalledWith("artifacts", "listArtifacts")
             expect(mockDispatched).toBeCalledWith("cluster", "applySnapshot")
         })
     })
