@@ -20,6 +20,21 @@ describe('out', () => {
     })
 })
 
+describe('out', () => {
+    it('should print to console', () => {
+        // given
+        jest.spyOn(global.console, 'error')
+        const io: IO = new IO()
+        const error = new Error('test message for out')
+
+        // when
+        io.error(error)
+
+        // then
+        expect(console.error).toHaveBeenCalledWith(error)
+    })
+})
+
 describe('expect', () => {
 
     it('should print question', async () => {

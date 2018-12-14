@@ -31,6 +31,10 @@ export class IO {
         })
     }
 
+    public error(e: Error) {
+        console.error(e)
+    }
+
     public out(text: string) {
         console.log(text)
     }

@@ -1,5 +1,5 @@
 import { safeLoad, safeDump } from "js-yaml"
-import { readFileSync, writeFileSync } from "fs"
+import { readFileSync, writeFileSync, readdirSync } from "fs"
 import * as mkdirp from "mkdirp"
 import { parse } from "path"
 
@@ -19,4 +19,8 @@ export function save(filePath: string, data: object): Promise<void> {
             }
         })
     })
+}
+
+export function list(filePath: string): string[] {
+    return readdirSync(filePath)
 }

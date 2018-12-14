@@ -172,8 +172,12 @@ export class JobsRepositoryImpl implements JobsRepository {
             plannedDeployments.push(...deployments)
         } else {
             for (const namespace of namespaces) {
-                const deployments = await this.planDeployments(pipeline, namespace)
-                plannedDeployments.push(...deployments)
+                try {
+                    const deployments = await this.planDeployments(pipeline, namespace)
+                    plannedDeployments.push(...deployments)
+                } catch (e) {
+                    this.io.error(e)
+                }
             }
         }
         return plannedDeployments
