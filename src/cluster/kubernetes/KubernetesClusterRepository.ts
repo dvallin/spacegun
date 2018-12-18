@@ -8,6 +8,8 @@ import {
     V1PodStatus
 } from '@kubernetes/client-node'
 
+import * as moment from "moment"
+
 const cloneDeep = require("lodash.clonedeep")
 
 import { Pod } from "../model/Pod"
@@ -74,10 +76,10 @@ export class KubernetesClusterRepository implements ClusterRepository {
                 restarts = item.status.containerStatuses[0].restartCount
             }
             const ready = this.isReady(item.status)
+            const createdAt = moment(item.metadata.creationTimestamp).valueOf()
             return {
                 name: item.metadata.name,
-                creationTimeMS: item.metadata.creationTimestamp.getTime(),
-                image, restarts, ready
+                createdAt, image, restarts, ready
             }
         })
     }
@@ -229,6 +231,9 @@ export class KubernetesClusterRepository implements ClusterRepository {
         const target = this.minifyDeployment(response.body)
         replacer(target)
 
+        if (target.spec.template.metadata.annotations === undefined) {
+            target.spec.template.metadata.annotations = {}
+        }
         target.spec.template.metadata.annotations["spacegun.deployment"] = Date.now().toString()
 
         let result = await api.replaceNamespacedDeployment(deployment.name, namespace, target)
@@ -241,7 +246,9 @@ export class KubernetesClusterRepository implements ClusterRepository {
 
     private minifyDeployment(deployment: V1beta2Deployment): V1beta2Deployment {
         // delete spacegun related annotations
-        delete deployment.spec.template.metadata.annotations["spacegun.deployment"]
+        if (deployment.spec.template.metadata.annotations !== undefined) {
+            delete deployment.spec.template.metadata.annotations["spacegun.deployment"]
+        }
 
         return {
             metadata: {

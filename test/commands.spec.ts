@@ -111,28 +111,28 @@ describe("commands", () => {
                         image: undefined,
                         restarts: undefined,
                         ready: true,
-                        creationTimeMS: withAgeOf(1, "day")
+                        createdAt: withAgeOf(1, "day")
                     },
                     {
                         name: "service2",
                         image: { url: "url1" },
                         restarts: 1,
                         ready: false,
-                        creationTimeMS: withAgeOf(2, "days")
+                        createdAt: withAgeOf(2, "days")
                     },
                     {
                         name: "service3",
                         image: undefined,
                         restarts: 11,
                         ready: true,
-                        creationTimeMS: withAgeOf(3, "days")
+                        createdAt: withAgeOf(3, "days")
                     },
                     {
                         name: "service4",
                         image: { url: "url2" },
                         restarts: 111,
                         ready: false,
-                        creationTimeMS: withAgeOf(4, "days")
+                        createdAt: withAgeOf(4, "days")
                     }
                 ])
             let output: string[] = []
