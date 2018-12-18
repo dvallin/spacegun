@@ -4,8 +4,12 @@ import { readFileSync, readdirSync } from "fs"
 import { PipelineDescription } from "./model/PipelineDescription"
 import { StepDescription } from "./model/Step"
 
-export function load(path: string = "./jobs"): Map<string, PipelineDescription> {
-    const files = readdirSync(path)
+export function load(path: string = "./pipelines"): Map<string, PipelineDescription> {
+    let files: string[] = []
+    try {
+        files = readdirSync(path)
+    } catch (e) {
+    }
     const jobs: Map<string, PipelineDescription> = new Map()
     for (const file of files) {
         const name = file.split(".")[0]

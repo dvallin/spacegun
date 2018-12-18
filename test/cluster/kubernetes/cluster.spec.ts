@@ -72,14 +72,14 @@ describe("KubernetesClusterProvider", () => {
             expect(pods).toEqual([
                 {
                     image: image1,
-                    creationTimeMS: moment({ year: 2018, month: 11, day: 16 }).valueOf(),
+                    createdAt: moment({ year: 2018, month: 11, day: 16 }).valueOf(),
                     name: "pod1",
                     restarts: 0,
                     ready: true
                 },
                 {
                     image: image2,
-                    creationTimeMS: moment({ year: 2018, month: 11, day: 15 }).valueOf(),
+                    createdAt: moment({ year: 2018, month: 11, day: 15 }).valueOf(),
                     name: "pod2",
                     restarts: 1,
                     ready: false
