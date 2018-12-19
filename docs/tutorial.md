@@ -1,34 +1,16 @@
-# Tutorial
+# How to aim a Spacegun at your localhost
+In this tutorial I will guide you through a fun little local setup with minikube and help you get your feet wet in creating and managing Kubernetes deployments with Spacegun.
 ## Installation and local setup
 To install spacegun, you can run `npm install spacegun`. This will install a standalone, a server and a client version of spacegun.
 
-For starters, spacegun needs two things configured. A kubernetes cluster and a docker registry.
+For starters, spacegun needs two things configured. A kubernetes cluster and a docker registry. If you already have a kubernetes and a docker registry running somewhere you can skip this part. 
 
-Let's create a docker registry locally and add an image to it! You can skip this part, if you already have a docker registry at your disposal
+### Start a minikube instance
+So let us start creating a kubernetes cluster! Spacegun might pick up your kubeconfig automatically. For testing purposes we will use *minikube*. You can install it from [here](https://kubernetes.io/docs/tasks/tools/install-minikube/).
 
-TODO ----> this does not play well with minikube, try to create it like [this](https://blog.hasura.io/sharing-a-local-registry-for-minikube-37c7240d0615)
+Now start a cluster with `minikube start`. It will download what feels like the whole internet and start a bunch of images. If it feels like the command is frozen, just give it some more time. Minikube does not perceive time they way you do. If the command still feels frozen, you are probably fine.
 
-```
-docker run -d -p 5000:5000 --restart always --name registry registry:2
-docker pull nginx
-docker tag nginx localhost:5000/nginx
-docker push docker.io/dvallin/nginx
-```
-The first line starts a docker registry and the last three lines publish an image to the local repository.
-
-To configure spacegun against this docker registry, create a config.yml like this
-
-```
-docker: http://localhost:5000
-```
-If you run `spacegun images` from the same folder as this configuration file, you will get a list of all images in the repository. (Which is only the nginx image)
-
-<---- TODO 
-
-
-Spacegun deploys to a kubernetes, remember? So we should create one! If you already have a kubernetes running somewhere you can skip this part. Spacegun might pick up your kubeconfig automatically. For testing purposes we will use *minikube*. You can install it from [here](https://kubernetes.io/docs/tasks/tools/install-minikube/) (trust me, it is good fun).
-
-Now start a cluster with `minikube start`. It will download what feels like the whole internet and start a bunch of images. If you list the kubernetes nodes you should see something like this
+Try to list the kubernetes nodes.
 
 ```
 > kubectl config use-context minikube
@@ -39,7 +21,49 @@ NAME       STATUS   ROLES    AGE   VERSION
 minikube   Ready    master   2m    v1.10.0
 ```
 
-Running `spacegun` will give you a output similar to
+### The docker registry and port forwarding
+
+To create a docker registry you could just run
+
+```
+docker run -d -p 5000:5000 --restart always --name registry registry:2`
+```
+
+That would create a docker registry accessible via your console at `localhost:5000` but not from within the kubernetes cluster. Instead of telling kuberntes how to reach your machine, we will create a docker registry inside kubernetes. The people from hasura.io have a nice [solution](https://blog.hasura.io/sharing-a-local-registry-for-minikube-37c7240d0615) for that.
+
+Just grap the `kube-registry.yaml` from [this](https://gist.github.com/coco98/b750b3debc6d517308596c248daf3bb1) gist and create it in your Kubernetes
+
+```
+kubectl create -f kube-registry.yaml
+```
+
+Let us push an image into the repository. The easiest way to do that (and one that also works on MacOS) is to ssh into minikube
+
+```
+minkube ssh
+docker pull nginx
+docker tag nginx localhost:5000/nginx
+docker push localhost:5000/nginx
+```
+
+Now you can establish the a port-foward 
+
+```
+kubectl port-forward --namespace kube-system \ 
+   $(kubectl get po -n kube-system | grep kube-registry-v0 | \
+   awk '{print $1;}') 5000:5000
+```
+So your machine's `localhost:5000` will be forwarded to the docker registry in your kubernetes. Now you can even view the content of the repository in your [browser](http://localhost:5000/v2/_catalog).
+
+### Configure spacegun
+
+Spacegun should automatically pick up your Kubernetes configuration. To configure spacegun against the docker registry, create a config.yml like this
+
+```
+docker: http://localhost:5000
+```
+
+Running `spacegun` from the directory of the configuration, will give you an output similar to
 
 ```
         /\ *
@@ -54,7 +78,10 @@ configured clusters: minikube
 configured image endpoint: http://localhost:5000
 [...]
 ```
-Spacegun is configured and ready to rock! In the next chapter we will look at how to create a new deployment from scratch using spacegun. But for now let us just create one with `kubectl` and update it with spacegun!
+
+## Deploy things
+
+Spacegun is configured and ready to rock! How you can create Kubernetes deployments using Spaceguns artifacts is described in the next chapter, but let us create one with manually with `kubectl` for now. Will update it with spacegun afterwards!
 
 ```
 kubectl create -f https://k8s.io/examples/controllers/nginx-deployment.yaml
@@ -65,11 +92,13 @@ If you run `spacegun pods` now, you will see a lot of internal pods of kubernete
 ```
 > spacegun pods
 minikube :: default
-pod name                                image url                               starts  status  age
-nginx-deployment-86d59dd769-6vzkw       nginx:1.15.4                            0       up      16 minutes
-nginx-deployment-86d59dd769-btdvr       nginx:1.15.4                            0       up      16 minutes
-nginx-deployment-86d59dd769-hs9xr       nginx:1.15.4                            0       up      16 minutes
+pod name                                starts  status  age         image url                               
+nginx-deployment-86d59dd769-6vzkw       0       up      16 minutes  nginx:1.15.4                           
+nginx-deployment-86d59dd769-btdvr       0       up      16 minutes  nginx:1.15.4                            
+nginx-deployment-86d59dd769-hs9xr       0       up      16 minutes  nginx:1.15.4                           
 ```
+
+If your `nginx` pods are listed as `down!` that is because they are actually down and currently starting up. Using kubectl this is not all that obvious to see! Another nice metric is the `starts` column. This is the number of times kubernetes had to restart the pod. If your pod is up but has been restarted too often lately you might have [OOM](https://en.wikipedia.org/wiki/Out_of_memory) issues.
 
 Now let us try to make an interactive deployment of the nginx image we previously pushed to the docker registry
 
@@ -93,10 +122,10 @@ deployment name                         image url
 nginx-deployment                        localhost:5000/nginx:latest@sha256:87e9b6904b4286b8d41bba4461c0b736835fcc218f7ecbe5544b53fdd467189f
 ```
 
-
+And voilà as the french say, the pods are running the image we previously pushed into our local repository. 
 
 ## Migration and Bootstrapping
-Ok, now that we have tested out spacegun a bit, let us configure an actual deployment pipeline! If you already have clusters running some deployments, just run `spacegun snapshot` and spacegun will create a representation of your whole cluster. This might look similar to:
+Ok, now that we have tested out spacegun a bit, let us configure an actual deployment pipeline! First let us take a snapshot of the cluster we are running.
 
 ```
 > spacegun snapshot
@@ -112,4 +141,47 @@ artifacts
             └── nginx-deployment.yml
 ```
 
-If you edit the `nginx-deployement.yml` file (for example you could set `spec.replicas: 2`), spacegun will change the deployment if you run `spacegun apply`.
+Spacegun created a representation of the `minikube` cluster. If you edit the `nginx-deployement.yml` file (for example you could set `spec.replicas: 2`), spacegun will change the deployment if you run `spacegun apply`. So adding environment variables and changiing the replication factor is actually pretty straight-forward.
+
+Now let us create a Pipeline that will keep the docker registry in sync with your kubernetes cluster. To do so we create a file `pipelines/deployment1.yml` relative to your configuration file.
+
+```
+cluster: minikube
+start: "planStep"
+steps:
+- name: "planStep"
+  type: "planImageDeployment"
+  tag: "latest"
+  onSuccess: "applyStep"
+- name: "applyStep"
+  type: "applyDeployment"
+  onSuccess: "snapshot1"
+```
+
+You can try it out with `spacegun run` but it will tell you that there is nothing to deploy since we already deployed the newest version of `nginx` manually in the previous chapter. So let's push a fresh image.
+
+```
+minikube ssh
+docker pull ubuntu
+docker tag ubuntu localhost:5000/nginx
+docker push localhost:5000/nginx
+```
+Now there is definitely another image. `spacegun run` will yield something like
+
+```
+> spagun run
+Choose the target pipeline
+0: deployment1
+> 0
+planning image deployment nginx-deployment in deployment1
+planning finished. 1 deployments are planned.
+planned deployment deployment1
+nginx-deployment localhost:5000/nginx:latest@someHash => localhost:5000/nginx:latest@someOtherHash
+Answer `yes` to apply.
+> yes
+sucessfully updated nginx-deployment with image
+ {"url":"localhost:5000/nginx:latest@sha256: someOtherHash","name":"nginx"}
+```
+
+I spared you the obnoxious hashes in the image names, but the idea is there. You could run a deployment pipeline, it detected that there is another image with the `latest` tag in the docker registry and Spacegun updated the deployment.
+

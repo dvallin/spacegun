@@ -86,7 +86,7 @@ function getURLText(image: Image | undefined): string {
     if (image === undefined) {
         urlText = chalk.bold.magenta(pad("missing", 5))
     } else {
-        urlText = pad(image.url, 5)
+        urlText = pad(image.url.substr(0), 5)
     }
     return urlText;
 }
@@ -99,19 +99,19 @@ async function podsCommand(io: IO, cluster: string, namespace?: string) {
     const pods = await load(call(clusterModule.pods)({ cluster, namespace }))
     io.out(chalk.bold(
         pad("pod name", 5) +
-        pad("image url", 5) +
         pad("starts", 1) +
         pad("status", 1) +
-        pad("age", 1)
+        pad("age", 2) +
+        pad("image url", 5)
     ))
     pods.forEach(pod => {
-        const age: string = pad(moment(pod.createdAt).fromNow(true), 1)
+        const age: string = pad(moment(pod.createdAt).fromNow(true), 2)
         io.out(
             pad(pod.name, 5) +
-            getURLText(pod.image) +
             getRestartText(pod.restarts) +
             getReadyText(pod.ready) +
-            age
+            age +
+            getURLText(pod.image)
         )
     })
 }
