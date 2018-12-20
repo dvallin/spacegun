@@ -27,7 +27,6 @@ export class PlanImageDeployment {
                 console.error(`${targetDeployment.name} in cluster ${group.cluster} has no image, so spacegun cannot determine the right image source`)
                 continue
             }
-            console.log(this.tag, targetDeployment.image)
             const image = await call(imageModule.image)({
                 tag: this.tag!,
                 name: targetDeployment.image.name
