@@ -18,6 +18,10 @@ Straight-forward deployment management to get your docker images to kubernetes, 
 
 ## Getting Started
 
+There is a neat [tutorial](https://github.com/dvallin/spacegun/blob/master/docs/tutorial.md)
+
+## Installing
+
 If you only want the cli you can install it with
 
 ```
@@ -26,7 +30,7 @@ npm install -g spacegun
 
 and then run it from the console. You will have `spacegun`, `spg` and `spacegun-server` as commands available in your console. These are the standalone, client and server builds respectively.
 
-### Installing
+### Build the sources
 
 Just run 
 

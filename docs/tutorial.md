@@ -1,9 +1,9 @@
 # How to aim a Spacegun at your localhost
 In this tutorial I will guide you through a fun little local setup with minikube and help you get your feet wet in creating and managing Kubernetes deployments with Spacegun.
 ## Installation and local setup
-To install spacegun, you can run `npm install spacegun`. This will install a standalone, a server and a client version of spacegun.
+To install Spacegun, you can run `npm install -g spacegun`. This will install a standalone, a server and a client version of Spacegun.
 
-For starters, spacegun needs two things configured. A kubernetes cluster and a docker registry. If you already have a kubernetes and a docker registry running somewhere you can skip this part. 
+For starters, Spacegun needs two things configured. A kubernetes cluster and a docker registry. If you already have a kubernetes and a docker registry running somewhere you can skip this part. 
 
 ### Start a minikube instance
 So let us start creating a kubernetes cluster! Spacegun might pick up your kubeconfig automatically. For testing purposes we will use *minikube*. You can install it from [here](https://kubernetes.io/docs/tasks/tools/install-minikube/).
@@ -57,7 +57,7 @@ So your machine's `localhost:5000` will be forwarded to the docker registry in y
 
 ### Configure spacegun
 
-Spacegun should automatically pick up your Kubernetes configuration. To configure spacegun against the docker registry, create a config.yml like this
+Spacegun should automatically pick up your Kubernetes configuration. To configure Spacegun against the docker registry, create a config.yml like this
 
 ```
 docker: http://localhost:5000
@@ -87,7 +87,7 @@ Spacegun is configured and ready to rock! How you can create Kubernetes deployme
 kubectl create -f https://k8s.io/examples/controllers/nginx-deployment.yaml
 ```
 
-If you run `spacegun pods` now, you will see a lot of internal pods of kubernetes so add `namespaces: ["default"]` to your config.yml. This will whitelist kuberntes namespaces for spacegun. Now you should get something like
+If you run `spacegun pods` now, you will see a lot of internal pods of kubernetes so add `namespaces: ["default"]` to your config.yml. This will whitelist kuberntes namespaces for Spacegun. Now you should get something like
 
 ```
 > spacegun pods
@@ -141,7 +141,7 @@ artifacts
             └── nginx-deployment.yml
 ```
 
-Spacegun created a representation of the `minikube` cluster. If you edit the `nginx-deployement.yml` file (for example you could set `spec.replicas: 2`), spacegun will change the deployment if you run `spacegun apply`. So adding environment variables and changiing the replication factor is actually pretty straight-forward.
+Spacegun created a representation of the `minikube` cluster. If you edit the `nginx-deployement.yml` file (for example you could set `spec.replicas: 2`), Spacegun will change the deployment if you run `spacegun apply`. So adding environment variables and changiing the replication factor is actually pretty straight-forward.
 
 Now let us create a Pipeline that will keep the docker registry in sync with your kubernetes cluster. To do so we create a file `pipelines/deployment1.yml` relative to your configuration file.
 
@@ -185,3 +185,9 @@ sucessfully updated nginx-deployment with image
 
 I spared you the obnoxious hashes in the image names, but the idea is there. You could run a deployment pipeline, it detected that there is another image with the `latest` tag in the docker registry and Spacegun updated the deployment.
 
+Now if you want to create a new deployment, you would create a new YAML file in the artifacts folder. You could also copy an existing file over and rename it. A simple `spacegun apply` will create the deployment in Kubernetes for you. Migration from your current cluster to a new one is also pretty easy. If you would migrate from `minikube` to `actualCluster` you would rename the folder `artifacts/minikube` to `artifacts/actualCluster` and the next `spacegun apply` will create all resources in the new cluster.
+
+## What to do next?
+This is the end of this tutorial. I hope you got a better understanding of operating Spacegun. But there are a few more things to do. To fully automate Spacegun you will need to deploy a `spacegun-server` instance and have all your configuration files in a git repository. The [README](https://github.com/dvallin/spacegun/blob/master/README.md) should show you how to configure those. You might also want to integrate a [Slack hook](https://api.slack.com/incoming-webhooks) as soon as possible.
+
+We also have [issues](https://github.com/dvallin/spacegun/issues) you might want to work on. 
