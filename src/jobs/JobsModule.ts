@@ -12,10 +12,6 @@ import { Cron } from "./model/Cron"
 let repo: JobsRepository | undefined = undefined
 export function init(jobs: JobsRepository) {
     repo = jobs
-
-    if (process.env.LAYER === Layers.Server) {
-        repo.start()
-    }
 }
 
 export const pipelines: Request<void, PipelineDescription[]> = {

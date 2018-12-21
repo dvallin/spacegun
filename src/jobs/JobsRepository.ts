@@ -10,5 +10,4 @@ export interface JobsRepository {
     plan(name: string): Promise<JobPlan>
     schedules(name: string): Promise<Cron | undefined>
     apply(plan: JobPlan): Promise<void>
-    start(): Promise<void>
 }

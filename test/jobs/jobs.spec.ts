@@ -239,13 +239,4 @@ describe("JobsRepositoryImpl", () => {
         expect(crons!.name).toEqual("i->1")
         expect(crons!.nextRuns).toHaveLength(5)
     })
-
-    it("starts scheduled cron jobs", async () => {
-        // when
-        await repo.start()
-
-        // then
-        const crons = await repo.schedules("i->1")
-        expect(crons!.isStarted).toBeTruthy()
-    })
 })

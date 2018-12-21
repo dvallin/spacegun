@@ -8,7 +8,6 @@ import { JobsRepository } from "../../src/jobs/JobsRepository"
 
 const planMock = jest.fn()
 const applyMock = jest.fn()
-const startMock = jest.fn()
 const schedulesMock = jest.fn()
 const list: PipelineDescription[] = [
     { name: "job1", cluster: "cluster1", steps: [], start: "" },
@@ -21,8 +20,7 @@ const repo: JobsRepository = {
 
     plan: planMock,
     schedules: schedulesMock,
-    apply: applyMock,
-    start: startMock,
+    apply: applyMock
 }
 
 init(repo)

@@ -3,19 +3,19 @@ import { CronJob } from "cron"
 
 import { IO } from "../IO"
 import { Cron } from "./model/Cron"
-import { IPromise } from "rx";
+import { IPromise } from "rx"
 
 export class CronRegistry {
     public readonly cronJobs: Map<string, CronJob> = new Map()
     public readonly running: Map<string, IPromise<void>> = new Map()
     private readonly io: IO = new IO()
 
-    public register(name: string, cronTab: string, promiseProvider: () => IPromise<void>, started: boolean = false) {
+    public register(name: string, cronTab: string, promiseProvider: () => IPromise<void>, start: boolean = false) {
         const cron = new CronJob(
             cronTab,
             () => this.executeTask(name, promiseProvider),
             () => { },
-            started,
+            start,
             "UTC"
         )
         this.cronJobs.set(name, cron)

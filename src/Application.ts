@@ -46,6 +46,7 @@ export class Application {
             this.initialize(config)
 
             runDispatcher(config.server.host, config.server.port)
+
             if (process.env.LAYER === Layers.Standalone || process.env.LAYER === Layers.Client) {
                 await commands[this.options.command](this.options, this.io)
             }
@@ -54,32 +55,26 @@ export class Application {
         }
     }
 
-    public async checkForConfigChange(git: GitConfigRepository) {
+    public async checkForConfigChange(git: GitConfigRepository): Promise<void> {
         const hasNewConfig = await git.hasNewConfig()
         if (hasNewConfig) {
             this.io.out('New config found. Will try to load it.')
             await git.fetchNewConfig()
-            this.crons.removeAllCrons()
-            this.reload()
+            await this.applyConfiguration()
         }
     }
 
-    private reload(): void {
+    private async applyConfiguration(): Promise<void> {
         try {
             const config = loadConfig(this.options.config)
-            this.initialize(config)
-            commands.apply(this.options, this.io)
+            await this.initialize(config)
+            await commands.apply(this.options, this.io)
         } catch (e) {
             this.io.out(`could not reload config ${e.message}`)
         }
     }
 
-    private initialize(config: Config) {
-        const gitRepo = gitRepoFromConfig(config)
-        if (gitRepo !== undefined) {
-            this.crons.register("config-reload", config.git!.cron, () => this.checkForConfigChange(gitRepo))
-        }
-
+    private async initialize(config: Config): Promise<void> {
         initArtifacts(artifactRepoFromConfig(config))
         initViews(config)
         initEvents([
@@ -87,6 +82,18 @@ export class Application {
         ])
         initCluster(KubernetesClusterRepository.fromConfig(config.kube, config.namespaces))
         initImages(DockerImageRepository.fromConfig(config.docker))
-        initJobs(JobsRepositoryImpl.fromConfig(config.pipelines, this.crons))
+
+        const jobs = JobsRepositoryImpl.fromConfig(config.pipelines, this.crons)
+        initJobs(jobs)
+
+        if (process.env.LAYER === Layers.Server) {
+            this.crons.removeAllCrons()
+            const gitRepo = gitRepoFromConfig(config)
+            if (gitRepo !== undefined) {
+                await this.checkForConfigChange(gitRepo)
+                this.crons.register("config-reload", config.git!.cron, () => this.checkForConfigChange(gitRepo))
+            }
+            this.crons.startAllCrons()
+        }
     }
 }
