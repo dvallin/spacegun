@@ -55,10 +55,6 @@ export class JobsRepositoryImpl implements JobsRepository {
         return Promise.resolve(this.cronRegistry.get(name))
     }
 
-    public async start(): Promise<void> {
-        this.cronRegistry.startAllCrons()
-    }
-
     public get crons(): Cron[] {
         return this.cronRegistry.crons
     }

@@ -10,7 +10,7 @@ import { CronRegistry } from "../src/crons/CronRegistry"
 import { GitConfigRepository, fromConfig } from "../src/config/git/GitConfigRepository"
 
 import { Options } from "../src/options"
-import { Config, loadConfig } from "../src/config";
+import { Config, loadConfig } from "../src/config"
 
 describe("Application", () => {
 
@@ -48,12 +48,15 @@ describe("Application", () => {
         app.options.config = "test/test-config/config.yml"
         process.env.LAYER = Layers.Server
 
+        app.checkForConfigChange = jest.fn().mockReturnValue(Promise.resolve())
         await app.run()
 
         expect(app.crons.register).toHaveBeenCalledTimes(3)
-        expect(callParameters(app.crons.register, 0)[0]).toEqual("config-reload")
-        expect(callParameters(app.crons.register, 1)[0]).toEqual("dev")
-        expect(callParameters(app.crons.register, 2)[0]).toEqual("pre")
+        expect(callParameters(app.crons.register, 0)[0]).toEqual("dev")
+        expect(callParameters(app.crons.register, 1)[0]).toEqual("pre")
+        expect(callParameters(app.crons.register, 2)[0]).toEqual("config-reload")
+        expect(app.crons.removeAllCrons).toHaveBeenCalledTimes(1)
+        expect(app.crons.startAllCrons).toHaveBeenCalledTimes(1)
     })
 
     it("reloads the cronjobs", async () => {
@@ -67,9 +70,27 @@ describe("Application", () => {
         await app.checkForConfigChange(configRepo)
 
         expect(app.crons.register).toHaveBeenCalledTimes(3)
-        expect(callParameters(app.crons.register, 0)[0]).toEqual("config-reload")
-        expect(callParameters(app.crons.register, 1)[0]).toEqual("dev")
-        expect(callParameters(app.crons.register, 2)[0]).toEqual("pre")
+        expect(callParameters(app.crons.register, 0)[0]).toEqual("dev")
+        expect(callParameters(app.crons.register, 1)[0]).toEqual("pre")
+        expect(callParameters(app.crons.register, 2)[0]).toEqual("config-reload")
+        expect(app.crons.removeAllCrons).toHaveBeenCalledTimes(1)
+        expect(app.crons.startAllCrons).toHaveBeenCalledTimes(1)
+    })
+
+    it("applies the current configuration", async () => {
+        app.options.config = "test/test-config/config.yml"
+        process.env.LAYER = Layers.Server
+
+        const configRepo: GitConfigRepository = fromConfig(createConfig())!
+        configRepo.hasNewConfig = () => (Promise.resolve(true))
+        configRepo.fetchNewConfig = () => (Promise.resolve())
+
+        await app.checkForConfigChange(configRepo)
+
+        expect(app.crons.register).toHaveBeenCalledTimes(3)
+        expect(callParameters(app.crons.register, 0)[0]).toEqual("dev")
+        expect(callParameters(app.crons.register, 1)[0]).toEqual("pre")
+        expect(callParameters(app.crons.register, 2)[0]).toEqual("config-reload")
         expect(app.crons.removeAllCrons).toHaveBeenCalledTimes(1)
     })
 })
