@@ -5,6 +5,13 @@ steps:
 - name: "plan1"
   type: "planImageDeployment"
   tag: "latest"
+  filter:
+    namespaces:
+      - "namespace1"
+      - "namespace2"
+    deployments:
+      - "deployment1"
+      - "deployment2"
   onSuccess: "apply1"
 
 - name: "apply1"

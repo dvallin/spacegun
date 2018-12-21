@@ -100,7 +100,7 @@ export class JobsRepositoryImpl implements JobsRepository {
 
         switch (step.type) {
             case "planClusterDeployment": {
-                const instance = new PlanClusterDeployment(step.name, step.cluster!)
+                const instance = new PlanClusterDeployment(step.name, step.cluster!, step.filter)
                 const input = inStream as Observable<{ group: ServerGroup, deployments: Deployment[] }>
                 const output: Observable<DeploymentPlan> = input
                     .flatMap(s => instance.plan(s.group, s.deployments))
@@ -109,7 +109,7 @@ export class JobsRepositoryImpl implements JobsRepository {
                 break
             }
             case "planImageDeployment": {
-                const instance = new PlanImageDeployment(step.name, step.cluster!)
+                const instance = new PlanImageDeployment(step.name, step.cluster!, step.filter)
                 const input = inStream as Observable<{ group: ServerGroup, deployments: Deployment[] }>
                 const output: Observable<DeploymentPlan> = input
                     .flatMap(s => instance.plan(s.group, s.deployments))

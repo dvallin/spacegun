@@ -148,6 +148,27 @@ The steps `rollback`, `takeSnapshot` and `clusterProbe` are exemplary and will b
 
 If `cron` is not present the server will not create a cronjob and the deployment needs to be manually run by a client.
 
+#### Deploy a subset of your cluster
+
+The planning steps can be filtered on namespaces and deployments.
+```
+- name: "plan1"
+  type: "planImageDeployment"
+  tag: "latest"
+  filter:
+    namespaces:
+      - "namespace1"
+      - "namespace2"
+    deployments:
+      - "deployment1"
+      - "deployment2"
+      - "deployment3"
+  onSuccess: "apply1"
+```
+This planning step would only run for two namespaces and in each namespace only update the three deployments listed. Note that this makes sense if you do not have deployments that are uniquely named, else you could omit filtering by namespaces.
+
+Note that once you use filtering in one deployment pipeline, you likely have to add filtering to all your deployments. It might be a good idea, to have such special deployments running in a separated namespace and you might even manage them using a dedicated Spacegun instance.
+
 ### Git
 All configuration files can be maintained in a git repository. Spacegun can be configured to poll for changes and will automatically load them while runing.
 
