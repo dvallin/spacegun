@@ -41,9 +41,6 @@ jest.mock("../../src/dispatcher/index", () => ({
                     case "deployments": {
                         return (input: { cluster: string }) => Promise.resolve(mockDeployments[input.cluster])
                     }
-                    case "deployments": {
-                        return (input: { cluster: string }) => Promise.resolve(mockDeployments[input.cluster])
-                    }
                     case "namespaces": {
                         return (input: { cluster: string }) => Promise.resolve(mockNamespaces[input.cluster])
                     }

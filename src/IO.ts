@@ -31,7 +31,7 @@ export class IO {
         })
     }
 
-    public error(e: Error) {
+    public error(e: Error | string) {
         console.error(e)
     }
 

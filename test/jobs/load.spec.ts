@@ -13,7 +13,11 @@ describe("job loading", () => {
             cron: "0 */5 * * * MON-FRI",
             start: "plan1",
             steps: [
-                { name: "plan1", type: "planImageDeployment", tag: "latest", onSuccess: "apply1" },
+                {
+                    name: "plan1", type: "planImageDeployment",
+                    tag: "latest", onSuccess: "apply1",
+                    filter: { deployments: ["deployment1", "deployment2"], namespaces: ["namespace1", "namespace2"] }
+                },
                 { name: "apply1", type: "applyDeployment" }
             ]
         })

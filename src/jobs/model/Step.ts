@@ -1,3 +1,5 @@
+import { Filter } from "./Filter"
+
 export type StepType = "clusterProbe" | "planImageDeployment" | "planClusterDeployment" | "applyDeployment" | "takeSnapshot" | "rollback"
 
 export interface StepDescription {
@@ -6,6 +8,7 @@ export interface StepDescription {
     readonly onSuccess?: string
     readonly onFailure?: string
 
+    readonly filter?: Partial<Filter>
     readonly tag?: string       // planImageDeployment
     readonly cluster?: string   // planClusterDeployment
     readonly hook?: string      // clusterProbe

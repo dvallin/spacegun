@@ -7,24 +7,33 @@ import * as imageModule from "../../images/ImageModule"
 import { DeploymentPlan } from "../model/DeploymentPlan"
 import { Deployment } from "../../cluster/model/Deployment"
 import { ServerGroup } from "../../cluster/model/ServerGroup"
+import { Filter, matchesDeployment, matchesServerGroup } from "../model/Filter"
 
 export type FetchedDeployment = {}
 
 export class PlanImageDeployment {
 
-    private readonly io: IO = new IO()
+    public readonly io: IO = new IO()
 
     public constructor(
         readonly name: string,
-        readonly tag: string
+        readonly tag: string,
+        readonly filter?: Partial<Filter>
     ) { }
 
     public async plan(group: ServerGroup, targetDeployments: Deployment[]): Promise<DeploymentPlan[]> {
+        if (!matchesServerGroup(this.filter, group)) {
+            return []
+        }
+
         const deployments: DeploymentPlan[] = []
         for (const targetDeployment of targetDeployments) {
+            if (!matchesDeployment(this.filter, targetDeployment)) {
+                continue
+            }
             this.io.out(`planning image deployment ${targetDeployment.name} in ${this.name}`)
             if (targetDeployment.image === undefined) {
-                console.error(`${targetDeployment.name} in cluster ${group.cluster} has no image, so spacegun cannot determine the right image source`)
+                this.io.error(`${targetDeployment.name} in cluster ${group.cluster} has no image, so spacegun cannot determine the right image source`)
                 continue
             }
             const image = await call(imageModule.image)({
