@@ -1,0 +1,5 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`PlanImageDeployment tag resolution throws an error if it cannot match a single tag 1`] = `[Error: Could not find a tag for deployment deployment1 in cluster targetCluster, namespace namespace]`;
+
+exports[`PlanImageDeployment tag resolution throws an error if it cannot match a unique tag 1`] = `[Error: Could not find a tag for deployment deployment1 in cluster targetCluster, namespace namespace]`;

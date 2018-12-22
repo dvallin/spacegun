@@ -10,6 +10,7 @@ export interface StepDescription {
 
     readonly filter?: Partial<Filter>
     readonly tag?: string       // planImageDeployment
+    readonly semanticTagExtractor?: string | RegExp // planImageDeployment
     readonly cluster?: string   // planClusterDeployment
     readonly hook?: string      // clusterProbe
 }

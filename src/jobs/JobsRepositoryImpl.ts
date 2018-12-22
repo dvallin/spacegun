@@ -105,7 +105,7 @@ export class JobsRepositoryImpl implements JobsRepository {
                 break
             }
             case "planImageDeployment": {
-                const instance = new PlanImageDeployment(step.name, step.cluster!, step.filter)
+                const instance = new PlanImageDeployment(step.name, step.tag!, step.semanticTagExtractor, step.filter)
                 const input = inStream as Observable<{ group: ServerGroup, deployments: Deployment[] }>
                 const output: Observable<DeploymentPlan> = input
                     .flatMap(s => instance.plan(s.group, s.deployments))
@@ -184,7 +184,7 @@ export class JobsRepositoryImpl implements JobsRepository {
         let planStepDescription = pipeline.steps.find(s => s.type === "planImageDeployment" || s.type === "planClusterDeployment")
         if (planStepDescription !== undefined) {
             if (planStepDescription.type === "planImageDeployment") {
-                planStep = new PlanImageDeployment(pipeline.name, planStepDescription.tag!)
+                planStep = new PlanImageDeployment(pipeline.name, planStepDescription.tag, planStepDescription.semanticTagExtractor)
             } else {
                 planStep = new PlanClusterDeployment(pipeline.name, planStepDescription.cluster!)
             }

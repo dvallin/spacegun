@@ -1,6 +1,14 @@
 import { printHelp } from "../src/commands"
 jest.mock("../src/commands")
 
+jest.mock("simple-git/promise", () => (() => ({})))
+
+jest.mock("../src/config/git/GitConfigRepository", () => ({
+    fromConfig: () => ({
+        hasNewConfig: () => Promise.resolve(false)
+    })
+}))
+
 import { IO } from "../src/IO"
 
 import { Layers } from "../src/dispatcher/model/Layers"

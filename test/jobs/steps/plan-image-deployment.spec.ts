@@ -6,6 +6,9 @@ import { Deployment } from "../../../src/cluster/model/Deployment"
 import { Image } from "../../../src/images/model/Image"
 
 let mockImages: { [name: string]: Image } = {}
+let mockTags: { [name: string]: string[] } = {}
+
+const mockImageRequest = jest.fn()
 
 jest.mock("../../../src/dispatcher/index", () => ({
     get: jest.fn(),
@@ -14,7 +17,13 @@ jest.mock("../../../src/dispatcher/index", () => ({
             case "images": {
                 switch (request.procedure) {
                     case "image": {
-                        return (input: { name: string, tag: string }) => Promise.resolve(mockImages[input.name])
+                        return (input: { name: string, tag: string }) => {
+                            mockImageRequest(input)
+                            return Promise.resolve(mockImages[input.name])
+                        }
+                    }
+                    case "tags": {
+                        return (input: { name: string }) => Promise.resolve(mockTags[input.name])
                     }
                 }
                 break
@@ -28,9 +37,12 @@ jest.mock("../../../src/dispatcher/index", () => ({
 
 describe(PlanImageDeployment.name, () => {
 
+    beforeEach(() => {
+        mockImageRequest.mockReset()
+    })
 
     const group: ServerGroup = { cluster: "targetCluster", namespace: "namespace" }
-    const step = new PlanImageDeployment("name", "sourceCluster", {
+    const step = new PlanImageDeployment("name", "latest", undefined, {
         namespaces: ["namespace"],
         deployments: ["deployment1"]
     })
@@ -101,5 +113,83 @@ describe(PlanImageDeployment.name, () => {
 
         // then
         expect(plan).toEqual([])
+    })
+
+    describe("tag resolution", () => {
+
+        const latestImage = { name: "image1", tag: "latest", url: "url1" }
+
+        it("uses the defined tag if present", async () => {
+            // given
+            mockImages = { image1: latestImage }
+            const step = new PlanImageDeployment("name", "latest", undefined, undefined)
+
+            // when
+            const plan = await step.plan(group, targetDeployments)
+
+            // then
+            expect(plan[0].image).toEqual(latestImage)
+        })
+
+        it("uses the lexicographically largest tag", async () => {
+            // given
+            mockTags = { image1: ["a", "b", "c"] }
+            mockImages = { image1: latestImage }
+            const step = new PlanImageDeployment("name", undefined, undefined, undefined)
+
+            // when
+            const plan = await step.plan(group, targetDeployments)
+
+            // then
+            expect(mockImageRequest).toHaveBeenCalledWith({ name: "image1", tag: "c" })
+            expect(plan[0].image).toEqual(latestImage)
+        })
+
+        it("uses the matching tag", async () => {
+            // given
+            mockTags = { image1: ["someTag", "latest"] }
+            mockImages = { image1: latestImage }
+            const step = new PlanImageDeployment("name", undefined, "latest", undefined)
+
+            // when
+            const plan = await step.plan(group, targetDeployments)
+
+            // then
+            expect(mockImageRequest).toHaveBeenCalledWith({ name: "image1", tag: "latest" })
+            expect(plan[0].image).toEqual(latestImage)
+        })
+
+        it("extracts the matching part and uses the lexicographically largest one", async () => {
+            // given
+            mockTags = { image1: ["latest1", "latest2", "latest3", "latest4"] }
+            mockImages = { image1: latestImage }
+            const step = new PlanImageDeployment("name", undefined, "latest.", undefined)
+
+            // when
+            const plan = await step.plan(group, targetDeployments)
+
+            // then
+            expect(mockImageRequest).toHaveBeenCalledTimes(1)
+            expect(mockImageRequest).toHaveBeenCalledWith({ name: "image1", tag: "latest4" })
+            expect(plan[0].image).toEqual(latestImage)
+        })
+
+        it("throws an error if it cannot match a single tag", async () => {
+            // given
+            mockTags = { image1: ["notLatest", "otherTag", "coolTag"] }
+            const step = new PlanImageDeployment("name", undefined, "latest.", undefined)
+
+            // when /
+            expect(step.plan(group, targetDeployments)).rejects.toMatchSnapshot()
+        })
+
+        it("throws an error if it cannot match a unique tag", async () => {
+            // given
+            mockTags = { image1: ["latest1", "latest2"] }
+            const step = new PlanImageDeployment("name", undefined, "latest", undefined)
+
+            // when / then
+            expect(step.plan(group, targetDeployments)).rejects.toMatchSnapshot()
+        })
     })
 })

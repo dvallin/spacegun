@@ -3,6 +3,8 @@ import { Layers } from "../../../src/dispatcher/model/Layers"
 
 import { GitConfig, Config } from "../../../src/config/index"
 
+jest.mock("simple-git/promise", () => (() => ({})))
+
 describe("GitConfigRepository", () => {
 
     beforeEach(() => {
@@ -53,12 +55,14 @@ describe("GitConfigRepository", () => {
             })
 
             it("returns false if status is not behind", async () => {
+                repo.git.fetch = jest.fn().mockReturnValue(Promise.resolve())
                 repo.git.checkIsRepo = jest.fn().mockReturnValue(Promise.resolve(true))
                 repo.git.status = jest.fn().mockReturnValue(Promise.resolve({ behind: 0 }))
 
                 const newConfig = await repo.hasNewConfig()
 
                 expect(newConfig).toBeFalsy()
+                expect(repo.git.fetch).toHaveBeenCalledTimes(1)
                 expect(repo.git.checkIsRepo).toHaveBeenCalledTimes(1)
                 expect(repo.git.status).toHaveBeenCalledTimes(1)
             })

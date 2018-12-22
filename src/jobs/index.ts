@@ -61,10 +61,6 @@ export function validateStep(step: Partial<StepDescription>, name: string, clust
             break
         }
         case "planImageDeployment":
-            if (step.tag === undefined) {
-                throw new Error(`in step ${step.name} of job ${name} the tag is missing`)
-            }
-            break
         case "applyDeployment":
         case "takeSnapshot":
         case "rollback":
@@ -75,6 +71,6 @@ export function validateStep(step: Partial<StepDescription>, name: string, clust
     return {
         name: step.name!, type: step.type!,
         onSuccess: step.onSuccess, onFailure: step.onFailure,
-        cluster: step.cluster, tag: step.tag, hook: step.hook, filter: step.filter
+        cluster: step.cluster, tag: step.tag, hook: step.hook, filter: step.filter, semanticTagExtractor: step.semanticTagExtractor
     }
 }

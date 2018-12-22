@@ -193,7 +193,7 @@ describe("JobsRepositoryImpl", () => {
                 image: { name: "image1", url: "imageUrl:tag1:digest1" },
                 name: "service1"
             },
-            image: { name: "image1", url: "image1:undefined:otherDigest" },
+            image: { name: "image1", url: "image1:latest:otherDigest", tag: "latest" },
             group: { cluster: "cluster1" }
         })
     })
