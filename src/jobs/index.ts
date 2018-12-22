@@ -60,6 +60,7 @@ export function validateStep(step: Partial<StepDescription>, name: string, clust
             }
             break
         }
+        case "logError":
         case "planImageDeployment":
         case "applyDeployment":
         case "takeSnapshot":

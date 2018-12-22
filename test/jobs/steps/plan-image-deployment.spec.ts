@@ -55,10 +55,10 @@ describe(PlanImageDeployment.name, () => {
         mockImages = { image1: { name: "image1", tag: "tag", url: "url1" } }
 
         // when
-        const plan = await step.plan(group, targetDeployments)
+        const plan = await step.plan(group, "pipeline1", targetDeployments)
 
         // then
-        expect(plan).toEqual([
+        expect(plan.deployments).toEqual([
             {
                 deployment: { name: "deployment1", image: { name: "image1", url: "url2" } },
                 group: { cluster: "targetCluster", namespace: "namespace" },
@@ -72,10 +72,10 @@ describe(PlanImageDeployment.name, () => {
         mockImages = { image1: { name: "image1", tag: "tag", url: "url2" } }
 
         // when
-        const plan = await step.plan(group, targetDeployments)
+        const plan = await step.plan(group, "pipeline1", targetDeployments)
 
         // then
-        expect(plan).toEqual([])
+        expect(plan.deployments).toEqual([])
     })
 
     it("ignores deployments that do not match", async () => {
@@ -83,10 +83,10 @@ describe(PlanImageDeployment.name, () => {
         mockImages = { image1: { name: "image1", tag: "tag", url: "url1" } }
 
         // when
-        const plan = await step.plan(group, [{ name: "deployment2", image: { name: "image1", url: "url2" } }])
+        const plan = await step.plan(group, "pipeline1", [{ name: "deployment2", image: { name: "image1", url: "url2" } }])
 
         // then
-        expect(plan).toEqual([])
+        expect(plan.deployments).toEqual([])
     })
 
     it("ignores deployments that have not image", async () => {
@@ -95,10 +95,10 @@ describe(PlanImageDeployment.name, () => {
         mockImages = { image1: { name: "image1", tag: "tag", url: "url1" } }
 
         // when
-        const plan = await step.plan(group, [{ name: "deployment1" }])
+        const plan = await step.plan(group, "pipeline1", [{ name: "deployment1" }])
 
         // then
-        expect(plan).toEqual([])
+        expect(plan.deployments).toEqual([])
         expect(step.io.error).toHaveBeenCalledWith(
             "deployment1 in cluster targetCluster has no image, so spacegun cannot determine the right image source"
         )
@@ -109,10 +109,10 @@ describe(PlanImageDeployment.name, () => {
         mockImages = { image1: { name: "image1", tag: "tag", url: "url1" } }
 
         // when
-        const plan = await step.plan({ cluster: "cluster", namespace: "other" }, targetDeployments)
+        const plan = await step.plan({ cluster: "cluster", namespace: "other" }, "pipeline1", targetDeployments)
 
         // then
-        expect(plan).toEqual([])
+        expect(plan.deployments).toEqual([])
     })
 
     describe("tag resolution", () => {
@@ -125,10 +125,10 @@ describe(PlanImageDeployment.name, () => {
             const step = new PlanImageDeployment("name", "latest", undefined, undefined)
 
             // when
-            const plan = await step.plan(group, targetDeployments)
+            const plan = await step.plan(group, "pipeline1", targetDeployments)
 
             // then
-            expect(plan[0].image).toEqual(latestImage)
+            expect(plan.deployments[0].image).toEqual(latestImage)
         })
 
         it("uses the lexicographically largest tag", async () => {
@@ -138,11 +138,11 @@ describe(PlanImageDeployment.name, () => {
             const step = new PlanImageDeployment("name", undefined, undefined, undefined)
 
             // when
-            const plan = await step.plan(group, targetDeployments)
+            const plan = await step.plan(group, "pipeline1", targetDeployments)
 
             // then
             expect(mockImageRequest).toHaveBeenCalledWith({ name: "image1", tag: "c" })
-            expect(plan[0].image).toEqual(latestImage)
+            expect(plan.deployments[0].image).toEqual(latestImage)
         })
 
         it("uses the matching tag", async () => {
@@ -152,11 +152,11 @@ describe(PlanImageDeployment.name, () => {
             const step = new PlanImageDeployment("name", undefined, "latest", undefined)
 
             // when
-            const plan = await step.plan(group, targetDeployments)
+            const plan = await step.plan(group, "pipeline1", targetDeployments)
 
             // then
             expect(mockImageRequest).toHaveBeenCalledWith({ name: "image1", tag: "latest" })
-            expect(plan[0].image).toEqual(latestImage)
+            expect(plan.deployments[0].image).toEqual(latestImage)
         })
 
         it("extracts the matching part and uses the lexicographically largest one", async () => {
@@ -166,12 +166,12 @@ describe(PlanImageDeployment.name, () => {
             const step = new PlanImageDeployment("name", undefined, "latest.", undefined)
 
             // when
-            const plan = await step.plan(group, targetDeployments)
+            const plan = await step.plan(group, "pipeline1", targetDeployments)
 
             // then
             expect(mockImageRequest).toHaveBeenCalledTimes(1)
             expect(mockImageRequest).toHaveBeenCalledWith({ name: "image1", tag: "latest4" })
-            expect(plan[0].image).toEqual(latestImage)
+            expect(plan.deployments[0].image).toEqual(latestImage)
         })
 
         it("throws an error if it cannot match a single tag", async () => {
@@ -180,7 +180,7 @@ describe(PlanImageDeployment.name, () => {
             const step = new PlanImageDeployment("name", undefined, "latest.", undefined)
 
             // when /
-            expect(step.plan(group, targetDeployments)).rejects.toMatchSnapshot()
+            expect(step.plan(group, "pipeline1", targetDeployments)).rejects.toMatchSnapshot()
         })
 
         it("throws an error if it cannot match a unique tag", async () => {
@@ -189,7 +189,7 @@ describe(PlanImageDeployment.name, () => {
             const step = new PlanImageDeployment("name", undefined, "latest", undefined)
 
             // when / then
-            expect(step.plan(group, targetDeployments)).rejects.toMatchSnapshot()
+            expect(step.plan(group, "pipeline1", targetDeployments)).rejects.toMatchSnapshot()
         })
     })
 })

@@ -8,23 +8,23 @@ import { DeploymentPlan } from "../model/DeploymentPlan"
 import { Deployment } from "../../cluster/model/Deployment"
 import { ServerGroup } from "../../cluster/model/ServerGroup"
 import { Filter, matchesDeployment, matchesServerGroup } from "../model/Filter"
+import { JobPlan } from "../model/JobPlan";
 
 export type FetchedDeployment = {}
 
 export class PlanImageDeployment {
 
-    public readonly io: IO = new IO()
-
     public constructor(
         readonly name: string,
         readonly tag: string | undefined,
         readonly semanticTagExtractor: RegExp | string | undefined,
-        readonly filter?: Partial<Filter>
+        readonly filter?: Partial<Filter>,
+        readonly io: IO = new IO()
     ) { }
 
-    public async plan(group: ServerGroup, targetDeployments: Deployment[]): Promise<DeploymentPlan[]> {
+    public async plan(group: ServerGroup, name: string, targetDeployments: Deployment[]): Promise<JobPlan> {
         if (!matchesServerGroup(this.filter, group)) {
-            return []
+            return { name, deployments: [] }
         }
 
         const deployments: DeploymentPlan[] = []
@@ -60,7 +60,7 @@ export class PlanImageDeployment {
                 throw new Error(`Could not find a tag for deployment ${targetDeployment.name} in cluster ${group.cluster}, namespace ${group.namespace}`)
             }
         }
-        return deployments
+        return { name, deployments }
     }
 
     private getNewestTag(tags: string[]): string | undefined {

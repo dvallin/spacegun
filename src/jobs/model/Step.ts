@@ -1,6 +1,6 @@
 import { Filter } from "./Filter"
 
-export type StepType = "clusterProbe" | "planImageDeployment" | "planClusterDeployment" | "applyDeployment" | "takeSnapshot" | "rollback"
+export type StepType = "clusterProbe" | "planImageDeployment" | "planClusterDeployment" | "applyDeployment" | "takeSnapshot" | "rollback" | "logError"
 
 export interface StepDescription {
     readonly name: string

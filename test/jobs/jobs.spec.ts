@@ -60,6 +60,9 @@ jest.mock("../../src/dispatcher/index", () => ({
                             name: input.name, tag: input.tag, url: `${input.name}:${input.tag}:otherDigest`
                         })
                     }
+                    case "tags": {
+                        return () => Promise.reject(new Error())
+                    }
                 }
                 break
             }
@@ -223,6 +226,31 @@ describe("JobsRepositoryImpl", () => {
                     value: 'updated to image:tag:digest'
                 }]
         })
+    })
+
+    it("calls on failure", async () => {
+        // given
+        const pipeline: PipelineDescription = {
+            name: "pipeline",
+            cluster: "cluster2",
+            start: "step1",
+            steps: [
+                { name: "step1", onFailure: "step2", type: "planImageDeployment" },
+                { name: "step2", type: "logError" }
+            ]
+        }
+        const map = new Map()
+        map.set("pipeline", pipeline)
+        const jobs = new JobsRepositoryImpl(map, new CronRegistry())
+        jobs.io.out = jest.fn()
+        jobs.io.error = jest.fn()
+
+        // when
+        await jobs.run("pipeline").toPromise()
+
+        // then
+        expect(jobs.io.out).toHaveBeenCalled()
+        expect(jobs.io.error).toHaveBeenCalled()
     })
 
     it("returns scheduled cron jobs", async () => {
