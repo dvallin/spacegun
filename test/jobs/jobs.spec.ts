@@ -60,6 +60,9 @@ jest.mock("../../src/dispatcher/index", () => ({
                             name: input.name, tag: input.tag, url: `${input.name}:${input.tag}:otherDigest`
                         })
                     }
+                    case "tags": {
+                        return () => Promise.reject(new Error())
+                    }
                 }
                 break
             }
@@ -168,6 +171,14 @@ describe("JobsRepositoryImpl", () => {
         expect(deploymentPlan.deployment.image!.url).toBe("imageUrl:tag1:digest1")
     })
 
+    it("does not break if pipeline is unknown", async () => {
+        // when
+        await repo.run("notKnown").toPromise()
+
+        // then
+        expect(mockUpdateDeployment).not.toHaveBeenCalled()
+    })
+
     it("runs first pipeline", async () => {
         // when
         await repo.run("1->2").toPromise()
@@ -193,7 +204,7 @@ describe("JobsRepositoryImpl", () => {
                 image: { name: "image1", url: "imageUrl:tag1:digest1" },
                 name: "service1"
             },
-            image: { name: "image1", url: "image1:undefined:otherDigest" },
+            image: { name: "image1", url: "image1:latest:otherDigest", tag: "latest" },
             group: { cluster: "cluster1" }
         })
     })
@@ -223,6 +234,29 @@ describe("JobsRepositoryImpl", () => {
                     value: 'updated to image:tag:digest'
                 }]
         })
+    })
+
+    it("calls on failure", async () => {
+        // given
+        const pipeline: PipelineDescription = {
+            name: "pipeline",
+            cluster: "cluster2",
+            start: "step1",
+            steps: [
+                { name: "step1", onFailure: "step2", type: "planImageDeployment" },
+                { name: "step2", type: "logError" }
+            ]
+        }
+        const map = new Map()
+        map.set("pipeline", pipeline)
+        const jobs = new JobsRepositoryImpl(map, new CronRegistry())
+        jobs.io.error = jest.fn()
+
+        // when
+        await jobs.run("pipeline").toPromise()
+
+        // then
+        expect(jobs.io.error).toHaveBeenCalled()
     })
 
     it("returns scheduled cron jobs", async () => {

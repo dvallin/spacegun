@@ -41,10 +41,10 @@ describe(PlanClusterDeployment.name, () => {
         mockDeployments = { sourceCluster: [{ name: "deployment1", image: { name: "image1", url: "url1" } }] }
 
         // when
-        const plan = await step.plan(group, targetDeployments)
+        const plan = await step.plan(group, "pipeline1", targetDeployments)
 
         // then
-        expect(plan).toEqual([
+        expect(plan.deployments).toEqual([
             {
                 deployment: { name: "deployment1", image: { name: "image1", url: "url2" } },
                 group: { cluster: "targetCluster", namespace: "namespace" },
@@ -58,10 +58,10 @@ describe(PlanClusterDeployment.name, () => {
         mockDeployments = { sourceCluster: [{ name: "deployment1", image: { name: "image1", url: "url1" } }] }
 
         // when
-        const plan = await step.plan(group, [{ name: "deployment1", image: { name: "image1", url: "url1" } }])
+        const plan = await step.plan(group, "pipeline1", [{ name: "deployment1", image: { name: "image1", url: "url1" } }])
 
         // then
-        expect(plan).toEqual([])
+        expect(plan.deployments).toEqual([])
     })
 
     it("ignores deployments that do not match", async () => {
@@ -69,10 +69,10 @@ describe(PlanClusterDeployment.name, () => {
         mockDeployments = { sourceCluster: [{ name: "deployment2", image: { name: "image1", url: "url1" } }] }
 
         // when
-        const plan = await step.plan(group, [{ name: "deployment2", image: { name: "image1", url: "url2" } }])
+        const plan = await step.plan(group, "pipeline1", [{ name: "deployment2", image: { name: "image1", url: "url2" } }])
 
         // then
-        expect(plan).toEqual([])
+        expect(plan.deployments).toEqual([])
     })
 
     it("ignores deployments that cannot be found in source", async () => {
@@ -81,10 +81,10 @@ describe(PlanClusterDeployment.name, () => {
         mockDeployments = { sourceCluster: [{ name: "otherDeployment", image: { name: "image1", url: "url1" } }] }
 
         // when
-        const plan = await step.plan(group, targetDeployments)
+        const plan = await step.plan(group, "pipeline1", targetDeployments)
 
         // then
-        expect(plan).toEqual([])
+        expect(plan.deployments).toEqual([])
         expect(step.io.error).toHaveBeenCalledWith(
             "deployment1 in cluster targetCluster has no appropriate deployment in cluster sourceCluster"
         )
@@ -96,10 +96,10 @@ describe(PlanClusterDeployment.name, () => {
         mockDeployments = { sourceCluster: [{ name: "deployment1" }] }
 
         // when
-        const plan = await step.plan(group, targetDeployments)
+        const plan = await step.plan(group, "pipeline1", targetDeployments)
 
         // then
-        expect(plan).toEqual([])
+        expect(plan.deployments).toEqual([])
         expect(step.io.error).toHaveBeenCalledWith(
             "deployment1 in cluster targetCluster has no image"
         )
@@ -107,9 +107,9 @@ describe(PlanClusterDeployment.name, () => {
 
     it("does not plan if server group does not match", async () => {
         // when
-        const plan = await step.plan({ cluster: "cluster", namespace: "other" }, targetDeployments)
+        const plan = await step.plan({ cluster: "cluster", namespace: "other" }, "pipeline1", targetDeployments)
 
         // then
-        expect(plan).toEqual([])
+        expect(plan.deployments).toEqual([])
     })
 })

@@ -18,6 +18,10 @@ describe("job loading", () => {
                     tag: "latest", onSuccess: "apply1",
                     filter: { deployments: ["deployment1", "deployment2"], namespaces: ["namespace1", "namespace2"] }
                 },
+                {
+                    name: "plan2", type: "planImageDeployment",
+                    semanticTagExtractor: "/^\\d{4}\\-\\d{1,2}\\-\\d{1,2}$", onSuccess: "apply1"
+                },
                 { name: "apply1", type: "applyDeployment" }
             ]
         })
@@ -101,12 +105,8 @@ describe("validateSteps", () => {
 
     describe("planImageDeployment", () => {
 
-        it("ensures hook exists", () => {
-            expect(() => validateSteps([{ name: "stepName", type: "planImageDeployment" }], "jobname", "clustername")).toThrowErrorMatchingSnapshot()
-        })
-
         it("validates step", () => {
-            const step: StepDescription = { name: "stepName", type: "planImageDeployment", tag: "tag", onFailure: "failure", onSuccess: "success" }
+            const step: StepDescription = { name: "stepName", type: "planImageDeployment", onFailure: "failure", onSuccess: "success" }
             expect(validateSteps([step], "jobname", "clustername")).toEqual([step])
         })
     })

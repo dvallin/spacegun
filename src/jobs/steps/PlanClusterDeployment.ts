@@ -8,20 +8,20 @@ import { Deployment } from "../../cluster/model/Deployment"
 import { Filter, matchesServerGroup, matchesDeployment } from "../model/Filter"
 
 import { DeploymentPlan } from "../model/DeploymentPlan"
+import { JobPlan } from "../model/JobPlan"
 
 export class PlanClusterDeployment {
-
-    public readonly io: IO = new IO()
 
     public constructor(
         readonly name: string,
         readonly cluster: string,
-        readonly filter?: Partial<Filter>
+        readonly filter?: Partial<Filter>,
+        readonly io: IO = new IO()
     ) { }
 
-    public async plan(group: ServerGroup, targetDeployments: Deployment[]): Promise<DeploymentPlan[]> {
+    public async plan(group: ServerGroup, name: string, targetDeployments: Deployment[]): Promise<JobPlan> {
         if (!matchesServerGroup(this.filter, group)) {
-            return []
+            return { name, deployments: [] }
         }
 
         const sourceDeployments = await call(clusterModule.deployments)({
@@ -52,6 +52,6 @@ export class PlanClusterDeployment {
                 })
             }
         }
-        return deployments
+        return { name, deployments }
     }
 }

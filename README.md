@@ -169,6 +169,20 @@ This planning step would only run for two namespaces and in each namespace only 
 
 Note that once you use filtering in one deployment pipeline, you likely have to add filtering to all your deployments. It might be a good idea, to have such special deployments running in a separated namespace and you might even manage them using a dedicated Spacegun instance.
 
+#### Deciding which tag to deploy
+Spacegun will always check for image hash differences. So you if just want to deploy `latest` then do so like in the pipeline above. Spacegun will deploy only if the image that is actually behind that tag is different in the target cluster.
+
+The `tag` field is not mandatory, however. If you leave it out Spacegun will then deploy the lexicographically largest tag. So if you tag your images by unix timestamp, it will deploy the most recent tag. There is also the `semanticTagExtractor` field that can hold a regex or a plain string. Spacegun will extract the first match from the tag and sort using that extracted segment. If you have this step:
+
+```
+- name: "semanticPlan"
+  type: "planImageDeployment"
+  semanticTagExtractor: /^\d{4}\-\d{1,2}\-\d{1,2}$
+  onSuccess: "apply1"
+```
+
+Spacegun will extract a very simple Date format. Say you have tags `rev_98ac7cc9_2018-12-24`, `rev_5da58cc9_2018-12-25`, `rev_12ff8cff_2018-12-26`. Then Spacegun will extract the trailing dates and deploy tag that is lexicographically largest using this extracted sorting key. Which is `rev_12af8cff_2018-12-26`.
+
 ### Git
 All configuration files can be maintained in a git repository. Spacegun can be configured to poll for changes and will automatically load them while runing.
 

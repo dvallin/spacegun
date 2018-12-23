@@ -15,5 +15,3 @@ exports[`validateSteps ensures steps have name 1`] = `"a step of job jobname has
 exports[`validateSteps planClusterDeployment ensures cluster exists 1`] = `"in step stepName of job jobname the cluster expression is missing"`;
 
 exports[`validateSteps planClusterDeployment ensures cluster is not origin 1`] = `"in step stepName of job jobname the cluster expression cannot be the source"`;
-
-exports[`validateSteps planImageDeployment ensures hook exists 1`] = `"in step stepName of job jobname the tag is missing"`;

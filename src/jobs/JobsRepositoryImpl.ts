@@ -1,4 +1,5 @@
-import { Observable } from "rx"
+import { Observable, from, of, empty, OperatorFunction } from 'rxjs'
+import { map, mergeMap, catchError } from 'rxjs/operators'
 
 import { load } from "."
 import { PipelineDescription } from "./model/PipelineDescription"
@@ -19,14 +20,13 @@ import { IO } from "../IO"
 import { CronRegistry } from "../crons/CronRegistry"
 import { Layers } from "../dispatcher/model/Layers"
 
-import * as eventModule from "../events/EventModule"
-
 import { ServerGroup } from "../cluster/model/ServerGroup"
 import { Deployment } from "../cluster/model/Deployment"
+import { LogError } from "./steps/LogError"
 
 export class JobsRepositoryImpl implements JobsRepository {
 
-    private readonly io: IO = new IO()
+    public readonly io: IO = new IO()
 
     public static fromConfig(jobsPath: string, cronRegistry: CronRegistry): JobsRepositoryImpl {
         const jobs = load(jobsPath)
@@ -62,71 +62,66 @@ export class JobsRepositoryImpl implements JobsRepository {
     run(name: string): Observable<void> {
         const pipeline = this.pipelines.get(name)
         if (pipeline) {
-            return Observable.fromPromise(call(clusterModule.namespaces)(pipeline))
-                .flatMap(namespaces => {
+            return from(call(clusterModule.namespaces)(pipeline))
+                .pipe(mergeMap(namespaces => {
                     if (namespaces.length === 0) {
                         return this.runInNamespace(pipeline)
                     }
-                    return Observable
-                        .of(...namespaces)
-                        .flatMap(namespace => this.runInNamespace(pipeline, namespace))
-                })
-                .map(() => { })
+                    return of(...namespaces)
+                        .pipe(mergeMap(namespace => this.runInNamespace(pipeline, namespace)))
+                }))
         }
-        return Observable.of()
+        return empty()
     }
 
-    runInNamespace(pipeline: PipelineDescription, namespace?: string): Observable<object> {
+    runInNamespace(pipeline: PipelineDescription, namespace?: string): Observable<void> {
+        this.io.out("hit")
         const steps: { [name: string]: StepDescription } = {}
         for (const step of pipeline.steps) {
             steps[step.name] = step
         }
 
-        const serverGroups = Observable.just<ServerGroup>({ cluster: pipeline.cluster, namespace })
-        const deployments = serverGroups.flatMap(group => Observable
-            .fromPromise(call(clusterModule.deployments)(group))
-            .map(deployments => ({ group, deployments }))
-        )
-        return this.step(steps, pipeline.start, deployments as Observable<object>)
+        const serverGroups = of<ServerGroup>({ cluster: pipeline.cluster, namespace })
+        const deployments = serverGroups.pipe(mergeMap(group => from(call(clusterModule.deployments)(group))
+            .pipe(map(deployments => ({ group, deployments })))
+        ))
+        return this.step(steps, pipeline.start, deployments as Observable<object>).pipe(map(() => { }))
     }
 
     step(steps: { [name: string]: StepDescription }, name: string, inStream: Observable<object>): Observable<object> {
         const step = steps[name]
         let outStream: Observable<object>
-
+        let stepMapper: OperatorFunction<any, object>
         switch (step.type) {
             case "planClusterDeployment": {
-                const instance = new PlanClusterDeployment(step.name, step.cluster!, step.filter)
-                const input = inStream as Observable<{ group: ServerGroup, deployments: Deployment[] }>
-                const output: Observable<DeploymentPlan> = input
-                    .flatMap(s => instance.plan(s.group, s.deployments))
-                    .flatMap(arr => Observable.of(...arr))
-                outStream = output as Observable<object>
+                const instance = new PlanClusterDeployment(step.name, step.cluster!, step.filter, this.io)
+                stepMapper = mergeMap<{ group: ServerGroup, deployments: Deployment[] }, JobPlan>(s => instance.plan(s.group, name, s.deployments))
                 break
             }
             case "planImageDeployment": {
-                const instance = new PlanImageDeployment(step.name, step.cluster!, step.filter)
-                const input = inStream as Observable<{ group: ServerGroup, deployments: Deployment[] }>
-                const output: Observable<DeploymentPlan> = input
-                    .flatMap(s => instance.plan(s.group, s.deployments))
-                    .flatMap(arr => Observable.of(...arr))
-                outStream = output as Observable<object>
+                const instance = new PlanImageDeployment(step.name, step.tag!, step.semanticTagExtractor, step.filter, this.io)
+                stepMapper = mergeMap<{ group: ServerGroup, deployments: Deployment[] }, JobPlan>(s => instance.plan(s.group, name, s.deployments))
                 break
             }
             case "applyDeployment": {
-                const instance = new ApplyDeployment()
-                const input = inStream as Observable<DeploymentPlan>
-                outStream = input.flatMap(s => instance.apply(s)) as Observable<object>
+                const instance = new ApplyDeployment(this.io)
+                stepMapper = mergeMap(s => instance.apply(s))
+                break
+            }
+            case "logError": {
+                const instance = new LogError(this.io)
+                stepMapper = mergeMap(s => instance.apply(s))
                 break
             }
             default:
                 throw new Error(`step type ${step.type} not implemented`)
         }
+        outStream = inStream.pipe(
+            stepMapper,
+            catchError(e => this.step(steps, step.onFailure!, of(e)))
+        )
         if (step.onSuccess) {
             outStream = this.step(steps, step.onSuccess, outStream)
-        }
-        if (step.onFailure) {
-            outStream.doOnError(e => this.step(steps, step.onFailure!, Observable.just(e)))
         }
         return outStream
     }
@@ -137,54 +132,38 @@ export class JobsRepositoryImpl implements JobsRepository {
             throw new Error(`could not find job ${name}`)
         }
         const namespaces = await call(clusterModule.namespaces)(pipeline)
-        const deployments = await this.planDeploymentForNamespaces(pipeline, namespaces)
-        this.io.out(`planning finished. ${deployments.length} deployments are planned.`)
-        return {
-            name,
-            deployments
-        }
+        const plan = await this.planDeploymentForNamespaces(pipeline, namespaces)
+        this.io.out(`planning finished. ${plan.deployments.length} deployments are planned.`)
+        return plan
     }
 
     async apply(plan: JobPlan): Promise<void> {
-        for (const deployment of plan.deployments) {
-            await this.applyDeployment(deployment)
-        }
-        call(eventModule.log)({
-            message: `Applied pipeline ${plan.name}`,
-            timestamp: Date.now(),
-            topics: ["slack"],
-            description: `Applied ${plan.deployments.length} deployments while executing pipeline ${plan.name}`,
-            fields: plan.deployments.map(deployment => ({
-                title: `${deployment.group.cluster} ∞ ${deployment.group.namespace} ∞ ${deployment.deployment.name}`,
-                value: `updated to ${deployment.image.url}`
-            }))
-        })
+        new ApplyDeployment().apply(plan)
     }
 
-    async planDeploymentForNamespaces(pipeline: PipelineDescription, namespaces: string[]): Promise<DeploymentPlan[]> {
-        const plannedDeployments = []
+    async planDeploymentForNamespaces(pipeline: PipelineDescription, namespaces: string[]): Promise<JobPlan> {
         if (namespaces.length === 0) {
-            const deployments = await this.planDeployments(pipeline)
-            plannedDeployments.push(...deployments)
+            return await this.planDeployments(pipeline)
         } else {
+            const deployments: DeploymentPlan[] = []
             for (const namespace of namespaces) {
                 try {
-                    const deployments = await this.planDeployments(pipeline, namespace)
-                    plannedDeployments.push(...deployments)
+                    const plan = await this.planDeployments(pipeline, namespace)
+                    deployments.push(...plan.deployments)
                 } catch (e) {
                     this.io.error(e)
                 }
             }
+            return { name: pipeline.name, deployments }
         }
-        return plannedDeployments
     }
 
-    async planDeployments(pipeline: PipelineDescription, namespace?: string): Promise<DeploymentPlan[]> {
+    async planDeployments(pipeline: PipelineDescription, namespace?: string): Promise<JobPlan> {
         let planStep: PlanImageDeployment | PlanClusterDeployment
         let planStepDescription = pipeline.steps.find(s => s.type === "planImageDeployment" || s.type === "planClusterDeployment")
         if (planStepDescription !== undefined) {
             if (planStepDescription.type === "planImageDeployment") {
-                planStep = new PlanImageDeployment(pipeline.name, planStepDescription.tag!)
+                planStep = new PlanImageDeployment(pipeline.name, planStepDescription.tag, planStepDescription.semanticTagExtractor)
             } else {
                 planStep = new PlanClusterDeployment(pipeline.name, planStepDescription.cluster!)
             }
@@ -192,18 +171,13 @@ export class JobsRepositoryImpl implements JobsRepository {
             throw new Error("pipeline has no plan step")
         }
 
-        const serverGroups = Observable.just<ServerGroup>({ cluster: pipeline.cluster, namespace })
-        const deployments = serverGroups.flatMap(group =>
-            Observable
-                .fromPromise(call(clusterModule.deployments)(group))
-                .map(deployments => ({ group, deployments }))
-        )
-        return deployments
-            .flatMap(d => planStep.plan(d.group, d.deployments))
-            .toPromise()
-    }
-
-    async applyDeployment(plan: DeploymentPlan): Promise<Deployment> {
-        return new ApplyDeployment().apply(plan)
+        const serverGroups = of<ServerGroup>({ cluster: pipeline.cluster, namespace })
+        const deployments = serverGroups
+            .pipe(mergeMap(group =>
+                from(call(clusterModule.deployments)(group))
+                    .pipe(map(deployments => ({ group, deployments }))
+                    )
+            ))
+        return deployments.pipe(map(d => planStep.plan(d.group, pipeline.name, d.deployments))).toPromise()
     }
 }
