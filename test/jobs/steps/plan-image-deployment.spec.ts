@@ -174,6 +174,20 @@ describe(PlanImageDeployment.name, () => {
             expect(plan.deployments[0].image).toEqual(latestImage)
         })
 
+
+        it("works with more complex regex", async () => {
+            mockTags = { image1: ["ztag-2003-1-92", "aaatag-2020-10-01", "aaatag-2018-99-99"] }
+            mockImages = { image1: latestImage }
+            const step = new PlanImageDeployment("name", undefined, "\\d{4}\-\\d{1,2}\-\\d{1,2}$", undefined)
+
+            // when
+            await step.plan(group, "pipeline1", targetDeployments)
+
+            // then
+            expect(mockImageRequest).toHaveBeenCalledTimes(1)
+            expect(mockImageRequest).toHaveBeenCalledWith({ name: "image1", tag: "aaatag-2020-10-01" })
+        })
+
         it("throws an error if it cannot match a single tag", async () => {
             // given
             mockTags = { image1: ["notLatest", "otherTag", "coolTag"] }

@@ -17,7 +17,7 @@ export class PlanImageDeployment {
     public constructor(
         readonly name: string,
         readonly tag: string | undefined,
-        readonly semanticTagExtractor: RegExp | string | undefined,
+        readonly semanticTagExtractor: string | undefined,
         readonly filter?: Partial<Filter>,
         readonly io: IO = new IO()
     ) { }
@@ -64,22 +64,27 @@ export class PlanImageDeployment {
     }
 
     private getNewestTag(tags: string[]): string | undefined {
-        let sortableTags: string[]
+        let sortableTags: { key: string, tag: string }[]
         if (this.semanticTagExtractor !== undefined) {
-            sortableTags = tags.map(tag => tag.match(this.semanticTagExtractor!))
-                .filter(match => match !== null && match.length > 0)
-                .map(match => match![0])
+            const regex = new RegExp(this.semanticTagExtractor!)
+            sortableTags = tags.map(tag => {
+                const match = tag.match(regex)
+                if (match !== null && match.length > 0) {
+                    return { key: match[0], tag }
+                }
+                return null
+            }).filter(t => t != null) as { key: string, tag: string }[]
         } else {
-            sortableTags = tags
+            sortableTags = tags.map(tag => ({ key: tag, tag }))
         }
 
-        sortableTags.sort((a, b) => b.localeCompare(a))
+        sortableTags.sort((a, b) => b.key.localeCompare(a.key))
         if (sortableTags.length === 0) {
             return undefined
         }
-        if (sortableTags.length > 1 && sortableTags[0] === sortableTags[1]) {
+        if (sortableTags.length > 1 && sortableTags[0].key === sortableTags[1].key) {
             return undefined
         }
-        return sortableTags.length > 0 ? sortableTags[0] : undefined
+        return sortableTags.length > 0 ? sortableTags[0].tag : undefined
     }
 }

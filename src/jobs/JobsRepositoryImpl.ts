@@ -1,4 +1,4 @@
-import { Observable, from, of, empty } from 'rxjs'
+import { Observable, from, of, empty, OperatorFunction } from 'rxjs'
 import { map, mergeMap, catchError } from 'rxjs/operators'
 
 import { load } from "."
@@ -91,53 +91,37 @@ export class JobsRepositoryImpl implements JobsRepository {
     step(steps: { [name: string]: StepDescription }, name: string, inStream: Observable<object>): Observable<object> {
         const step = steps[name]
         let outStream: Observable<object>
-
+        let stepMapper: OperatorFunction<any, object>
         switch (step.type) {
             case "planClusterDeployment": {
                 const instance = new PlanClusterDeployment(step.name, step.cluster!, step.filter, this.io)
-                const input = inStream as Observable<{ group: ServerGroup, deployments: Deployment[] }>
-                outStream = input.pipe(
-                    mergeMap(s => instance.plan(s.group, name, s.deployments)),
-                    catchError(e => this.step(steps, step.onFailure!, of(e)))
-                )
+                stepMapper = mergeMap<{ group: ServerGroup, deployments: Deployment[] }, JobPlan>(s => instance.plan(s.group, name, s.deployments))
                 break
             }
             case "planImageDeployment": {
                 const instance = new PlanImageDeployment(step.name, step.tag!, step.semanticTagExtractor, step.filter, this.io)
-                const input = inStream as Observable<{ group: ServerGroup, deployments: Deployment[] }>
-                outStream = input.pipe(
-                    mergeMap(s => instance.plan(s.group, name, s.deployments)),
-                    catchError(e => this.step(steps, step.onFailure!, of(e)))
-                )
+                stepMapper = mergeMap<{ group: ServerGroup, deployments: Deployment[] }, JobPlan>(s => instance.plan(s.group, name, s.deployments))
                 break
             }
             case "applyDeployment": {
                 const instance = new ApplyDeployment(this.io)
-                const input = inStream as Observable<JobPlan>
-                outStream = input.pipe(
-                    mergeMap(s => instance.apply(s)),
-                    catchError(e => this.step(steps, step.onFailure!, of(e)))
-                )
+                stepMapper = mergeMap(s => instance.apply(s))
                 break
             }
             case "logError": {
                 const instance = new LogError(this.io)
-                const input = inStream as Observable<Error>
-                outStream = input.pipe(
-                    mergeMap(s => instance.apply(s)),
-                    catchError(e => this.step(steps, step.onFailure!, of(e)))
-                )
+                stepMapper = mergeMap(s => instance.apply(s))
                 break
             }
             default:
                 throw new Error(`step type ${step.type} not implemented`)
         }
+        outStream = inStream.pipe(
+            stepMapper,
+            catchError(e => this.step(steps, step.onFailure!, of(e)))
+        )
         if (step.onSuccess) {
             outStream = this.step(steps, step.onSuccess, outStream)
-        }
-
-        if (step.onFailure) {
-            outStream.pipe()
         }
         return outStream
     }

@@ -20,7 +20,7 @@ describe("job loading", () => {
                 },
                 {
                     name: "plan2", type: "planImageDeployment",
-                    semanticTagExtractor: "latest.", onSuccess: "apply1"
+                    semanticTagExtractor: "/^\\d{4}\\-\\d{1,2}\\-\\d{1,2}$", onSuccess: "apply1"
                 },
                 { name: "apply1", type: "applyDeployment" }
             ]

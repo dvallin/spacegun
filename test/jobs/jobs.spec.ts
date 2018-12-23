@@ -171,6 +171,14 @@ describe("JobsRepositoryImpl", () => {
         expect(deploymentPlan.deployment.image!.url).toBe("imageUrl:tag1:digest1")
     })
 
+    it("does not break if pipeline is unknown", async () => {
+        // when
+        await repo.run("notKnown").toPromise()
+
+        // then
+        expect(mockUpdateDeployment).not.toHaveBeenCalled()
+    })
+
     it("runs first pipeline", async () => {
         // when
         await repo.run("1->2").toPromise()
@@ -242,14 +250,12 @@ describe("JobsRepositoryImpl", () => {
         const map = new Map()
         map.set("pipeline", pipeline)
         const jobs = new JobsRepositoryImpl(map, new CronRegistry())
-        jobs.io.out = jest.fn()
         jobs.io.error = jest.fn()
 
         // when
         await jobs.run("pipeline").toPromise()
 
         // then
-        expect(jobs.io.out).toHaveBeenCalled()
         expect(jobs.io.error).toHaveBeenCalled()
     })
 
