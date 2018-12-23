@@ -13,4 +13,5 @@ export interface StepDescription {
     readonly semanticTagExtractor?: string // planImageDeployment
     readonly cluster?: string   // planClusterDeployment
     readonly hook?: string      // clusterProbe
+    readonly timeout?: number   // clusterProbe
 }
