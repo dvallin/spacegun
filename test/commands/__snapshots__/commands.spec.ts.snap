@@ -1,6 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`commands pods prints out the pods correctly 1`] = `
+exports[`commands  prints out the pods correctly 1`] = `
 Array [
   "",
   "[1mpod name                                starts  status  age             image url                               [22m",

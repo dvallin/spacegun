@@ -194,12 +194,79 @@ A git repository could have such a folder structure
 ```
 .
 ├── config.yml  
-├── jobs  
+└── pipelines  
 │   ├── dev.yml
 │   ├── live.yml
 │   └── pre.yml
-└── kube
-    └── config
+└─ artifacts
+    └── ...
+```
+
+You probably do not want to have your Kubernetes config in version control, because it should be considered sensitive data for most users. You should rather generate one dynamically on startup of your node running Spacegun. If you are running on AWS you can use [kops]() for this.
+
+## Example of a startup script
+
+Install Node, Spacegun and create a user for Spacegun
+
+```
+#!/usr/bin/env bash
+
+set -e
+set -x
+
+if [ "$(id -un)" != "root" ]; then
+  exec sudo -E -u root "$0" "$@"
+fi
+
+export DEBIAN_FRONTEND=noninteractive
+curl -sSL https://deb.nodesource.com/gpgkey/nodesource.gpg.key | apt-key add -
+VERSION=node_8.x
+DISTRO="$(lsb_release -s -c)"
+echo "deb https://deb.nodesource.com/$VERSION $DISTRO main" | tee /etc/apt/sources.list.d/nodesource.list
+echo "deb-src https://deb.nodesource.com/$VERSION $DISTRO main" | tee -a /etc/apt/sources.list.d/nodesource.list
+
+apt-get update
+apt-get install -y nodejs
+
+npm install -g --unsafe-perm spacegun
+
+# Create Spacegun user
+useradd -d /var/lib/spacegun -U -M -r spacegun
+```
+
+Install Kubectl and Kops (if you need them)
+```
+# Install kubectl
+curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl
+chmod +x ./kubectl
+mv ./kubectl /usr/local/bin/kubectl
+
+# Install kops
+curl -LO https://github.com/kubernetes/kops/releases/download/$(curl -s https://api.github.com/repos/kubernetes/kops/releases/latest | grep tag_name | cut -d '"' -f 4)/kops-linux-amd64
+chmod +x kops-linux-amd64
+mv kops-linux-amd64 /usr/local/bin/kops
+```
+
+
+Creating a daemon and start Spacegun
+```
+cat > /etc/systemd/system/spacegun.service <<EOF
+[Service]
+ExecStart=/usr/bin/spacegun-server
+Restart=always
+StartLimitBurst=0
+StartLimitInterval=60s
+PermissionsStartOnly=true
+User=spacegun
+WorkingDirectory=/var/lib/spacegun/config
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+systemctl daemon-reload
+systemctl enable spacegun.service
+systemctl start spacegun.service
 ```
 
 ## Cluster Snapshots
