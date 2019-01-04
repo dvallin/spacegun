@@ -1,8 +1,6 @@
-import { IO } from "../src/IO"
-
 const mockDispatched = jest.fn()
 const mockDispatchFn = jest.fn()
-jest.mock("../src/dispatcher/index", () => ({
+jest.mock("../../src/dispatcher/index", () => ({
     get: (moduleName: string, procedureName: string) => {
         mockDispatched(moduleName, procedureName)
         return mockDispatchFn
@@ -15,9 +13,11 @@ jest.mock("../src/dispatcher/index", () => ({
     path: () => ""
 }))
 
-import { commands } from "../src/commands"
+import { commands } from "../../src/commands"
+import { Options } from "../../src/options"
 import * as moment from "moment"
-import { Options } from "../src/options"
+
+import { createIO } from "../test-utils/io"
 
 const emptyOptions: Options = { command: "help" }
 
@@ -82,7 +82,7 @@ describe("commands", () => {
                 .mockReturnValueOnce(["cluster1", "cluster2"])
                 .mockReturnValueOnce([])
                 .mockReturnValueOnce([{ name: "service1", creationTimeMS: 1542379151000 }])
-                .mockReturnValueOnce(["service1"])
+                .mockReturnValueOnce(["namespace1"])
                 .mockReturnValueOnce([{ name: "service1", creationTimeMS: 1542379151000 }])
 
             // when
@@ -158,7 +158,7 @@ describe("commands", () => {
                 .mockReturnValueOnce(["cluster1", "cluster2"])
                 .mockReturnValueOnce([])
                 .mockReturnValueOnce([{ name: "scaler1", replicas: { current: 0, minimum: 1, maximum: 2 } }])
-                .mockReturnValueOnce(["service1"])
+                .mockReturnValueOnce(["namespace1"])
                 .mockReturnValueOnce([{ name: "scaler1", replicas: { current: 1, minimum: 1, maximum: 1 } }])
 
             // when
@@ -180,7 +180,7 @@ describe("commands", () => {
                 .mockReturnValueOnce(["cluster1", "cluster2"])
                 .mockReturnValueOnce([])
                 .mockReturnValueOnce([{ name: "deployment1" }])
-                .mockReturnValueOnce(["service1"])
+                .mockReturnValueOnce(["namespace1"])
                 .mockReturnValueOnce([{ name: "deployment2" }])
 
             // when
@@ -286,7 +286,7 @@ describe("commands", () => {
             // given
             mockDispatchFn
                 .mockReturnValueOnce(clusters)
-                .mockReturnValueOnce(["service1"])
+                .mockReturnValueOnce(["namespace1"])
                 .mockReturnValueOnce(deployments)
                 .mockReturnValueOnce(tags)
                 .mockReturnValueOnce(image)
@@ -514,11 +514,3 @@ describe("commands", () => {
         })
     })
 })
-
-function createIO(mocks: Partial<{ choose: jest.Mock<{}>, expect: jest.Mock<{}>, out: jest.Mock<{}> }> = {}): IO {
-    const io = new IO()
-    io.out = mocks.out || jest.fn()
-    io.expect = mocks.expect || jest.fn()
-    io.choose = mocks.choose || jest.fn()
-    return io
-}

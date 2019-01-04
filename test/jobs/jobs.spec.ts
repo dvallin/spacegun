@@ -1,5 +1,7 @@
 jest.useFakeTimers()
 
+import axios from "axios"
+
 import { Request } from "../../src/dispatcher/model/Request"
 import { Layers } from "../../src/dispatcher/model/Layers"
 process.env.LAYER = Layers.Standalone
@@ -14,6 +16,7 @@ import { StepDescription } from "../../src/jobs/model/Step"
 import { DeploymentPlan } from "../../src/jobs/model/DeploymentPlan"
 import { JobPlan } from "../../src/jobs/model/JobPlan"
 import { Event } from "../../src/events/model/Event"
+import { axiosResponse } from "../test-utils/axios"
 
 const mockDeployments: { [key: string]: Deployment[] } = {
     "cluster1": [
@@ -90,7 +93,8 @@ describe("JobsRepositoryImpl", () => {
     const planClusterStep: StepDescription = { name: "plan", type: "planClusterDeployment", cluster: "cluster1", onSuccess: "apply" }
     const planImageStep: StepDescription = { name: "plan", type: "planImageDeployment", tag: "latest", onSuccess: "apply" }
     const applyStep: StepDescription = { name: "apply", type: "applyDeployment" }
-    const job1: PipelineDescription = { name: "1->2", cluster: "cluster2", steps: [planClusterStep, applyStep], start: "plan", cron: twelvePMEveryWorkday }
+    const probeStep: StepDescription = { name: "probe", type: "clusterProbe", hook: "someHook", onSuccess: "plan" }
+    const job1: PipelineDescription = { name: "1->2", cluster: "cluster2", steps: [planClusterStep, applyStep, probeStep], start: "probe", cron: twelvePMEveryWorkday }
     const job2: PipelineDescription = { name: "i->1", cluster: "cluster1", steps: [planImageStep, applyStep], start: "plan", cron: everyMinuteEveryWorkday }
 
     beforeEach(() => {
@@ -180,6 +184,9 @@ describe("JobsRepositoryImpl", () => {
     })
 
     it("runs first pipeline", async () => {
+        // given
+        axios.get = axiosResponse(200)
+
         // when
         await repo.run("1->2").toPromise()
 

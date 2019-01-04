@@ -11,8 +11,11 @@ describe("job loading", () => {
             name: "pipeline1",
             cluster: "cluster1",
             cron: "0 */5 * * * MON-FRI",
-            start: "plan1",
+            start: "probe1",
             steps: [
+                {
+                    name: "probe1", type: "clusterProbe", hook: "someHook"
+                },
                 {
                     name: "plan1", type: "planImageDeployment",
                     tag: "latest", onSuccess: "apply1",

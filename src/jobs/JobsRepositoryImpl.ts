@@ -23,6 +23,9 @@ import { Layers } from "../dispatcher/model/Layers"
 import { ServerGroup } from "../cluster/model/ServerGroup"
 import { Deployment } from "../cluster/model/Deployment"
 import { LogError } from "./steps/LogError"
+import { ClusterProbe } from './steps/ClusterProbe';
+
+const internalLogErrorStep: string = "__internal_log_error"
 
 export class JobsRepositoryImpl implements JobsRepository {
 
@@ -75,20 +78,19 @@ export class JobsRepositoryImpl implements JobsRepository {
     }
 
     runInNamespace(pipeline: PipelineDescription, namespace?: string): Observable<void> {
-        this.io.out("hit")
         const steps: { [name: string]: StepDescription } = {}
+        steps[internalLogErrorStep] = { name: internalLogErrorStep, type: "logError" }
         for (const step of pipeline.steps) {
             steps[step.name] = step
         }
-
         const serverGroups = of<ServerGroup>({ cluster: pipeline.cluster, namespace })
         const deployments = serverGroups.pipe(mergeMap(group => from(call(clusterModule.deployments)(group))
             .pipe(map(deployments => ({ group, deployments })))
         ))
-        return this.step(steps, pipeline.start, deployments as Observable<object>).pipe(map(() => { }))
+        return this.step(pipeline, steps, pipeline.start, deployments as Observable<object>).pipe(map(() => { }))
     }
 
-    step(steps: { [name: string]: StepDescription }, name: string, inStream: Observable<object>): Observable<object> {
+    step(pipeline: PipelineDescription, steps: { [name: string]: StepDescription }, name: string, inStream: Observable<object>): Observable<object> {
         const step = steps[name]
         let outStream: Observable<object>
         let stepMapper: OperatorFunction<any, object>
@@ -110,18 +112,23 @@ export class JobsRepositoryImpl implements JobsRepository {
             }
             case "logError": {
                 const instance = new LogError(this.io)
-                stepMapper = mergeMap(s => instance.apply(s))
+                stepMapper = mergeMap(s => instance.apply(pipeline, s))
                 break
+            }
+            case "clusterProbe": {
+                const instance = new ClusterProbe()
+                stepMapper = mergeMap(s => instance.apply(s, step.hook!, step.timeout))
+                break;
             }
             default:
                 throw new Error(`step type ${step.type} not implemented`)
         }
         outStream = inStream.pipe(
             stepMapper,
-            catchError(e => this.step(steps, step.onFailure!, of(e)))
+            catchError(e => this.step(pipeline, steps, step.onFailure || internalLogErrorStep, of(e)))
         )
         if (step.onSuccess) {
-            outStream = this.step(steps, step.onSuccess, outStream)
+            outStream = this.step(pipeline, steps, step.onSuccess, outStream)
         }
         return outStream
     }

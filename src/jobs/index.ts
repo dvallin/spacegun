@@ -72,6 +72,8 @@ export function validateStep(step: Partial<StepDescription>, name: string, clust
     return {
         name: step.name!, type: step.type!,
         onSuccess: step.onSuccess, onFailure: step.onFailure,
-        cluster: step.cluster, tag: step.tag, hook: step.hook, filter: step.filter, semanticTagExtractor: step.semanticTagExtractor
+
+        cluster: step.cluster, tag: step.tag, hook: step.hook, timeout: step.timeout,
+        filter: step.filter, semanticTagExtractor: step.semanticTagExtractor
     }
 }

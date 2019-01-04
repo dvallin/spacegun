@@ -113,40 +113,43 @@ steps:
 `start` the step to start the execution of the pipeline.  
 `steps` is a list of deployment steps. Please note: Spacegun will not validate semantical correctness of your pipeline. It will only check that you are not missing any filds or have typos in step types.  
 
-`type` describes the type of the Pipeline Step. `planImageDeployment` will look into your cluster and compare the deployments in each namespace with the tag given. In this case it will plan to update all deployments that are not deploying the newest image tagged with `latest`. `applyDeployment` will apply all previously planned deployments. (Note: this distinction in planning and applying is very handy in manual execution via cli, or to implement manual aproval steps in a spacegun pipeline)    
-`onSuccess` defines the action that should be taken after this. `planImageDeployment` will be followed by the `apply1` step
+`type` describes the type of the Pipeline Step. `planImageDeployment` will look into your cluster and compare the deployments in each namespace with the tag given. In this case, it will plan to update all deployments to the newest image tagged with `latest`. See the next section for more information about deploying using tags.
+
+`onSuccess` defines the action that should be taken after this. `planImageDeployment` will be followed by the `apply1` step. The `applyDeployment` step will apply all previously planned deployments.
 
 Here is an example of a job that deploys from a `develop` to a `live` environemt
 ```
 cluster: k8s.live.my.cluster.com
-start: "probe1"
+start: "plan"
 steps:
-- name: "probe1"
-  type: "clusterProbe"
-  hook: "https://some.hook.com"
-  onSuccess: "deployImage"
-
-- name: "plan1"
+- name: "plan"
   type: "planClusterDeployment"
   cluster: "k8s.develop.my.cluster.com"
-  onSuccess: "apply1"
+  onSuccess: "apply"
   onFailure: "rollback1"
 
-- name: "apply1"
+- name: "apply"
   type: "applyDeployment"
   onSuccess: "snapshot1"
   onFailure: "rollback1"
-
-- name: "snapshot1"
-  type: "takeSnapshot"
-
-- name: "rollback1"
-  type: "rollback"
 ```
-This pipeline has a lot more steps. The `planClusterDeployment` step will plan updates by looking into the develop cluster and comparing the versions running with the live cluster. Wherever there is a difference in the image tag or hash it will plan a deployment. (Note: deploying docker images via tag is deprecated. So it is best practice to deploy an immage tagged with `latest`, but deploy using image hashes)  
-The steps `rollback`, `takeSnapshot` and `clusterProbe` are exemplary and will be available in future releases. Track their progress in issues [39](https://github.com/dvallin/spacegun/issues/39), [42](https://github.com/dvallin/spacegun/issues/42) and [43](https://github.com/dvallin/spacegun/issues/42)
+The `planClusterDeployment` step will plan updates by looking into the develop cluster and comparing the versions running with the live cluster. Wherever there is a difference in the image tag or hash it will plan a deployment.
 
 If `cron` is not present the server will not create a cronjob and the deployment needs to be manually run by a client.
+
+#### Deciding which tag to deploy
+Spacegun will always fully check for image differences using tag *and* image hash. So you if just want to deploy `latest` then do so like in the pipeline above. Spacegun will deploy only if the hash of the actual image behind that tag is different in the target cluster.
+
+The `tag` field is not mandatory, however. If you leave it out Spacegun will then choos the lexicographically largest tag. So if you tag your images by unix timestamp, it will deploy the most recent tag out of the box. Granted, very implicitely. That is why there is also the `semanticTagExtractor` field that can either hold a regex or a plain string. Spacegun will extract the first match from this regex and use it as a sorting key. Then it will use the lexcographically largest tag using the sorting key. If you have this step:
+
+```
+- name: "semanticPlan"
+  type: "planImageDeployment"
+  semanticTagExtractor: /^\d{4}\-\d{1,2}\-\d{1,2}$
+  onSuccess: "apply1"
+```
+
+Spacegun will extract a very simple Date format. Say you have tags `rev_98ac7cc9_2018-12-24`, `rev_5da58cc9_2018-12-25`, `rev_12ff8cff_2018-12-26`. Then Spacegun will extract the trailing dates and deploy the lexicographically largest tag using this extracted sorting key. Which is `rev_12af8cff_2018-12-26`.
 
 #### Deploy a subset of your cluster
 
@@ -169,19 +172,19 @@ This planning step would only run for two namespaces and in each namespace only 
 
 Note that once you use filtering in one deployment pipeline, you likely have to add filtering to all your deployments. It might be a good idea, to have such special deployments running in a separated namespace and you might even manage them using a dedicated Spacegun instance.
 
-#### Deciding which tag to deploy
-Spacegun will always check for image hash differences. So you if just want to deploy `latest` then do so like in the pipeline above. Spacegun will deploy only if the image that is actually behind that tag is different in the target cluster.
+#### Deploy only working clusters
 
-The `tag` field is not mandatory, however. If you leave it out Spacegun will then deploy the lexicographically largest tag. So if you tag your images by unix timestamp, it will deploy the most recent tag. There is also the `semanticTagExtractor` field that can hold a regex or a plain string. Spacegun will extract the first match from the tag and sort using that extracted segment. If you have this step:
+You might want to only deploy clusters that meet certain criteria. For example you might check that all systems are healthy and the acceptance tests are green or some other metrics are fine. To tell Spacegun about your cluster state you can add a cluster probe step to your pipeline.
 
 ```
-- name: "semanticPlan"
-  type: "planImageDeployment"
-  semanticTagExtractor: /^\d{4}\-\d{1,2}\-\d{1,2}$
-  onSuccess: "apply1"
+- name: "probe1"
+  type: "clusterProbe"
+  hook: "https://some.hook.com"
+  timeout: 20000
+  onSuccess: "plan1"
 ```
 
-Spacegun will extract a very simple Date format. Say you have tags `rev_98ac7cc9_2018-12-24`, `rev_5da58cc9_2018-12-25`, `rev_12ff8cff_2018-12-26`. Then Spacegun will extract the trailing dates and deploy tag that is lexicographically largest using this extracted sorting key. Which is `rev_12af8cff_2018-12-26`.
+The `tag` is an endpoint that Spacegun will call using `GET` method. If it returns a status code 200, Spacegun will proceed with the `onSuccess` step. Else the step will fail and proceed with the `onFailure` step (see the next section about error handling). The timeout is an optional field giving the timeout for the hook call in milliseconds. If no timeout is set, spacegun will not cancel the connection on its own.
 
 ### Git
 All configuration files can be maintained in a git repository. Spacegun can be configured to poll for changes and will automatically load them while runing.
@@ -191,12 +194,79 @@ A git repository could have such a folder structure
 ```
 .
 ├── config.yml  
-├── jobs  
+└── pipelines  
 │   ├── dev.yml
 │   ├── live.yml
 │   └── pre.yml
-└── kube
-    └── config
+└─ artifacts
+    └── ...
+```
+
+You probably do not want to have your Kubernetes config in version control, because it should be considered sensitive data for most users. You should rather generate one dynamically on startup of your node running Spacegun. If you are running on AWS you can use [kops]() for this.
+
+## Example of a startup script
+
+Install Node, Spacegun and create a user for Spacegun
+
+```
+#!/usr/bin/env bash
+
+set -e
+set -x
+
+if [ "$(id -un)" != "root" ]; then
+  exec sudo -E -u root "$0" "$@"
+fi
+
+export DEBIAN_FRONTEND=noninteractive
+curl -sSL https://deb.nodesource.com/gpgkey/nodesource.gpg.key | apt-key add -
+VERSION=node_8.x
+DISTRO="$(lsb_release -s -c)"
+echo "deb https://deb.nodesource.com/$VERSION $DISTRO main" | tee /etc/apt/sources.list.d/nodesource.list
+echo "deb-src https://deb.nodesource.com/$VERSION $DISTRO main" | tee -a /etc/apt/sources.list.d/nodesource.list
+
+apt-get update
+apt-get install -y nodejs
+
+npm install -g --unsafe-perm spacegun
+
+# Create Spacegun user
+useradd -d /var/lib/spacegun -U -M -r spacegun
+```
+
+Install Kubectl and Kops (if you need them)
+```
+# Install kubectl
+curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl
+chmod +x ./kubectl
+mv ./kubectl /usr/local/bin/kubectl
+
+# Install kops
+curl -LO https://github.com/kubernetes/kops/releases/download/$(curl -s https://api.github.com/repos/kubernetes/kops/releases/latest | grep tag_name | cut -d '"' -f 4)/kops-linux-amd64
+chmod +x kops-linux-amd64
+mv kops-linux-amd64 /usr/local/bin/kops
+```
+
+
+Creating a daemon and start Spacegun
+```
+cat > /etc/systemd/system/spacegun.service <<EOF
+[Service]
+ExecStart=/usr/bin/spacegun-server
+Restart=always
+StartLimitBurst=0
+StartLimitInterval=60s
+PermissionsStartOnly=true
+User=spacegun
+WorkingDirectory=/var/lib/spacegun/config
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+systemctl daemon-reload
+systemctl enable spacegun.service
+systemctl start spacegun.service
 ```
 
 ## Cluster Snapshots
