@@ -138,9 +138,9 @@ The `planClusterDeployment` step will plan updates by looking into the develop c
 If `cron` is not present the server will not create a cronjob and the deployment needs to be manually run by a client.
 
 #### Deciding which tag to deploy
-Spacegun will always fully check for image differences using tag *and* image hash. So you if just want to deploy `latest` then do so like in the pipeline above. Spacegun will deploy only if the hash of the actual image behind that tag is different in the target cluster.
+Spacegun will always check for image differences using tag *and* image hash. So you if just want to deploy `latest` then do so like in the pipeline above. This will ensure that if you push a new image tagged with a specific tag, Spacegun will deploy it.
 
-The `tag` field is not mandatory, however. If you leave it out Spacegun will then choos the lexicographically largest tag. So if you tag your images by unix timestamp, it will deploy the most recent tag out of the box. Granted, very implicitely. That is why there is also the `semanticTagExtractor` field that can either hold a regex or a plain string. Spacegun will extract the first match from this regex and use it as a sorting key. Then it will use the lexcographically largest tag using the sorting key. If you have this step:
+The `tag` field is not mandatory, however. If you leave it out Spacegun will then choose the lexicographically largest tag. So if you tag your images by unix timestamp, it will deploy the most recent tag. Granted, very implicitely. That is why there is also the `semanticTagExtractor` field that can either hold a regex or a plain string. Spacegun will extract the first match from this regex and use it as a sorting key. Then it will use the lexcographically largest tag using the sorting key. If you have this step:
 
 ```
 - name: "semanticPlan"
@@ -184,7 +184,7 @@ You might want to only deploy clusters that meet certain criteria. For example y
   onSuccess: "plan1"
 ```
 
-The `tag` is an endpoint that Spacegun will call using `GET` method. If it returns a status code 200, Spacegun will proceed with the `onSuccess` step. Else the step will fail and proceed with the `onFailure` step (see the next section about error handling). The timeout is an optional field giving the timeout for the hook call in milliseconds. If no timeout is set, spacegun will not cancel the connection on its own.
+The `tag` is an endpoint that Spacegun will call using `GET` method. If it returns a status code 200, Spacegun will proceed with the `onSuccess` step. Else the step will fail and proceed with the `onFailure` step. The timeout is an optional field giving the timeout for the hook call in milliseconds. If no timeout is set, spacegun will not cancel the connection on its own.
 
 ### Git
 All configuration files can be maintained in a git repository. Spacegun can be configured to poll for changes and will automatically load them while runing.
