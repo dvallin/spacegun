@@ -27,7 +27,7 @@ server.use(async (context, next) => {
     try {
         await next()
         if (context.status === 404) {
-            console.log(context)
+            console.warn(context)
         }
     } catch (err) {
         console.error(err)

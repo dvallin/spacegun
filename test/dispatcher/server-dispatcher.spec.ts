@@ -4,7 +4,7 @@ import { get } from "../../src/dispatcher"
 
 process.env.LAYER = "server"
 import { moduleName, globalFunction, remoteFunction, functions } from "./TestModule"
-import { RequestInput } from "../../src/dispatcher/model/RequestInput";
+import { RequestInput } from "../../src/dispatcher/model/RequestInput"
 
 describe("server dispatcher", () => {
 
