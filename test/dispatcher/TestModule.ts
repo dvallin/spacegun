@@ -1,23 +1,23 @@
-import { Component } from "../../src/dispatcher/component"
-import { Layers } from "../../src/dispatcher/model/Layers"
-import { RequestInput } from "../../src/dispatcher/model/RequestInput"
+import { Component } from '../../src/dispatcher/component'
+import { Layers } from '../../src/dispatcher/model/Layers'
+import { RequestInput } from '../../src/dispatcher/model/RequestInput'
 
 export const globalFunction = jest.fn()
 export const localFunction = jest.fn()
 export const remoteFunction = jest.fn()
 
-export const moduleName = "clientModule"
+export const moduleName = 'clientModule'
 export const functions = {
-    standalone: "standalone",
-    local: "local",
-    remoteVoid: "remoteVoid",
-    remoteParams: "remoteParams"
+    standalone: 'standalone',
+    local: 'local',
+    remoteVoid: 'remoteVoid',
+    remoteParams: 'remoteParams',
 }
 
 export class ModuleOnClient {
     @Component({
         moduleName,
-        layer: Layers.Standalone
+        layer: Layers.Standalone,
     })
     [functions.standalone](): void {
         globalFunction()
@@ -25,7 +25,7 @@ export class ModuleOnClient {
 
     @Component({
         moduleName,
-        layer: Layers.Client
+        layer: Layers.Client,
     })
     [functions.local](): void {
         localFunction()
@@ -33,7 +33,7 @@ export class ModuleOnClient {
 
     @Component({
         moduleName,
-        layer: Layers.Server
+        layer: Layers.Server,
     })
     [functions.remoteVoid](): void {
         remoteFunction()
@@ -42,7 +42,7 @@ export class ModuleOnClient {
     @Component({
         moduleName,
         layer: Layers.Server,
-        mapper: (input: RequestInput): number => Number.parseInt(input.params!["param"] as string)
+        mapper: (input: RequestInput): number => Number.parseInt(input.params!['param'] as string),
     })
     [functions.remoteParams](param: number): void {
         remoteFunction(param)

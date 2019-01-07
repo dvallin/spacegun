@@ -44,6 +44,8 @@ export class Application {
 
             if (process.env.LAYER === Layers.Standalone || process.env.LAYER === Layers.Client) {
                 await commands[this.options.command](this.options, this.io)
+            } else {
+                await commands.apply(this.options, this.io)
             }
         } catch (e) {
             printHelp(this.io, e)

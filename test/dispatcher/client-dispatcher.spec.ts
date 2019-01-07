@@ -1,21 +1,19 @@
-import axios, { AxiosRequestConfig } from "axios"
+import axios, { AxiosRequestConfig } from 'axios'
 
-import { axiosSuccess } from "../test-utils/axios"
-import { callParameters } from "../test-utils/jest"
+import { axiosSuccess } from '../test-utils/axios'
+import { callParameters } from '../test-utils/jest'
 
-import { get } from "../../src/dispatcher"
+import { get } from '../../src/dispatcher'
 
-process.env.LAYER = "client"
-import { moduleName, functions, globalFunction, localFunction } from "./TestModule"
+process.env.LAYER = 'client'
+import { moduleName, functions, globalFunction, localFunction } from './TestModule'
 
-
-describe("client dispatcher", () => {
-
+describe('client dispatcher', () => {
     beforeEach(() => {
         jest.resetAllMocks()
     })
 
-    it("calls standalone functions locally", () => {
+    it('calls standalone functions locally', () => {
         // when
         get(moduleName, functions.standalone)()
 
@@ -23,7 +21,7 @@ describe("client dispatcher", () => {
         expect(globalFunction).toHaveBeenCalledTimes(1)
     })
 
-    it("calls local functions locally", () => {
+    it('calls local functions locally', () => {
         // when
         get(moduleName, functions.local)()
 
@@ -31,7 +29,7 @@ describe("client dispatcher", () => {
         expect(localFunction).toHaveBeenCalledTimes(1)
     })
 
-    it("calls void remote functions via axios", () => {
+    it('calls void remote functions via axios', () => {
         // given
         axios.get = axiosSuccess()
 
@@ -40,22 +38,22 @@ describe("client dispatcher", () => {
 
         // then
         expect(axios.get).toHaveBeenCalledTimes(1)
-        expect(callParameters(axios.get)[0]).toEqual("clientModule/remoteVoid")
+        expect(callParameters(axios.get)[0]).toEqual('clientModule/remoteVoid')
         const config: AxiosRequestConfig = callParameters(axios.get)[1]
         expect(config.params).toBeUndefined()
     })
 
-    it("calls parameterized remote functions via axios", () => {
+    it('calls parameterized remote functions via axios', () => {
         // given
         axios.get = axiosSuccess()
-        const params = { param: "p" }
+        const params = { param: 'p' }
 
         // when
         get(moduleName, functions.remoteParams)({ params })
 
         // then
         expect(axios.get).toHaveBeenCalledTimes(1)
-        expect(callParameters(axios.get)[0]).toEqual("clientModule/remoteParams")
+        expect(callParameters(axios.get)[0]).toEqual('clientModule/remoteParams')
         const config: AxiosRequestConfig = callParameters(axios.get)[1]
         expect(config.params).toEqual(params)
     })

@@ -1,4 +1,4 @@
-import { AxiosResponse } from "axios"
+import { AxiosResponse } from 'axios'
 
 function success<T>(data: T, headers: object = {}): AxiosResponse<T> {
     return {
@@ -7,7 +7,7 @@ function success<T>(data: T, headers: object = {}): AxiosResponse<T> {
         headers,
         request: undefined,
         status: 200,
-        statusText: "Ok",
+        statusText: 'Ok',
     }
 }
 
@@ -18,13 +18,12 @@ function failure(): AxiosResponse<undefined> {
         headers: {},
         request: undefined,
         status: 418,
-        statusText: "Teapot",
+        statusText: 'Teapot',
     }
 }
 
-
 export function axiosResponse(status: number): jest.Mock<{}> {
-    return jest.fn().mockReturnValue({ data: {}, status, statusText: "statusText", headers: {}, config: {} })
+    return jest.fn().mockReturnValue({ data: {}, status, statusText: 'statusText', headers: {}, config: {} })
 }
 
 export function axiosSuccess(...data: object[]): jest.Mock<{}> {

@@ -1,37 +1,32 @@
-import { fromConfig, GitConfigRepository } from "../../../src/config/git/GitConfigRepository"
-import { Layers } from "../../../src/dispatcher/model/Layers"
+import { fromConfig, GitConfigRepository } from '../../../src/config/git/GitConfigRepository'
+import { Layers } from '../../../src/dispatcher/model/Layers'
 
-import { GitConfig, Config } from "../../../src/config/index"
+import { GitConfig, Config } from '../../../src/config/index'
 
-jest.mock("simple-git/promise", () => (() => ({})))
+jest.mock('simple-git/promise', () => () => ({}))
 
-describe("GitConfigRepository", () => {
-
+describe('GitConfigRepository', () => {
     beforeEach(() => {
         process.env.LAYER = Layers.Server
     })
 
-    describe("fromConfig", () => {
-
-        it("builds only if config.git exists and layer is server", () => {
-            expect(fromConfig(createConfig({ remote: "someGit", cron: "someCron" }))).toBeDefined()
+    describe('fromConfig', () => {
+        it('builds only if config.git exists and layer is server', () => {
+            expect(fromConfig(createConfig({ remote: 'someGit', cron: 'someCron' }))).toBeDefined()
             expect(fromConfig(createConfig())).toBeUndefined()
             process.env.LAYER = Layers.Client
-            expect(fromConfig(createConfig({ remote: "someGit", cron: "someCron" }))).toBeUndefined()
+            expect(fromConfig(createConfig({ remote: 'someGit', cron: 'someCron' }))).toBeUndefined()
         })
     })
 
-
-    describe("methods", () => {
-
+    describe('methods', () => {
         let repo: GitConfigRepository
         beforeEach(() => {
-            repo = fromConfig(createConfig({ remote: "remotePath", cron: "someCron" }))!
+            repo = fromConfig(createConfig({ remote: 'remotePath', cron: 'someCron' }))!
         })
 
-        describe("hasNewConfig", () => {
-
-            it("clones if this is not already a repo", async () => {
+        describe('hasNewConfig', () => {
+            it('clones if this is not already a repo', async () => {
                 repo.git.checkIsRepo = jest.fn().mockReturnValue(Promise.resolve(false))
                 repo.git.clone = jest.fn().mockReturnValue(Promise.resolve())
                 const newConfig = await repo.hasNewConfig()
@@ -39,10 +34,10 @@ describe("GitConfigRepository", () => {
                 expect(newConfig).toBeTruthy()
                 expect(repo.git.checkIsRepo).toHaveBeenCalledTimes(1)
                 expect(repo.git.clone).toHaveBeenCalledTimes(1)
-                expect(repo.git.clone).toBeCalledWith("remotePath", "./")
+                expect(repo.git.clone).toBeCalledWith('remotePath', './')
             })
 
-            it("calls fetch and status repo", async () => {
+            it('calls fetch and status repo', async () => {
                 repo.git.checkIsRepo = jest.fn().mockReturnValue(Promise.resolve(true))
                 repo.git.fetch = jest.fn().mockReturnValue(Promise.resolve())
                 repo.git.status = jest.fn().mockReturnValue(Promise.resolve({ behind: 1 }))
@@ -54,7 +49,7 @@ describe("GitConfigRepository", () => {
                 expect(repo.git.fetch).toHaveBeenCalledTimes(1)
             })
 
-            it("returns false if status is not behind", async () => {
+            it('returns false if status is not behind', async () => {
                 repo.git.fetch = jest.fn().mockReturnValue(Promise.resolve())
                 repo.git.checkIsRepo = jest.fn().mockReturnValue(Promise.resolve(true))
                 repo.git.status = jest.fn().mockReturnValue(Promise.resolve({ behind: 0 }))
@@ -68,9 +63,8 @@ describe("GitConfigRepository", () => {
             })
         })
 
-        describe("fetchNewConfig", () => {
-
-            it("calls git pull", async () => {
+        describe('fetchNewConfig', () => {
+            it('calls git pull', async () => {
                 repo.git.pull = jest.fn().mockReturnValue(Promise.resolve())
 
                 await repo.fetchNewConfig()
@@ -84,11 +78,11 @@ describe("GitConfigRepository", () => {
 function createConfig(git?: GitConfig): Config {
     return {
         git,
-        kube: "",
-        docker: "",
-        pipelines: "",
-        artifacts: "",
-        server: { host: "", port: 2 },
-        configBasePath: "./"
+        kube: '',
+        docker: '',
+        pipelines: '',
+        artifacts: '',
+        server: { host: '', port: 2 },
+        configBasePath: './',
     }
 }

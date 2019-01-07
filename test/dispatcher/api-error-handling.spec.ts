@@ -1,37 +1,37 @@
-jest.mock("../../src/dispatcher/server", () => ({
+jest.mock('../../src/dispatcher/server', () => ({
     createServer: (): Server => ({ use: jest.fn(), listen: jest.fn() }),
     createRouter: () => ({}),
-    createViews: () => ({})
+    createViews: () => ({}),
 }))
 
-import { Server } from "../../src/dispatcher/server"
-import { server } from "../../src/dispatcher/api"
+import { Server } from '../../src/dispatcher/server'
+import { server } from '../../src/dispatcher/api'
 
+const errorSpy = jest.spyOn(global.console, 'error')
+const warnSpy = jest.spyOn(global.console, 'warn')
 
-const errorSpy = jest.spyOn(global.console, "error")
-const warnSpy = jest.spyOn(global.console, "warn")
-
-describe("error handling middleware", () => {
-
+describe('error handling middleware', () => {
     beforeEach(() => {
         errorSpy.mockClear()
         warnSpy.mockClear()
     })
 
-    it("registers", () => {
+    it('registers', () => {
         expect(server.use).toHaveBeenCalledTimes(1)
     })
 
-    it("eats exceptions and logs them to console error", async () => {
+    it('eats exceptions and logs them to console error', async () => {
         const errorHandlingMiddleware = (server.use as jest.Mock<{}>).mock.calls[0][0]
 
-        const error = new Error("some error")
-        await errorHandlingMiddleware({}, () => { throw error })
+        const error = new Error('some error')
+        await errorHandlingMiddleware({}, () => {
+            throw error
+        })
 
         expect(errorSpy).toHaveBeenCalledWith(error)
     })
 
-    it("logs context to console warn on 404", async () => {
+    it('logs context to console warn on 404', async () => {
         const errorHandlingMiddleware = (server.use as jest.Mock<{}>).mock.calls[0][0]
 
         const context = { status: 404 }

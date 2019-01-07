@@ -1,5 +1,5 @@
-import { IO } from "../src/IO"
-import { Readable, ReadableOptions } from "stream"
+import { IO } from '../src/IO'
+import { Readable, ReadableOptions } from 'stream'
 
 beforeEach(() => {
     jest.clearAllMocks()
@@ -36,7 +36,6 @@ describe('out', () => {
 })
 
 describe('expect', () => {
-
     it('should print question', async () => {
         // given
         jest.spyOn(process.stdout, 'write')
@@ -77,7 +76,6 @@ describe('expect', () => {
 })
 
 describe('choose', () => {
-
     it('should print question', async () => {
         // given
         jest.spyOn(process.stdout, 'write')
@@ -112,9 +110,7 @@ describe('choose', () => {
             const io: IO = new IO(new RespondOnce(val))
 
             // when + then
-            return expect(
-                io.choose('', options)
-            ).rejects.toEqual(new Error(`${val} is not in the valid range`))
+            return expect(io.choose('', options)).rejects.toEqual(new Error(`${val} is not in the valid range`))
         })
     })
 })
@@ -124,7 +120,7 @@ class RespondOnce extends Readable {
     response: number | string
 
     constructor(response: number | string, opt?: ReadableOptions) {
-        super(opt);
+        super(opt)
         this.response = response
     }
 
