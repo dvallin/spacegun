@@ -1,9 +1,8 @@
-import { JobPlan } from "./model/JobPlan"
-import { Cron } from "./model/Cron"
-import { PipelineDescription } from "./model/PipelineDescription"
+import { JobPlan } from './model/JobPlan'
+import { Cron } from './model/Cron'
+import { PipelineDescription } from './model/PipelineDescription'
 
 export interface JobsRepository {
-
     list: PipelineDescription[]
     crons: Cron[]
 

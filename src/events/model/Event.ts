@@ -1,7 +1,6 @@
-import { EventField } from "./EventField"
+import { EventField } from './EventField'
 
 export interface Event {
-
     readonly message: string
     readonly timestamp: number
     readonly topics: string[]

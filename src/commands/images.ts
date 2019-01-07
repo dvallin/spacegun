@@ -1,24 +1,22 @@
-import chalk from "chalk"
+import chalk from 'chalk'
 
-import { CommandFn } from "./"
-import { load } from "./helpers"
+import { CommandFn } from './'
+import { load } from './helpers'
 
-import * as imageModule from "../images/ImageModule"
+import * as imageModule from '../images/ImageModule'
 
-import { call } from "../dispatcher"
-import { pad } from "../pad"
-import { IO } from "../IO"
-import { Options } from "../options"
+import { call } from '../dispatcher'
+import { pad } from '../pad'
+import { IO } from '../IO'
+import { Options } from '../options'
 
-import { Image } from "../cluster/model/Image"
+import { Image } from '../cluster/model/Image'
 
-export const imagesCommand: CommandFn = async ({ }: Options, io: IO) => images(io)
+export const imagesCommand: CommandFn = async ({  }: Options, io: IO) => images(io)
 
 async function images(io: IO) {
     const images = await load(call(imageModule.list)())
-    images.forEach(image =>
-        io.out(image)
-    )
+    images.forEach(image => io.out(image))
 }
 
 export async function chooseTag(options: Options, io: IO, image: Image): Promise<string> {
@@ -33,9 +31,9 @@ export async function chooseTag(options: Options, io: IO, image: Image): Promise
     } else {
         tags.sort()
 
-        io.out("Choose the target image")
+        io.out('Choose the target image')
         tags.forEach((tag, index) => {
-            io.out(chalk.bold.cyan(index.toString()) + ": " + pad(tag, 5))
+            io.out(chalk.bold.cyan(index.toString()) + ': ' + pad(tag, 5))
         })
         return await io.choose('> ', tags)
     }

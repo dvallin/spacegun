@@ -1,4 +1,4 @@
-import { StepDescription } from "./Step"
+import { StepDescription } from './Step'
 
 export interface PipelineDescription {
     readonly name: string

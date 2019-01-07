@@ -1,4 +1,4 @@
-import { RequestInput } from "./RequestInput"
+import { RequestInput } from './RequestInput'
 
 export interface Request<Input, Output> {
     module: string

@@ -1,7 +1,7 @@
-import { Layers } from "./model/Layers"
+import { Layers } from './model/Layers'
 
 export interface Next {
-    (): Promise<any>;
+    (): Promise<any>
 }
 
 export interface Context {
@@ -45,19 +45,21 @@ export interface Router {
 export function createServer(): Server {
     let server: Server
     if (process.env.LAYER === Layers.Server) {
-        const koa = require("koa")
-        const koaBody = require("koa-body")
-        const koaStatic = require("koa-static")
+        const koa = require('koa')
+        const koaBody = require('koa-body')
+        const koaStatic = require('koa-static')
         const app = new koa()
-        app.use(koaBody({
-            jsonLimit: "100kb"
-        }))
-        app.use(koaStatic(process.env.ASSET_PATH || __dirname + "/assets"))
+        app.use(
+            koaBody({
+                jsonLimit: '100kb',
+            })
+        )
+        app.use(koaStatic(process.env.ASSET_PATH || __dirname + '/assets'))
         server = app as Server
     } else {
         server = {
             use: () => server,
-            listen: () => { }
+            listen: () => {},
         }
     }
     return server
@@ -66,15 +68,15 @@ export function createServer(): Server {
 export function createRouter(): Router {
     let router: Router
     if (process.env.LAYER === Layers.Server) {
-        const koaRouter = require("koa-router")
+        const koaRouter = require('koa-router')
         router = new koaRouter() as Router
     } else {
         router = {
-            get: () => { },
-            post: () => { },
-            put: () => { },
-            routes: () => (() => { }),
-            allowedMethods: () => (() => { }),
+            get: () => {},
+            post: () => {},
+            put: () => {},
+            routes: () => () => {},
+            allowedMethods: () => () => {},
         }
     }
     return router
@@ -83,21 +85,21 @@ export function createRouter(): Router {
 export function createViews(): Views {
     let views: Views
     if (process.env.LAYER === Layers.Server) {
-        const v = require("koa-views")
+        const v = require('koa-views')
         views = {
-            templateEngine: (folder: string) => v(folder, { extension: "pug" }),
+            templateEngine: (folder: string) => v(folder, { extension: 'pug' }),
             register: (router: Router, view: View) => {
                 router.get(view.path, async (ctx: Context) => {
-                    ctx.state.engine = "pug"
+                    ctx.state.engine = 'pug'
                     const params = await view.params(ctx.params)
                     return ctx.render(view.filename, params)
                 })
-            }
+            },
         }
     } else {
         views = {
-            templateEngine: () => (() => { }),
-            register: () => { },
+            templateEngine: () => () => {},
+            register: () => {},
         }
     }
     return views

@@ -1,6 +1,13 @@
-import { Filter } from "./Filter"
+import { Filter } from './Filter'
 
-export type StepType = "clusterProbe" | "planImageDeployment" | "planClusterDeployment" | "applyDeployment" | "takeSnapshot" | "rollback" | "logError"
+export type StepType =
+    | 'clusterProbe'
+    | 'planImageDeployment'
+    | 'planClusterDeployment'
+    | 'applyDeployment'
+    | 'takeSnapshot'
+    | 'rollback'
+    | 'logError'
 
 export interface StepDescription {
     readonly name: string
@@ -9,9 +16,9 @@ export interface StepDescription {
     readonly onFailure?: string
 
     readonly filter?: Partial<Filter>
-    readonly tag?: string       // planImageDeployment
+    readonly tag?: string // planImageDeployment
     readonly semanticTagExtractor?: string // planImageDeployment
-    readonly cluster?: string   // planClusterDeployment
-    readonly hook?: string      // clusterProbe
-    readonly timeout?: number   // clusterProbe
+    readonly cluster?: string // planClusterDeployment
+    readonly hook?: string // clusterProbe
+    readonly timeout?: number // clusterProbe
 }

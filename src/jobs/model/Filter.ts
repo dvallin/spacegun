@@ -1,5 +1,5 @@
-import { Deployment } from "src/cluster/model/Deployment"
-import { ServerGroup } from "src/cluster/model/ServerGroup"
+import { Deployment } from 'src/cluster/model/Deployment'
+import { ServerGroup } from 'src/cluster/model/ServerGroup'
 
 export interface Filter {
     readonly namespaces: string[]

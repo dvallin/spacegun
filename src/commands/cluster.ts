@@ -1,14 +1,14 @@
-import chalk from "chalk"
+import chalk from 'chalk'
 
-import { Options } from "../options"
+import { Options } from '../options'
 
-import * as clusterModule from "../cluster/ClusterModule"
+import * as clusterModule from '../cluster/ClusterModule'
 
-import { call } from "../dispatcher"
-import { pad } from "../pad"
-import { IO } from "../IO"
+import { call } from '../dispatcher'
+import { pad } from '../pad'
+import { IO } from '../IO'
 
-import { load } from "./helpers"
+import { load } from './helpers'
 
 export async function chooseCluster(options: Options, io: IO): Promise<string> {
     const clusters = await load(call(clusterModule.clusters)())
@@ -20,9 +20,9 @@ export async function chooseCluster(options: Options, io: IO): Promise<string> {
         }
         return cluster
     } else {
-        io.out("Choose the target cluster")
+        io.out('Choose the target cluster')
         clusters.forEach((cluster, index) => {
-            io.out(chalk.bold.cyan(index.toString()) + ": " + pad(cluster, 5))
+            io.out(chalk.bold.cyan(index.toString()) + ': ' + pad(cluster, 5))
         })
         return await io.choose('> ', clusters)
     }

@@ -1,8 +1,7 @@
-
-import { PromiseProvider } from "./model/PromiseProvider"
-import { RequestInput } from "./model/RequestInput"
-import { Request } from "./model/Request"
-import { build, listen, init } from "./api"
+import { PromiseProvider } from './model/PromiseProvider'
+import { RequestInput } from './model/RequestInput'
+import { Request } from './model/Request'
+import { build, listen, init } from './api'
 
 let procedures: {
     [name: string]: PromiseProvider<any, any>

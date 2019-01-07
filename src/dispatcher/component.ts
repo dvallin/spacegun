@@ -1,10 +1,10 @@
-import { add, path } from "."
-import { Layers } from "./model/Layers"
-import { get, post, put } from "./caller"
-import { register as registerApi } from "./api"
+import { add, path } from '.'
+import { Layers } from './model/Layers'
+import { get, post, put } from './caller'
+import { register as registerApi } from './api'
 
-import { RequestInput } from "./model/RequestInput"
-import { Methods } from "./model/Methods"
+import { RequestInput } from './model/RequestInput'
+import { Methods } from './model/Methods'
 
 export interface ComponentConfiguration<T> {
     moduleName: string
@@ -14,15 +14,13 @@ export interface ComponentConfiguration<T> {
 }
 
 export function Component<T>(configuration: ComponentConfiguration<T>) {
-    return function (target: any, procedureName: string, { }: PropertyDescriptor) {
+    return function(target: any, procedureName: string, {  }: PropertyDescriptor) {
         addPromiseProvider(procedureName, configuration, target)
         registerApi(procedureName, target[procedureName], configuration)
     }
 }
 
-function addPromiseProvider<T>(
-    procedureName: string, configuration: ComponentConfiguration<T>, target: any
-): void {
+function addPromiseProvider<T>(procedureName: string, configuration: ComponentConfiguration<T>, target: any): void {
     let procedure
     const procedurePath = path(configuration.moduleName, procedureName)
     if (isLocalCallable(configuration.layer)) {
@@ -45,7 +43,11 @@ function addPromiseProvider<T>(
         }
     } else {
         procedure = (input: RequestInput = {}) => {
-            throw new Error(`a call to ${procedurePath} with input ${JSON.stringify(input)} in layer ${configuration.layer} from ${process.env.LAYER} is not possible`)
+            throw new Error(
+                `a call to ${procedurePath} with input ${JSON.stringify(input)} in layer ${configuration.layer} from ${
+                    process.env.LAYER
+                } is not possible`
+            )
         }
     }
     add(configuration.moduleName, procedureName, procedure)

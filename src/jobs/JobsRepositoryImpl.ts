@@ -1,34 +1,33 @@
 import { Observable, from, of, empty, OperatorFunction } from 'rxjs'
 import { map, mergeMap, catchError } from 'rxjs/operators'
 
-import { load } from "."
-import { PipelineDescription } from "./model/PipelineDescription"
-import { JobPlan } from "./model/JobPlan"
-import { DeploymentPlan } from "./model/DeploymentPlan"
-import { JobsRepository } from "./JobsRepository"
-import { Cron } from "./model/Cron"
-import { ApplyDeployment } from "./steps/ApplyDeployment"
-import { PlanImageDeployment } from "./steps/PlanImageDeployment"
-import { PlanClusterDeployment } from "./steps/PlanClusterDeployment"
-import { StepDescription } from "./model/Step"
+import { load } from '.'
+import { PipelineDescription } from './model/PipelineDescription'
+import { JobPlan } from './model/JobPlan'
+import { DeploymentPlan } from './model/DeploymentPlan'
+import { JobsRepository } from './JobsRepository'
+import { Cron } from './model/Cron'
+import { ApplyDeployment } from './steps/ApplyDeployment'
+import { PlanImageDeployment } from './steps/PlanImageDeployment'
+import { PlanClusterDeployment } from './steps/PlanClusterDeployment'
+import { StepDescription } from './model/Step'
 
-import { call } from "../dispatcher"
+import { call } from '../dispatcher'
 
-import * as clusterModule from "../cluster/ClusterModule"
+import * as clusterModule from '../cluster/ClusterModule'
 
-import { IO } from "../IO"
-import { CronRegistry } from "../crons/CronRegistry"
-import { Layers } from "../dispatcher/model/Layers"
+import { IO } from '../IO'
+import { CronRegistry } from '../crons/CronRegistry'
+import { Layers } from '../dispatcher/model/Layers'
 
-import { ServerGroup } from "../cluster/model/ServerGroup"
-import { Deployment } from "../cluster/model/Deployment"
-import { LogError } from "./steps/LogError"
-import { ClusterProbe } from './steps/ClusterProbe';
+import { ServerGroup } from '../cluster/model/ServerGroup'
+import { Deployment } from '../cluster/model/Deployment'
+import { LogError } from './steps/LogError'
+import { ClusterProbe } from './steps/ClusterProbe'
 
-const internalLogErrorStep: string = "__internal_log_error"
+const internalLogErrorStep: string = '__internal_log_error'
 
 export class JobsRepositoryImpl implements JobsRepository {
-
     public readonly io: IO = new IO()
 
     public static fromConfig(jobsPath: string, cronRegistry: CronRegistry): JobsRepositoryImpl {
@@ -36,10 +35,7 @@ export class JobsRepositoryImpl implements JobsRepository {
         return new JobsRepositoryImpl(jobs, cronRegistry)
     }
 
-    public constructor(
-        public readonly pipelines: Map<string, PipelineDescription>,
-        private readonly cronRegistry: CronRegistry
-    ) {
+    public constructor(public readonly pipelines: Map<string, PipelineDescription>, private readonly cronRegistry: CronRegistry) {
         if (process.env.LAYER === Layers.Server) {
             Array.from(this.pipelines.keys()).forEach(name => {
                 const job = this.pipelines.get(name)
@@ -65,60 +61,69 @@ export class JobsRepositoryImpl implements JobsRepository {
     run(name: string): Observable<void> {
         const pipeline = this.pipelines.get(name)
         if (pipeline) {
-            return from(call(clusterModule.namespaces)(pipeline))
-                .pipe(mergeMap(namespaces => {
+            return from(call(clusterModule.namespaces)(pipeline)).pipe(
+                mergeMap(namespaces => {
                     if (namespaces.length === 0) {
                         return this.runInNamespace(pipeline)
                     }
-                    return of(...namespaces)
-                        .pipe(mergeMap(namespace => this.runInNamespace(pipeline, namespace)))
-                }))
+                    return of(...namespaces).pipe(mergeMap(namespace => this.runInNamespace(pipeline, namespace)))
+                })
+            )
         }
         return empty()
     }
 
     runInNamespace(pipeline: PipelineDescription, namespace?: string): Observable<void> {
         const steps: { [name: string]: StepDescription } = {}
-        steps[internalLogErrorStep] = { name: internalLogErrorStep, type: "logError" }
+        steps[internalLogErrorStep] = { name: internalLogErrorStep, type: 'logError' }
         for (const step of pipeline.steps) {
             steps[step.name] = step
         }
         const serverGroups = of<ServerGroup>({ cluster: pipeline.cluster, namespace })
-        const deployments = serverGroups.pipe(mergeMap(group => from(call(clusterModule.deployments)(group))
-            .pipe(map(deployments => ({ group, deployments })))
-        ))
-        return this.step(pipeline, steps, pipeline.start, deployments as Observable<object>).pipe(map(() => { }))
+        const deployments = serverGroups.pipe(
+            mergeMap(group => from(call(clusterModule.deployments)(group)).pipe(map(deployments => ({ group, deployments }))))
+        )
+        return this.step(pipeline, steps, pipeline.start, deployments as Observable<object>).pipe(map(() => {}))
     }
 
-    step(pipeline: PipelineDescription, steps: { [name: string]: StepDescription }, name: string, inStream: Observable<object>): Observable<object> {
+    step(
+        pipeline: PipelineDescription,
+        steps: { [name: string]: StepDescription },
+        name: string,
+        inStream: Observable<object>
+    ): Observable<object> {
         const step = steps[name]
         let outStream: Observable<object>
         let stepMapper: OperatorFunction<any, object>
         switch (step.type) {
-            case "planClusterDeployment": {
+            case 'planClusterDeployment': {
                 const instance = new PlanClusterDeployment(step.name, step.cluster!, step.filter, this.io)
-                stepMapper = mergeMap<{ group: ServerGroup, deployments: Deployment[] }, JobPlan>(s => instance.plan(s.group, name, s.deployments))
+                stepMapper = mergeMap<{ group: ServerGroup; deployments: Deployment[] }, JobPlan>(s =>
+                    instance.plan(s.group, name, s.deployments)
+                )
                 break
             }
-            case "planImageDeployment": {
+            case 'planImageDeployment': {
                 const instance = new PlanImageDeployment(step.name, step.tag!, step.semanticTagExtractor, step.filter, this.io)
-                stepMapper = mergeMap<{ group: ServerGroup, deployments: Deployment[] }, JobPlan>(s => instance.plan(s.group, name, s.deployments))
+                stepMapper = mergeMap<{ group: ServerGroup; deployments: Deployment[] }, JobPlan>(s =>
+                    instance.plan(s.group, name, s.deployments)
+                )
                 break
             }
-            case "applyDeployment": {
-                const instance = new ApplyDeployment(this.io)
+            case 'applyDeployment': {
+                const instance = new ApplyDeployment(pipeline.name, this.io)
                 stepMapper = mergeMap(s => instance.apply(s))
                 break
             }
-            case "logError": {
+            case 'logError': {
                 const instance = new LogError(this.io)
                 stepMapper = mergeMap(s => instance.apply(pipeline, s))
                 break
             }
-            case "clusterProbe": {
+            case 'clusterProbe': {
                 const instance = new ClusterProbe()
                 stepMapper = mergeMap(s => instance.apply(s, step.hook!, step.timeout))
-                break;
+                break
             }
             default:
                 throw new Error(`step type ${step.type} not implemented`)
@@ -145,7 +150,7 @@ export class JobsRepositoryImpl implements JobsRepository {
     }
 
     async apply(plan: JobPlan): Promise<void> {
-        new ApplyDeployment().apply(plan)
+        new ApplyDeployment('manual plan').apply(plan)
     }
 
     async planDeploymentForNamespaces(pipeline: PipelineDescription, namespaces: string[]): Promise<JobPlan> {
@@ -167,24 +172,21 @@ export class JobsRepositoryImpl implements JobsRepository {
 
     async planDeployments(pipeline: PipelineDescription, namespace?: string): Promise<JobPlan> {
         let planStep: PlanImageDeployment | PlanClusterDeployment
-        let planStepDescription = pipeline.steps.find(s => s.type === "planImageDeployment" || s.type === "planClusterDeployment")
+        let planStepDescription = pipeline.steps.find(s => s.type === 'planImageDeployment' || s.type === 'planClusterDeployment')
         if (planStepDescription !== undefined) {
-            if (planStepDescription.type === "planImageDeployment") {
+            if (planStepDescription.type === 'planImageDeployment') {
                 planStep = new PlanImageDeployment(pipeline.name, planStepDescription.tag, planStepDescription.semanticTagExtractor)
             } else {
                 planStep = new PlanClusterDeployment(pipeline.name, planStepDescription.cluster!)
             }
         } else {
-            throw new Error("pipeline has no plan step")
+            throw new Error('pipeline has no plan step')
         }
 
         const serverGroups = of<ServerGroup>({ cluster: pipeline.cluster, namespace })
-        const deployments = serverGroups
-            .pipe(mergeMap(group =>
-                from(call(clusterModule.deployments)(group))
-                    .pipe(map(deployments => ({ group, deployments }))
-                    )
-            ))
+        const deployments = serverGroups.pipe(
+            mergeMap(group => from(call(clusterModule.deployments)(group)).pipe(map(deployments => ({ group, deployments }))))
+        )
         return deployments.pipe(map(d => planStep.plan(d.group, pipeline.name, d.deployments))).toPromise()
     }
 }

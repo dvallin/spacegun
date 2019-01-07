@@ -1,26 +1,25 @@
-import { IO } from "../../IO"
+import { IO } from '../../IO'
 
-import { call } from "../../dispatcher"
+import { call } from '../../dispatcher'
 
-import * as imageModule from "../../images/ImageModule"
+import * as imageModule from '../../images/ImageModule'
 
-import { DeploymentPlan } from "../model/DeploymentPlan"
-import { Deployment } from "../../cluster/model/Deployment"
-import { ServerGroup } from "../../cluster/model/ServerGroup"
-import { Filter, matchesDeployment, matchesServerGroup } from "../model/Filter"
-import { JobPlan } from "../model/JobPlan";
+import { DeploymentPlan } from '../model/DeploymentPlan'
+import { Deployment } from '../../cluster/model/Deployment'
+import { ServerGroup } from '../../cluster/model/ServerGroup'
+import { Filter, matchesDeployment, matchesServerGroup } from '../model/Filter'
+import { JobPlan } from '../model/JobPlan'
 
 export type FetchedDeployment = {}
 
 export class PlanImageDeployment {
-
     public constructor(
         readonly name: string,
         readonly tag: string | undefined,
         readonly semanticTagExtractor: string | undefined,
         readonly filter?: Partial<Filter>,
         readonly io: IO = new IO()
-    ) { }
+    ) {}
 
     public async plan(group: ServerGroup, name: string, targetDeployments: Deployment[]): Promise<JobPlan> {
         if (!matchesServerGroup(this.filter, group)) {
@@ -34,7 +33,9 @@ export class PlanImageDeployment {
             }
             this.io.out(`planning image deployment ${targetDeployment.name} in ${this.name}`)
             if (targetDeployment.image === undefined) {
-                this.io.error(`${targetDeployment.name} in cluster ${group.cluster} has no image, so spacegun cannot determine the right image source`)
+                this.io.error(
+                    `${targetDeployment.name} in cluster ${group.cluster} has no image, so spacegun cannot determine the right image source`
+                )
                 continue
             }
 
@@ -46,7 +47,8 @@ export class PlanImageDeployment {
 
             if (tag !== undefined) {
                 const image = await call(imageModule.image)({
-                    tag, name: targetDeployment.image.name
+                    tag,
+                    name: targetDeployment.image.name,
                 })
 
                 if (targetDeployment.image.url !== image.url) {
@@ -57,23 +59,27 @@ export class PlanImageDeployment {
                     })
                 }
             } else {
-                throw new Error(`Could not find a tag for deployment ${targetDeployment.name} in cluster ${group.cluster}, namespace ${group.namespace}`)
+                throw new Error(
+                    `Could not find a tag for deployment ${targetDeployment.name} in cluster ${group.cluster}, namespace ${group.namespace}`
+                )
             }
         }
         return { name, deployments }
     }
 
     private getNewestTag(tags: string[]): string | undefined {
-        let sortableTags: { key: string, tag: string }[]
+        let sortableTags: { key: string; tag: string }[]
         if (this.semanticTagExtractor !== undefined) {
             const regex = new RegExp(this.semanticTagExtractor!)
-            sortableTags = tags.map(tag => {
-                const match = tag.match(regex)
-                if (match !== null && match.length > 0) {
-                    return { key: match[0], tag }
-                }
-                return null
-            }).filter(t => t != null) as { key: string, tag: string }[]
+            sortableTags = tags
+                .map(tag => {
+                    const match = tag.match(regex)
+                    if (match !== null && match.length > 0) {
+                        return { key: match[0], tag }
+                    }
+                    return null
+                })
+                .filter(t => t != null) as { key: string; tag: string }[]
         } else {
             sortableTags = tags.map(tag => ({ key: tag, tag }))
         }

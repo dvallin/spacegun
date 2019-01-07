@@ -1,18 +1,17 @@
-import { safeLoad } from "js-yaml"
-import { readFileSync, readdirSync } from "fs"
+import { safeLoad } from 'js-yaml'
+import { readFileSync, readdirSync } from 'fs'
 
-import { PipelineDescription } from "./model/PipelineDescription"
-import { StepDescription } from "./model/Step"
+import { PipelineDescription } from './model/PipelineDescription'
+import { StepDescription } from './model/Step'
 
-export function load(path: string = "./pipelines"): Map<string, PipelineDescription> {
+export function load(path: string = './pipelines'): Map<string, PipelineDescription> {
     let files: string[] = []
     try {
         files = readdirSync(path)
-    } catch (e) {
-    }
+    } catch (e) {}
     const jobs: Map<string, PipelineDescription> = new Map()
     for (const file of files) {
-        const name = file.split(".")[0]
+        const name = file.split('.')[0]
         const filePath = `${path}/${file}`
         const fileContent = readFileSync(filePath, 'utf8')
         const partial = safeLoad(fileContent) as Partial<PipelineDescription>
@@ -45,7 +44,7 @@ export function validateStep(step: Partial<StepDescription>, name: string, clust
         throw new Error(`a step of job ${name} has no name`)
     }
     switch (step.type) {
-        case "planClusterDeployment": {
+        case 'planClusterDeployment': {
             if (step.cluster === undefined) {
                 throw new Error(`in step ${step.name} of job ${name} the cluster expression is missing`)
             }
@@ -54,26 +53,32 @@ export function validateStep(step: Partial<StepDescription>, name: string, clust
             }
             break
         }
-        case "clusterProbe": {
+        case 'clusterProbe': {
             if (step.hook === undefined) {
                 throw new Error(`in step ${step.name} of job ${name} the probe is missing`)
             }
             break
         }
-        case "logError":
-        case "planImageDeployment":
-        case "applyDeployment":
-        case "takeSnapshot":
-        case "rollback":
+        case 'logError':
+        case 'planImageDeployment':
+        case 'applyDeployment':
+        case 'takeSnapshot':
+        case 'rollback':
             break
         default:
             throw new Error(`${step.type} of job ${name} is not a valid step type`)
     }
     return {
-        name: step.name!, type: step.type!,
-        onSuccess: step.onSuccess, onFailure: step.onFailure,
+        name: step.name!,
+        type: step.type!,
+        onSuccess: step.onSuccess,
+        onFailure: step.onFailure,
 
-        cluster: step.cluster, tag: step.tag, hook: step.hook, timeout: step.timeout,
-        filter: step.filter, semanticTagExtractor: step.semanticTagExtractor
+        cluster: step.cluster,
+        tag: step.tag,
+        hook: step.hook,
+        timeout: step.timeout,
+        filter: step.filter,
+        semanticTagExtractor: step.semanticTagExtractor,
     }
 }

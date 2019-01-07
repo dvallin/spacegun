@@ -1,9 +1,9 @@
-import axios from "axios"
+import axios from 'axios'
 
-import { ImageRepository } from "../../images/ImageRepository"
-import { Image } from "../../images/model/Image"
-import { Cache } from "../../Cache"
-import { Tag } from "../../images/model/Tag"
+import { ImageRepository } from '../../images/ImageRepository'
+import { Image } from '../../images/model/Image'
+import { Cache } from '../../Cache'
+import { Tag } from '../../images/model/Tag'
 
 interface DockerRepositoriesResponse {
     repositories: string[]
@@ -15,7 +15,6 @@ interface DockerTagsResponse {
 }
 
 export class DockerImageRepository implements ImageRepository {
-
     private listCache: Cache<null, string[]> = new Cache(30 * 60)
     private tagCache: Cache<string, Tag[]> = new Cache(30 * 60)
     private imageCache: Cache<string, Image> = new Cache(5 * 60)
@@ -24,12 +23,10 @@ export class DockerImageRepository implements ImageRepository {
         return new DockerImageRepository(endpoint)
     }
 
-    public constructor(
-        public readonly endpoint: string
-    ) { }
+    public constructor(public readonly endpoint: string) {}
 
     public get repository(): string {
-        return this.endpoint.split("://")[1]
+        return this.endpoint.split('://')[1]
     }
 
     public async list(): Promise<string[]> {
@@ -46,13 +43,12 @@ export class DockerImageRepository implements ImageRepository {
         })
     }
 
-    public async image(name: string, tag: string = "latest"): Promise<Image> {
+    public async image(name: string, tag: string = 'latest'): Promise<Image> {
         return this.imageCache.calculate(`${name}:${tag}`, async () => {
-            const manifest = await axios.get(
-                `${this.endpoint}/v2/${name}/manifests/${tag}`,
-                { headers: { accept: "application/vnd.docker.distribution.manifest.v2+json" } }
-            )
-            const digest = manifest.headers["docker-content-digest"]
+            const manifest = await axios.get(`${this.endpoint}/v2/${name}/manifests/${tag}`, {
+                headers: { accept: 'application/vnd.docker.distribution.manifest.v2+json' },
+            })
+            const digest = manifest.headers['docker-content-digest']
             const url = this.createUrl(name, tag, digest)
             return { name, tag, url }
         })

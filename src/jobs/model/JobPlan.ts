@@ -1,4 +1,4 @@
-import { DeploymentPlan } from "./DeploymentPlan"
+import { DeploymentPlan } from './DeploymentPlan'
 
 export interface JobPlan {
     name: string

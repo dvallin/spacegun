@@ -1,10 +1,10 @@
-import * as moment from "moment"
-import { call } from "../dispatcher"
-import { Resource } from "../dispatcher/resource"
-import { clusters, namespaces, pods } from "../cluster/ClusterModule"
-import { pipelines, schedules } from "../jobs/JobsModule"
-import { Config } from "../config"
-import { list, tags, image } from "../images/ImageModule"
+import * as moment from 'moment'
+import { call } from '../dispatcher'
+import { Resource } from '../dispatcher/resource'
+import { clusters, namespaces, pods } from '../cluster/ClusterModule'
+import { pipelines, schedules } from '../jobs/JobsModule'
+import { Config } from '../config'
+import { list, tags, image } from '../images/ImageModule'
 
 let config: Config | undefined
 export function init(c: Config) {
@@ -12,8 +12,7 @@ export function init(c: Config) {
 }
 
 export class Module {
-
-    @Resource({ path: "/" })
+    @Resource({ path: '/' })
     public async index(): Promise<object> {
         const errors: string[] = []
 
@@ -25,11 +24,11 @@ export class Module {
                 const knownNamespaces = await call(namespaces)({ cluster })
                 clustersWithNamespaces.push({
                     name: cluster,
-                    namespaces: knownNamespaces
+                    namespaces: knownNamespaces,
                 })
             }
         } catch (e) {
-            errors.push("Clusters could not be loaded: " + e.message)
+            errors.push('Clusters could not be loaded: ' + e.message)
         }
 
         let jobsWithSchedules = undefined
@@ -51,32 +50,32 @@ export class Module {
                 jobsWithSchedules.push({
                     pipeline,
                     lastRun,
-                    nextRun
+                    nextRun,
                 })
             }
         } catch (e) {
-            errors.push("Jobs could not be loaded: " + e.message)
+            errors.push('Jobs could not be loaded: ' + e.message)
         }
 
         let knownImages = undefined
         try {
             knownImages = await call(list)()
         } catch (e) {
-            errors.push("Images could not be loaded: " + e.message)
+            errors.push('Images could not be loaded: ' + e.message)
         }
 
         return {
-            title: "Spacegun ∞ Dashboard",
+            title: 'Spacegun ∞ Dashboard',
             clusters: clustersWithNamespaces,
             jobs: jobsWithSchedules,
             images: knownImages,
             config,
             version: process.env.VERSION,
-            errors
+            errors,
         }
     }
 
-    @Resource({ path: "/pods/:cluster" })
+    @Resource({ path: '/pods/:cluster' })
     public async pods(params: { cluster: string }): Promise<object> {
         const cluster = params.cluster
         const knownNamespaces = await call(namespaces)({ cluster })
@@ -87,21 +86,21 @@ export class Module {
 
             namespacesWithPods.push({
                 name: namespace,
-                pods: knownPods
+                pods: knownPods,
             })
         }
 
         return {
-            title: "Spacegun ∞ Pods ∞ " + cluster,
+            title: 'Spacegun ∞ Pods ∞ ' + cluster,
             name: params.cluster,
-            namespaces: namespacesWithPods
+            namespaces: namespacesWithPods,
         }
     }
 
-    @Resource({ path: "/images/:image/:tag?" })
-    public async images(params: { image: string, tag?: string }): Promise<object> {
+    @Resource({ path: '/images/:image/:tag?' })
+    public async images(params: { image: string; tag?: string }): Promise<object> {
         const name = params.image
-        const tag = params.tag || "latest"
+        const tag = params.tag || 'latest'
         const knownTags = await call(tags)({ name })
         const knownImages = knownTags.map(t => ({ name, tag: t }))
 
@@ -111,11 +110,10 @@ export class Module {
         }
 
         return {
-            title: "Spacegun ∞ Images ∞ " + image,
+            title: 'Spacegun ∞ Images ∞ ' + image,
             name,
             images: knownImages,
-            focusedImage
+            focusedImage,
         }
     }
 }
-

@@ -1,13 +1,12 @@
-import axios, { AxiosRequestConfig } from "axios"
+import axios, { AxiosRequestConfig } from 'axios'
 
-import { EventRepository } from "../EventRepository"
-import { Event } from "../model/Event"
-import { EventField } from "../model/EventField"
+import { EventRepository } from '../EventRepository'
+import { Event } from '../model/Event'
+import { EventField } from '../model/EventField'
 
 const axiosConfig: AxiosRequestConfig = { timeout: 20000 }
 
 export class SlackEventRepository implements EventRepository {
-
     public static fromConfig(slack?: string): SlackEventRepository | undefined {
         if (slack) {
             return new SlackEventRepository(slack)
@@ -15,18 +14,12 @@ export class SlackEventRepository implements EventRepository {
         return undefined
     }
 
-    public constructor(
-        private readonly slack: string
-    ) { }
+    public constructor(private readonly slack: string) {}
 
     public async log(event: Event): Promise<void> {
-        if (event.topics.find(v => v === "slack") !== undefined) {
+        if (event.topics.find(v => v === 'slack') !== undefined) {
             const slackMessage = this.serializeEvent(event)
-            await axios.post(
-                this.slack,
-                slackMessage,
-                axiosConfig
-            )
+            await axios.post(this.slack, slackMessage, axiosConfig)
         }
     }
 
@@ -37,15 +30,15 @@ export class SlackEventRepository implements EventRepository {
             attachments: [
                 {
                     fallback: `Spacegun says: ${event.message} ${event.description}`,
-                    color: "#36a64f",
+                    color: '#36a64f',
                     title: event.message,
                     text: event.description,
                     fields,
-                    footer: "Spacegun",
-                    footer_icon: "https://platform.slack-edge.com/img/default_application_icon.png",
-                    ts: Math.floor(Date.now() / 1000)
-                }
-            ]
+                    footer: 'Spacegun',
+                    footer_icon: 'https://platform.slack-edge.com/img/default_application_icon.png',
+                    ts: Math.floor(Date.now() / 1000),
+                },
+            ],
         }
     }
 

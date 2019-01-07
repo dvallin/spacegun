@@ -1,22 +1,19 @@
-import * as clusterModule from "../cluster/ClusterModule"
-import * as configModule from "../artifacts/ArtifactModule"
+import * as clusterModule from '../cluster/ClusterModule'
+import * as configModule from '../artifacts/ArtifactModule'
 
-import { Options } from "../options"
-import { CommandFn } from "."
+import { Options } from '../options'
+import { CommandFn } from '.'
 
-import { call } from "../dispatcher"
-import { IO } from "../IO"
+import { call } from '../dispatcher'
+import { IO } from '../IO'
 
-import { load, foreachNamespace, foreachCluster } from "./helpers"
+import { load, foreachNamespace, foreachCluster } from './helpers'
 
 export const snapshotCommand: CommandFn = async (options: Options, io: IO) =>
-    foreachCluster(options, io, (options, io, cluster) =>
-        foreachNamespace(options, io, cluster, snapshot))
+    foreachCluster(options, io, (options, io, cluster) => foreachNamespace(options, io, cluster, snapshot))
 
 export const applySnapshotCommand: CommandFn = async (options: Options, io: IO) =>
-    foreachCluster(options, io, (options, io, cluster) =>
-        foreachNamespace(options, io, cluster, applySnapshot))
-
+    foreachCluster(options, io, (options, io, cluster) => foreachNamespace(options, io, cluster, applySnapshot))
 
 async function snapshot(io: IO, cluster: string, namespace?: string) {
     io.out(`Loading snapshot`)
@@ -28,8 +25,8 @@ async function snapshot(io: IO, cluster: string, namespace?: string) {
             path: `${cluster}/${namespace}/deployments`,
             artifact: {
                 name: deployment.name,
-                data: deployment.data
-            }
+                data: deployment.data,
+            },
         })
     }
 }
@@ -41,6 +38,6 @@ async function applySnapshot(io: IO, cluster: string, namespace?: string) {
     }
     await call(clusterModule.applySnapshot)({
         group: { cluster, namespace },
-        snapshot: { deployments: knownArtifacts }
+        snapshot: { deployments: knownArtifacts },
     })
 }

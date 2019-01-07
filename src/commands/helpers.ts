@@ -1,18 +1,18 @@
-import * as ora from "ora"
-import chalk from "chalk"
+import * as ora from 'ora'
+import chalk from 'chalk'
 
-import { call } from "../dispatcher"
-import { pad } from "../pad"
-import { IO } from "../IO"
+import { call } from '../dispatcher'
+import { pad } from '../pad'
+import { IO } from '../IO'
 
-import * as clusterModule from "../cluster/ClusterModule"
+import * as clusterModule from '../cluster/ClusterModule'
 
-import { Options } from "../options"
+import { Options } from '../options'
 
 export async function load<T>(p: Promise<T>): Promise<T> {
     const progress = ora()
     try {
-        progress.start("loading")
+        progress.start('loading')
         return await p
     } finally {
         progress.stop()
@@ -23,8 +23,8 @@ export async function applyWithConsent(options: Options, io: IO, f: () => Promis
     if (options.yes) {
         return f()
     } else {
-        io.out("Answer `yes` to apply.")
-        const userAgrees = await io.expect('> ', "yes")
+        io.out('Answer `yes` to apply.')
+        const userAgrees = await io.expect('> ', 'yes')
         if (userAgrees) {
             return f()
         }
@@ -37,7 +37,7 @@ export async function foreachCluster(options: Options, io: IO, command: (options
     } else {
         const clusters = await load(call(clusterModule.clusters)())
         for (const cluster of clusters) {
-            io.out("")
+            io.out('')
             try {
                 await command(options, io, cluster)
             } catch (e) {
@@ -47,7 +47,12 @@ export async function foreachCluster(options: Options, io: IO, command: (options
     }
 }
 
-export async function foreachNamespace(options: Options, io: IO, cluster: string, command: (io: IO, cluster: string, namespace?: string) => void) {
+export async function foreachNamespace(
+    options: Options,
+    io: IO,
+    cluster: string,
+    command: (io: IO, cluster: string, namespace?: string) => void
+) {
     if (options.namespace) {
         io.out(chalk.underline.bold(pad(`${cluster} :: ${options.namespace}`)))
         await command(io, cluster, options.namespace)

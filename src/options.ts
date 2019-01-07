@@ -1,6 +1,6 @@
-import * as commandLineArgs from "command-line-args"
+import * as commandLineArgs from 'command-line-args'
 
-import { Command } from "./commands"
+import { Command } from './commands'
 
 export interface Options {
     cluster?: string
@@ -16,7 +16,7 @@ export interface Options {
 function parse(): Options {
     const internalOptions = commandLineArgs([
         { name: 'cluster', alias: 'c', type: String },
-        { name: 'command', defaultOption: true, defaultValue: "help" },
+        { name: 'command', defaultOption: true, defaultValue: 'help' },
         { name: 'config', type: String },
         { name: 'deployment', alias: 'd', type: String },
         { name: 'help', alias: 'h', type: Boolean },
@@ -26,36 +26,36 @@ function parse(): Options {
         { name: 'version', alias: 'v', type: Boolean },
         { name: 'yes', alias: 'y', type: Boolean },
     ]) as {
-            cluster?: string,
-            command?: string,
-            config?: string,
-            deployment?: string,
-            help?: boolean,
-            namespace?: string,
-            pipeline?: string
-            tag?: string,
-            version?: boolean,
-            yes?: boolean
-        }
-    let command: Command = "help"
+        cluster?: string
+        command?: string
+        config?: string
+        deployment?: string
+        help?: boolean
+        namespace?: string
+        pipeline?: string
+        tag?: string
+        version?: boolean
+        yes?: boolean
+    }
+    let command: Command = 'help'
     if (internalOptions.help) {
-        command = "help"
+        command = 'help'
     } else if (internalOptions.version) {
-        command = "version"
+        command = 'version'
     } else if (internalOptions.command !== undefined) {
         switch (internalOptions.command) {
-            case "apply":
-            case "deploy":
-            case "restart":
-            case "deployments":
-            case "images":
-            case "namespaces":
-            case "pipelines":
-            case "pipelineSchedules":
-            case "pods":
-            case "run":
-            case "scalers":
-            case "snapshot":
+            case 'apply':
+            case 'deploy':
+            case 'restart':
+            case 'deployments':
+            case 'images':
+            case 'namespaces':
+            case 'pipelines':
+            case 'pipelineSchedules':
+            case 'pods':
+            case 'run':
+            case 'scalers':
+            case 'snapshot':
                 command = internalOptions.command
                 break
         }
@@ -69,7 +69,7 @@ function parse(): Options {
         namespace: internalOptions.namespace,
         pipeline: internalOptions.pipeline,
         tag: internalOptions.tag,
-        yes: internalOptions.yes
+        yes: internalOptions.yes,
     }
 }
 

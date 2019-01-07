@@ -1,21 +1,18 @@
-import * as readline from "readline"
+import * as readline from 'readline'
 
 export class IO {
-
     public constructor(
         public readonly stdin: NodeJS.ReadableStream = process.stdin,
         public readonly stdout: NodeJS.WritableStream = process.stdout
-    ) {
-    }
+    ) {}
 
     public choose<T>(question: string, options: T[]): Promise<T> {
         return new Promise((resolve, reject) => {
-            this.readlineContext(question, (answer) => {
+            this.readlineContext(question, answer => {
                 let index
                 try {
                     index = Number.parseInt(answer)
-                } catch (error) {
-                }
+                } catch (error) {}
                 if (index === undefined || index < 0 || index >= options.length) {
                     reject(new Error(`${answer} is not in the valid range`))
                 } else {
@@ -26,8 +23,8 @@ export class IO {
     }
 
     public expect(question: string, expected: string): Promise<boolean> {
-        return new Promise((resolve) => {
-            this.readlineContext(question, (answer) => resolve(answer === expected))
+        return new Promise(resolve => {
+            this.readlineContext(question, answer => resolve(answer === expected))
         })
     }
 
@@ -42,9 +39,9 @@ export class IO {
     private readlineContext(question: string, callback: (answer: string) => void) {
         const r = readline.createInterface({
             input: this.stdin,
-            output: this.stdout
+            output: this.stdout,
         })
-        r.question(question, (answer) => {
+        r.question(question, answer => {
             callback(answer)
             r.close()
         })

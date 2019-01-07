@@ -1,9 +1,7 @@
 export class Cache<S, T> {
-    private data: Map<S, { value: T, age: number }> = new Map()
+    private data: Map<S, { value: T; age: number }> = new Map()
 
-    public constructor(
-        public maxAgeSeconds?: number
-    ) { }
+    public constructor(public maxAgeSeconds?: number) {}
 
     public get(key: S): T | undefined {
         const entry = this.data.get(key)

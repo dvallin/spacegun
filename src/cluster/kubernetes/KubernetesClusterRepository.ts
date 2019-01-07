@@ -5,34 +5,33 @@ import {
     Autoscaling_v1Api,
     V1beta2Deployment,
     V1Container,
-    V1PodStatus
+    V1PodStatus,
 } from '@kubernetes/client-node'
 
-import * as moment from "moment"
+import * as moment from 'moment'
 
-const cloneDeep = require("lodash.clonedeep")
+const cloneDeep = require('lodash.clonedeep')
 
-import { Pod } from "../model/Pod"
-import { Image } from "../model/Image"
-import { Deployment } from "../model/Deployment"
-import { ServerGroup } from "../model/ServerGroup"
-import { ClusterSnapshot } from "../model/ClusterSnapshot"
-import { Scaler } from "../model/Scaler"
-import { ClusterRepository } from "../ClusterRepository"
-import { Cache } from "../../Cache"
+import { Pod } from '../model/Pod'
+import { Image } from '../model/Image'
+import { Deployment } from '../model/Deployment'
+import { ServerGroup } from '../model/ServerGroup'
+import { ClusterSnapshot } from '../model/ClusterSnapshot'
+import { Scaler } from '../model/Scaler'
+import { ClusterRepository } from '../ClusterRepository'
+import { Cache } from '../../Cache'
 
-import { extractImageName } from "./extract-image-name"
+import { extractImageName } from './extract-image-name'
 
-import * as eventModule from "../../events/EventModule"
+import * as eventModule from '../../events/EventModule'
 
-import { call } from "../../dispatcher"
+import { call } from '../../dispatcher'
 
 interface Api {
     setDefaultAuthentication(config: KubeConfig): void
 }
 
 export class KubernetesClusterRepository implements ClusterRepository {
-
     private namespacesCache: Cache<string, string[]> = new Cache(60)
 
     public static fromConfig(configFile: string, namespaces?: string[]): KubernetesClusterRepository {
@@ -47,10 +46,7 @@ export class KubernetesClusterRepository implements ClusterRepository {
         return new KubernetesClusterRepository(configs, namespaces)
     }
 
-    public constructor(
-        public readonly configs: Map<string, KubeConfig>,
-        private readonly allowedNamespaces: string[] | undefined
-    ) { }
+    public constructor(public readonly configs: Map<string, KubeConfig>, private readonly allowedNamespaces: string[] | undefined) {}
 
     get clusters(): string[] {
         return Array.from(this.configs.keys())
@@ -60,9 +56,7 @@ export class KubernetesClusterRepository implements ClusterRepository {
         return this.namespacesCache.calculate(context, async () => {
             const api = this.build(context, (server: string) => new Core_v1Api(server))
             const result = await api.listNamespace()
-            return result.body.items
-                .map(namespace => namespace.metadata.name)
-                .filter(namespace => this.isNamespaceAllowed(namespace))
+            return result.body.items.map(namespace => namespace.metadata.name).filter(namespace => this.isNamespaceAllowed(namespace))
         })
     }
 
@@ -80,7 +74,10 @@ export class KubernetesClusterRepository implements ClusterRepository {
             const createdAt = moment(item.metadata.creationTimestamp).valueOf()
             return {
                 name: item.metadata.name,
-                createdAt, image, restarts, ready
+                createdAt,
+                image,
+                restarts,
+                ready,
             }
         })
     }
@@ -93,7 +90,7 @@ export class KubernetesClusterRepository implements ClusterRepository {
             const image = this.createImage(item.spec.template.spec.containers)
             return {
                 name: item.metadata.name,
-                image
+                image,
             }
         })
     }
@@ -107,8 +104,8 @@ export class KubernetesClusterRepository implements ClusterRepository {
             replicas: {
                 current: item.status.currentReplicas,
                 minimum: item.spec.minReplicas,
-                maximum: item.spec.maxReplicas
-            }
+                maximum: item.spec.maxReplicas,
+            },
         }))
     }
 
@@ -119,7 +116,7 @@ export class KubernetesClusterRepository implements ClusterRepository {
     }
 
     async restartDeployment(group: ServerGroup, deployment: Deployment): Promise<Deployment> {
-        return this.replaceDeployment(group, deployment, () => { })
+        return this.replaceDeployment(group, deployment, () => {})
     }
 
     async takeSnapshot(group: ServerGroup): Promise<ClusterSnapshot> {
@@ -129,8 +126,8 @@ export class KubernetesClusterRepository implements ClusterRepository {
         return {
             deployments: result.body.items.map(d => ({
                 name: d.metadata.name,
-                data: this.minifyDeployment(d)
-            }))
+                data: this.minifyDeployment(d),
+            })),
         }
     }
 
@@ -169,24 +166,23 @@ export class KubernetesClusterRepository implements ClusterRepository {
             call(eventModule.log)({
                 message: `Applied Snapshots`,
                 timestamp: Date.now(),
-                topics: ["slack"],
+                topics: ['slack'],
                 description: `Applied Snapshots in ${group.cluster} ∞ ${group.namespace}`,
                 fields: [
-                    ...errored.map(value => ({ value, title: "Failure" })),
-                    ...applied.map(value => ({ value, title: "Updated" })),
-                    ...created.map(value => ({ value, title: "Created" })),
-                ]
+                    ...errored.map(value => ({ value, title: 'Failure' })),
+                    ...applied.map(value => ({ value, title: 'Updated' })),
+                    ...created.map(value => ({ value, title: 'Created' })),
+                ],
             })
         }
     }
 
     private getNamespace(group: ServerGroup): string {
-        return group.namespace || "default"
+        return group.namespace || 'default'
     }
 
     private isNamespaceAllowed(namespace: string): boolean {
-        return this.allowedNamespaces === undefined
-            || this.allowedNamespaces.find(n => n === namespace) !== undefined
+        return this.allowedNamespaces === undefined || this.allowedNamespaces.find(n => n === namespace) !== undefined
     }
 
     private isReady(status: V1PodStatus): boolean {
@@ -222,7 +218,11 @@ export class KubernetesClusterRepository implements ClusterRepository {
         return api
     }
 
-    private async replaceDeployment(group: ServerGroup, deployment: Deployment, replacer: (d: V1beta2Deployment) => void): Promise<Deployment> {
+    private async replaceDeployment(
+        group: ServerGroup,
+        deployment: Deployment,
+        replacer: (d: V1beta2Deployment) => void
+    ): Promise<Deployment> {
         const api = this.build(group.cluster, (server: string) => new Apps_v1beta2Api(server))
         const namespace = this.getNamespace(group)
         const response = await api.readNamespacedDeployment(deployment.name, namespace)
@@ -233,29 +233,29 @@ export class KubernetesClusterRepository implements ClusterRepository {
         if (target.spec.template.metadata.annotations === undefined) {
             target.spec.template.metadata.annotations = {}
         }
-        target.spec.template.metadata.annotations["spacegun.deployment"] = Date.now().toString()
+        target.spec.template.metadata.annotations['spacegun.deployment'] = Date.now().toString()
 
         let result = await api.replaceNamespacedDeployment(deployment.name, namespace, target)
 
         return {
             name: result.body.metadata.name,
-            image: this.createImage(result.body.spec.template.spec.containers)
+            image: this.createImage(result.body.spec.template.spec.containers),
         }
     }
 
     private minifyDeployment(deployment: V1beta2Deployment): V1beta2Deployment {
         // delete spacegun related annotations
         if (deployment.spec.template.metadata.annotations !== undefined) {
-            delete deployment.spec.template.metadata.annotations["spacegun.deployment"]
+            delete deployment.spec.template.metadata.annotations['spacegun.deployment']
         }
 
         return {
             metadata: {
                 name: deployment.metadata.name,
                 namespace: deployment.metadata.namespace,
-                annotations: deployment.metadata.annotations
+                annotations: deployment.metadata.annotations,
             },
-            spec: deployment.spec
+            spec: deployment.spec,
         } as V1beta2Deployment
     }
 

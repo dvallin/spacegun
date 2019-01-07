@@ -1,10 +1,10 @@
-import { createServer, Context, Next, MiddleWare, createRouter, createViews } from "./server"
-import { PromiseProvider } from "./model/PromiseProvider"
-import { ComponentConfiguration } from "./component"
-import { Methods } from "./model/Methods"
-import { ResourceConfiguration } from "./resource"
-import { Params } from "./model/Params"
-import { path } from ".";
+import { createServer, Context, Next, MiddleWare, createRouter, createViews } from './server'
+import { PromiseProvider } from './model/PromiseProvider'
+import { ComponentConfiguration } from './component'
+import { Methods } from './model/Methods'
+import { ResourceConfiguration } from './resource'
+import { Params } from './model/Params'
+import { path } from '.'
 
 function handle<S, T>(procedure: PromiseProvider<S, T>, configuration: ComponentConfiguration<S>): MiddleWare {
     return async (context: Context, next: Next) => {
@@ -42,11 +42,7 @@ export function init(host: string, port: number) {
     serverPort = port
 }
 
-export function register<S, T>(
-    procedureName: string,
-    procedure: PromiseProvider<S, T>,
-    configuration: ComponentConfiguration<S>
-) {
+export function register<S, T>(procedureName: string, procedure: PromiseProvider<S, T>, configuration: ComponentConfiguration<S>) {
     const url = `/${path(configuration.moduleName, procedureName)}`
     if (configuration.method === Methods.Post) {
         router.post(url, handle(procedure, configuration))
@@ -59,7 +55,7 @@ export function register<S, T>(
 
 export function build() {
     server
-        .use(views.templateEngine(__dirname + "/views"))
+        .use(views.templateEngine(__dirname + '/views'))
         .use(router.routes())
         .use(router.allowedMethods())
 }
@@ -72,7 +68,7 @@ export function registerResource(
     views.register(router, {
         filename: procedureName,
         path: configuration.path,
-        params: async (p: object) => await procedure(p)
+        params: async (p: object) => await procedure(p),
     })
 }
 

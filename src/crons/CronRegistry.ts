@@ -1,8 +1,8 @@
-import * as moment from "moment"
-import { CronJob } from "cron"
+import * as moment from 'moment'
+import { CronJob } from 'cron'
 
-import { IO } from "../IO"
-import { Cron } from "./model/Cron"
+import { IO } from '../IO'
+import { Cron } from './model/Cron'
 
 export class CronRegistry {
     public readonly cronJobs: Map<string, CronJob> = new Map()
@@ -10,13 +10,7 @@ export class CronRegistry {
     private readonly io: IO = new IO()
 
     public register(name: string, cronTab: string, promiseProvider: () => Promise<void>, start: boolean = false) {
-        const cron = new CronJob(
-            cronTab,
-            () => this.executeTask(name, promiseProvider),
-            () => { },
-            start,
-            "UTC"
-        )
+        const cron = new CronJob(cronTab, () => this.executeTask(name, promiseProvider), () => {}, start, 'UTC')
         this.cronJobs.set(name, cron)
     }
 
