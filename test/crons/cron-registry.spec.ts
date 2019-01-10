@@ -65,6 +65,14 @@ describe('CronRegistry', () => {
         jest.runOnlyPendingTimers()
         expect(registry.crons[0].lastRun).toBeDefined()
         expect(registry.crons[0].isStarted).toBeTruthy()
+        expect(registry.running.size).toBe(0)
+    })
+
+    it('handles failing crons', async () => {
+        const registry = new CronRegistry()
+        registry.register('failureCron', '* * * * * *', () => Promise.reject(new Error()))
+        await callCronJobCallback(registry, 'failureCron')
+        expect(registry.running.size).toBe(0)
     })
 
     it('does not run crons that are already running', () => {
@@ -87,6 +95,6 @@ describe('CronRegistry', () => {
     })
 })
 
-function callCronJobCallback(registry: CronRegistry, name: string): void {
-    ;(registry.cronJobs.get(name) as any)._callbacks[0]()
+function callCronJobCallback(registry: CronRegistry, name: string): Promise<void> {
+    return (registry.cronJobs.get(name) as any)._callbacks[0]()
 }
