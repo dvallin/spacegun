@@ -56,13 +56,18 @@ export class CronRegistry {
     private async executeTask(name: string, promiseProvider: () => Promise<void>): Promise<void> {
         const currentTask = this.running.get(name)
         if (currentTask !== undefined) {
-            this.io.out(`${name} is already running!`)
+            this.io.error(`${name} is already running!`)
         } else {
             this.io.out(`executing cron job ${name}`)
             const task = promiseProvider()
             this.running.set(name, task)
-            await task
-            this.running.delete(name)
+            try {
+                await task
+            } catch (error) {
+                this.io.error(error)
+            } finally {
+                this.running.delete(name)
+            }
         }
     }
 }
