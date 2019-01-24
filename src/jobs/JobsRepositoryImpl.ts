@@ -175,9 +175,14 @@ export class JobsRepositoryImpl implements JobsRepository {
         let planStepDescription = pipeline.steps.find(s => s.type === 'planImageDeployment' || s.type === 'planClusterDeployment')
         if (planStepDescription !== undefined) {
             if (planStepDescription.type === 'planImageDeployment') {
-                planStep = new PlanImageDeployment(pipeline.name, planStepDescription.tag, planStepDescription.semanticTagExtractor)
+                planStep = new PlanImageDeployment(
+                    pipeline.name,
+                    planStepDescription.tag,
+                    planStepDescription.semanticTagExtractor,
+                    planStepDescription.filter
+                )
             } else {
-                planStep = new PlanClusterDeployment(pipeline.name, planStepDescription.cluster!)
+                planStep = new PlanClusterDeployment(pipeline.name, planStepDescription.cluster!, planStepDescription.filter)
             }
         } else {
             throw new Error('pipeline has no plan step')
