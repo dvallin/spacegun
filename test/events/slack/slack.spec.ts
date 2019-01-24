@@ -8,7 +8,7 @@ import { axiosSuccess } from '../../test-utils/axios'
 describe('SlackEventRepository', () => {
     let repo: SlackEventRepository
     beforeEach(() => {
-        repo = SlackEventRepository.fromConfig('http://slack')!
+        repo = SlackEventRepository.fromConfig('http://slack', ':cyber:')!
     })
 
     describe('log', () => {
@@ -33,6 +33,7 @@ describe('SlackEventRepository', () => {
             expect(axios.post).toHaveBeenCalledWith(
                 'http://slack',
                 {
+                    icon_emoji: ':cyber:',
                     attachments: [
                         {
                             color: '#36a64f',

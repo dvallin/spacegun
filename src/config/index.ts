@@ -20,6 +20,7 @@ export interface Config {
     artifacts: string
     configBasePath: string
     slack?: string
+    slackIcon?: string
     git?: GitConfig
     server: ServerConfig
     namespaces?: string[]
@@ -32,7 +33,7 @@ export function loadConfig(filePath: string = './config.yml'): Config {
 }
 
 export function validateConfig(configBasePath: string, partial: Partial<Config>): Config {
-    let { kube, namespaces, pipelines, artifacts, slack, server = {}, docker, git } = partial
+    let { kube, namespaces, pipelines, artifacts, slack, server = {}, docker, git, slackIcon } = partial
 
     if (docker === undefined) {
         throw new Error(`a docker endpoint is needed`)
@@ -56,7 +57,7 @@ export function validateConfig(configBasePath: string, partial: Partial<Config>)
         artifacts = `${configBasePath}/${artifacts}`
     }
 
-    return { configBasePath, kube, pipelines, artifacts, slack, namespaces, git, server: validateServerConfig(server), docker }
+    return { configBasePath, kube, pipelines, artifacts, slack, namespaces, git, server: validateServerConfig(server), docker, slackIcon }
 }
 
 export function validateServerConfig(partial: Partial<ServerConfig>): ServerConfig {

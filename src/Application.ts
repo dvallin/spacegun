@@ -78,7 +78,7 @@ export class Application {
 
         initArtifacts(artifactRepoFromConfig(config))
         initViews(config)
-        initEvents([SlackEventRepository.fromConfig(config.slack)])
+        initEvents([SlackEventRepository.fromConfig(config.slack, config.slackIcon)])
         initCluster(KubernetesClusterRepository.fromConfig(config.kube, config.namespaces))
         initImages(DockerImageRepository.fromConfig(config.docker))
 
