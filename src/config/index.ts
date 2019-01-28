@@ -61,7 +61,7 @@ export function validateConfig(configBasePath: string, partial: Partial<Config>)
 }
 
 export function validateServerConfig(partial: Partial<ServerConfig>): ServerConfig {
-    const { port = Number.parseInt(process.env.SERVER_PORT || '3000'), host = process.env.SERVER_HOST || 'localhost' } = partial
+    const { port = Number.parseInt(process.env.SERVER_PORT || '3000'), host = process.env.SERVER_HOST || 'http://localhost' } = partial
 
     return { port, host }
 }

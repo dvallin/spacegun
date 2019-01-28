@@ -1,20 +1,22 @@
 # Spacegun
+
 [![Build Status](https://travis-ci.org/dvallin/spacegun.svg?branch=master)](https://travis-ci.org/dvallin/spacegun)
 [![codecov](https://codecov.io/gh/dvallin/spacegun/branch/master/graph/badge.svg)](https://codecov.io/gh/dvallin/spacegun)
 
 Straight-forward deployment management to get your docker images to kubernetes, without the headaches of fancy ui.
 
-**This project is not quite stable yet. But it is going into a testing phase in our in-house project, so it might be soon**
+**This project is not quite stable yet. But we are very close to release a v0.1.**
 
 ## Features
-- deployment pipelines as yaml
-- managing multiple kubernetes clusters
-- version controlled configuration
-- generating configuration from existing clusters
-- slack integration
-- some colorful cli
-- a static but informative ui
-- more cool features in the backlog
+
+-   deployment pipelines as yaml
+-   managing multiple kubernetes clusters
+-   version controlled configuration
+-   generating configuration from existing clusters
+-   slack integration
+-   some colorful cli
+-   a static but informative ui
+-   more cool features in the backlog
 
 ## Getting Started
 
@@ -32,7 +34,7 @@ and then run it from the console. You will have `spacegun`, `spg` and `spacegun-
 
 ### Build the sources
 
-Just run 
+Just run
 
 ```
 yarn build
@@ -49,6 +51,7 @@ There is also a Dockerfile in the repo in case you want to run spacegun in a con
 ### Three modes of operation
 
 Spacegun comes in three flavors
+
 1. Server (bin/spacegun-server)
 2. Client (bin/spg)
 3. Standalone (bin/spacegun)
@@ -62,6 +65,7 @@ The standalone build is just the client and server functionality compiled direct
 ### Configuring Spacegun
 
 #### Config.yml
+
 Spaceguns main configuration file is just a yml containing information about your cluster and image repository. By default Spacegun will look under `./config.yml` relative to its working directory.
 
 A configuration may look like this
@@ -74,7 +78,7 @@ kube: kube/config
 slack: https://hooks.slack.com/services/SOMEFUNKY/ID
 namespaces: ["service1", "service2"]
 server:
-  host: localhost
+  host: http://localhost
   port: 8080
 git:
   remote: https://some.git
@@ -95,6 +99,7 @@ git:
 Spacegun is driven by deployment pipelines. A pipeline is configured as a `<pipelinename>.yml`. By default spacegun scans the `configPath/pipelines` folder relative to its configuration file for such files.
 
 Here is an example of a pipeline that deploys the newest images that are tagged as `latest` from your docker registry to your `develop` kubernetes cluster
+
 ```
 cluster: k8s.develop.my.cluster.com
 cron: "0 */5 * * * MON-FRI"
@@ -108,16 +113,18 @@ steps:
 - name: "apply1"
   type: "applyDeployment"
 ```
+
 `cluster` is the url of your cluster  
 `cron` is just a crontab. This one is defined to trigger the job every 5 minutes from Monday to Friday.  
 `start` the step to start the execution of the pipeline.  
-`steps` is a list of deployment steps. Please note: Spacegun will not validate semantical correctness of your pipeline. It will only check that you are not missing any filds or have typos in step types.  
+`steps` is a list of deployment steps. Please note: Spacegun will not validate semantical correctness of your pipeline. It will only check that you are not missing any filds or have typos in step types.
 
 `type` describes the type of the Pipeline Step. `planImageDeployment` will look into your cluster and compare the deployments in each namespace with the tag given. In this case, it will plan to update all deployments to the newest image tagged with `latest`. See the next section for more information about deploying using tags.
 
 `onSuccess` defines the action that should be taken after this. `planImageDeployment` will be followed by the `apply1` step. The `applyDeployment` step will apply all previously planned deployments.
 
 Here is an example of a job that deploys from a `develop` to a `live` environemt
+
 ```
 cluster: k8s.live.my.cluster.com
 start: "plan"
@@ -133,12 +140,14 @@ steps:
   onSuccess: "snapshot1"
   onFailure: "rollback1"
 ```
+
 The `planClusterDeployment` step will plan updates by looking into the develop cluster and comparing the versions running with the live cluster. Wherever there is a difference in the image tag or hash it will plan a deployment.
 
 If `cron` is not present the server will not create a cronjob and the deployment needs to be manually run by a client.
 
 #### Deciding which tag to deploy
-Spacegun will always check for image differences using tag *and* image hash. So you if just want to deploy `latest` then do so like in the pipeline above. This will ensure that if you push a new image tagged with a specific tag, Spacegun will deploy it.
+
+Spacegun will always check for image differences using tag _and_ image hash. So you if just want to deploy `latest` then do so like in the pipeline above. This will ensure that if you push a new image tagged with a specific tag, Spacegun will deploy it.
 
 The `tag` field is not mandatory, however. If you leave it out Spacegun will then choose the lexicographically largest tag. So if you tag your images by unix timestamp, it will deploy the most recent tag. Granted, very implicitely. That is why there is also the `semanticTagExtractor` field that can either hold a regex or a plain string. Spacegun will extract the first match from this regex and use it as a sorting key. Then it will use the lexcographically largest tag using the sorting key. If you have this step:
 
@@ -154,6 +163,7 @@ Spacegun will extract a very simple Date format. Say you have tags `rev_98ac7cc9
 #### Deploy a subset of your cluster
 
 The planning steps can be filtered on namespaces and deployments.
+
 ```
 - name: "plan1"
   type: "planImageDeployment"
@@ -168,6 +178,7 @@ The planning steps can be filtered on namespaces and deployments.
       - "deployment3"
   onSuccess: "apply1"
 ```
+
 This planning step would only run for two namespaces and in each namespace only update the three deployments listed. Note that this makes sense if you do not have deployments that are uniquely named, else you could omit filtering by namespaces.
 
 Note that once you use filtering in one deployment pipeline, you likely have to add filtering to all your deployments. It might be a good idea, to have such special deployments running in a separated namespace and you might even manage them using a dedicated Spacegun instance.
@@ -187,14 +198,15 @@ You might want to only deploy clusters that meet certain criteria. For example y
 The `tag` is an endpoint that Spacegun will call using `GET` method. If it returns a status code 200, Spacegun will proceed with the `onSuccess` step. Else the step will fail and proceed with the `onFailure` step. The timeout is an optional field giving the timeout for the hook call in milliseconds. If no timeout is set, spacegun will not cancel the connection on its own.
 
 ### Git
+
 All configuration files can be maintained in a git repository. Spacegun can be configured to poll for changes and will automatically load them while runing.
 
 A git repository could have such a folder structure
 
 ```
 .
-├── config.yml  
-└── pipelines  
+├── config.yml
+└── pipelines
 │   ├── dev.yml
 │   ├── live.yml
 │   └── pre.yml
@@ -235,6 +247,7 @@ useradd -d /var/lib/spacegun -U -M -r spacegun
 ```
 
 Install Kubectl and Kops (if you need them)
+
 ```
 # Install kubectl
 curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl
@@ -247,8 +260,8 @@ chmod +x kops-linux-amd64
 mv kops-linux-amd64 /usr/local/bin/kops
 ```
 
-
 Creating a daemon and start Spacegun
+
 ```
 cat > /etc/systemd/system/spacegun.service <<EOF
 [Service]
@@ -289,8 +302,7 @@ yarn test
 
 ## Authors
 
-* **Maximilian Schuler** - *Initial work* - [dvallin](https://github.com/dvallin)
-
+-   **Maximilian Schuler** - _Initial work_ - [dvallin](https://github.com/dvallin)
 
 ## License
 
@@ -298,20 +310,20 @@ This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md
 
 ## Dependencies
 
-* [@kubernetes/client-node](https://github.com/kubernetes-client/javascript)
-* [axios](https://github.com/axios/axios)
-* [chalk](https://github.com/chalk/chalk)
-* [command-line-args](https://github.com/75lb/command-line-args)
-* [cron](https://github.com/kelektiv/node-cron)
-* [koa](https://github.com/koajs/koa)
-* [koa-body](https://github.com/dlau/koa-body)
-* [koa-router](https://github.com/alexmingoia/koa-router)
-* [koa-static](https://github.com/koajs/static)
-* [koa-views](https://github.com/queckezz/koa-views)
-* [lodash](https://github.com/lodash/lodash)
-* [mkdirp](https://github.com/substack/node-mkdirp)
-* [moment](https://github.com/moment/moment)
-* [ora](https://github.com/sindresorhus/ora)
-* [pug](https://github.com/pugjs/pug)
-* [simple-git](https://github.com/steveukx/git-js)
-* [rx](https://github.com/ReactiveX/rxjs)
+-   [@kubernetes/client-node](https://github.com/kubernetes-client/javascript)
+-   [axios](https://github.com/axios/axios)
+-   [chalk](https://github.com/chalk/chalk)
+-   [command-line-args](https://github.com/75lb/command-line-args)
+-   [cron](https://github.com/kelektiv/node-cron)
+-   [koa](https://github.com/koajs/koa)
+-   [koa-body](https://github.com/dlau/koa-body)
+-   [koa-router](https://github.com/alexmingoia/koa-router)
+-   [koa-static](https://github.com/koajs/static)
+-   [koa-views](https://github.com/queckezz/koa-views)
+-   [lodash](https://github.com/lodash/lodash)
+-   [mkdirp](https://github.com/substack/node-mkdirp)
+-   [moment](https://github.com/moment/moment)
+-   [ora](https://github.com/sindresorhus/ora)
+-   [pug](https://github.com/pugjs/pug)
+-   [simple-git](https://github.com/steveukx/git-js)
+-   [rx](https://github.com/ReactiveX/rxjs)

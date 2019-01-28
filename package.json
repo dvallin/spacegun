@@ -1,6 +1,6 @@
 {
     "name": "spacegun",
-    "version": "0.0.30-SNAPSHOT",
+    "version": "0.0.31-SNAPSHOT",
     "main": "index.js",
     "license": "MIT",
     "repository": "github:dvallin/spacegun",
