@@ -13,7 +13,7 @@ describe('caller', () => {
     const putParams = { sut: put, method: 'put' }
 
     beforeEach(() => {
-        init('localhost', 3000)
+        init('http://localhost', 3000)
     })
 
     const regularTestCases = [getParams, postParams, putParams]
@@ -115,7 +115,6 @@ function axiosCallParameters(method: string): any[] {
             return callParameters(axios.post)
         case 'put':
             return callParameters(axios.put)
-
         case 'get':
         default:
             return callParameters(axios.get)

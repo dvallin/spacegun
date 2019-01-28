@@ -13,6 +13,7 @@ import { IO } from '../IO'
 import { load, applyWithConsent } from './helpers'
 
 import { PipelineDescription } from '../jobs/model/PipelineDescription'
+import { logDeployment } from './deployments'
 
 export const pipelinesCommand: CommandFn = async ({  }: Options, io: IO) => pipelines(io)
 export const pipelineSchedulesCommand: CommandFn = async (options: Options, io: IO) => pipelineSchedules(options, io)
@@ -68,7 +69,15 @@ async function run(options: Options, io: IO) {
         )
     })
 
-    await applyWithConsent(options, io, () => call(jobsModule.run)(plan))
+    const result = await applyWithConsent(options, io, () => call(jobsModule.run)(plan))
+    if (result) {
+        console.log(chalk.bold('Successfully applied plan. Changed deployments are.'))
+        result.forEach(deployment => {
+            logDeployment(io, deployment)
+        })
+    } else {
+        console.log(chalk.bold('Did not apply plan.'))
+    }
 }
 
 function logPipelineHeader(io: IO) {

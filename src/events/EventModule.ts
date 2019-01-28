@@ -5,6 +5,7 @@ import { Layers } from '../dispatcher/model/Layers'
 
 import { Event } from './model/Event'
 import { EventRepository } from './EventRepository'
+import { Methods } from '../dispatcher/model/Methods'
 
 let repos: EventRepository[] = []
 export function init(repositories: (EventRepository | undefined)[]) {
@@ -44,6 +45,7 @@ export class Module {
         moduleName: log.module,
         layer: Layers.Server,
         mapper: log.mapper,
+        method: Methods.Post,
     })
     async [log.procedure](event: Event): Promise<void> {
         for (const repo of repos) {

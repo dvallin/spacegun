@@ -85,6 +85,7 @@ export async function printHelp(io: IO, error?: Error) {
         io.out(pad('version, b', 2) + chalk.bold(pad('renders the current version', 10)))
         io.out(pad('help, h', 2) + chalk.bold(pad('renders this summary', 10)))
         io.out(pad('config', 2) + chalk.bold(pad('path to the config.yml. Default: `config.yml`', 10)))
+        io.out(pad('port', 2) + chalk.bold(pad('the port the spacegun server should attach to', 10)))
         io.out('')
         io.out(chalk.bold.underline('Interactive Options'))
         io.out(pad('yes, y', 2) + chalk.bold(pad('answer accept prompts with yes', 10)))

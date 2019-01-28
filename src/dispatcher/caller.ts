@@ -24,7 +24,7 @@ export async function put<T>(procedureName: string, input: RequestInput = {}): P
 
 function buildConfig(input: RequestInput): AxiosRequestConfig {
     return {
-        baseURL: `http://${serverHost}:${serverPort}`,
+        baseURL: `${serverHost}:${serverPort}`,
         params: input.params,
         paramsSerializer: (params: any) => stringify(params),
     }

@@ -30,7 +30,7 @@ describe('Application', () => {
         crons.startAllCrons = jest.fn()
         crons.removeAllCrons = jest.fn()
 
-        const options: Options = { command: 'help' }
+        const options: Options = {}
         app = new Application(io, crons, options)
     })
 
@@ -54,6 +54,7 @@ describe('Application', () => {
     it('registers the cronjobs', async () => {
         app.options.config = 'test/test-config/config.yml'
         process.env.LAYER = Layers.Server
+        app.options.command = 'deployments'
 
         app.checkForConfigChange = jest.fn().mockReturnValue(Promise.resolve())
         await app.run()

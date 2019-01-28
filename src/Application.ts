@@ -37,18 +37,26 @@ export class Application {
 
     public async run() {
         try {
-            const config = loadConfig(this.options.config)
-            this.initialize(config)
-
-            runDispatcher(config.server.host, config.server.port)
-
-            if (process.env.LAYER === Layers.Standalone || process.env.LAYER === Layers.Client) {
-                await commands[this.options.command](this.options, this.io)
+            if (this.options.command !== 'help' && this.options.command !== 'version') {
+                const config = loadConfig(this.options.config)
+                this.initialize(config)
+                runDispatcher(config.server.host, this.options.port || config.server.port)
+            }
+            if (this.options.command !== undefined) {
+                if (process.env.LAYER === Layers.Standalone || process.env.LAYER === Layers.Client) {
+                    await commands[this.options.command](this.options, this.io)
+                } else {
+                    await commands.apply(this.options, this.io)
+                }
             } else {
-                await commands.apply(this.options, this.io)
+                printHelp(this.io)
             }
         } catch (e) {
-            printHelp(this.io, e)
+            if (this.options.command === undefined || this.options.command === 'help') {
+                printHelp(this.io)
+            } else {
+                printHelp(this.io, e)
+            }
         }
     }
 

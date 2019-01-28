@@ -19,7 +19,7 @@ export async function load<T>(p: Promise<T>): Promise<T> {
     }
 }
 
-export async function applyWithConsent(options: Options, io: IO, f: () => Promise<void>) {
+export async function applyWithConsent<T>(options: Options, io: IO, f: () => Promise<T>): Promise<T | undefined> {
     if (options.yes) {
         return f()
     } else {
@@ -29,6 +29,7 @@ export async function applyWithConsent(options: Options, io: IO, f: () => Promis
             return f()
         }
     }
+    return Promise.resolve(undefined)
 }
 
 export async function foreachCluster(options: Options, io: IO, command: (options: Options, io: IO, cluster: string) => void) {

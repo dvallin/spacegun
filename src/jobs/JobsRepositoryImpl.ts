@@ -149,8 +149,8 @@ export class JobsRepositoryImpl implements JobsRepository {
         return plan
     }
 
-    async apply(plan: JobPlan): Promise<void> {
-        new ApplyDeployment('manual plan').apply(plan)
+    async apply(plan: JobPlan): Promise<Deployment[]> {
+        return new ApplyDeployment('manual plan').apply(plan)
     }
 
     async planDeploymentForNamespaces(pipeline: PipelineDescription, namespaces: string[]): Promise<JobPlan> {

@@ -11,7 +11,7 @@ describe('config loading', () => {
             slack: 'https://some.slack.hook',
             git: { remote: 'https://some.git' },
             namespaces: ['service1', 'service2'],
-            server: { host: 'localhost', port: 8080 },
+            server: { host: 'http://localhost', port: 8080 },
             configBasePath: 'test/test-config',
         })
     })
@@ -28,7 +28,7 @@ describe('validateConfig', () => {
         expect(config.kube.endsWith('.kube/config')).toBeTruthy()
         expect(config.git).toBeUndefined()
         expect(config.server).toEqual({
-            host: 'localhost',
+            host: 'http://localhost',
             port: 3000,
         })
         expect(config.namespaces).toBeUndefined()
