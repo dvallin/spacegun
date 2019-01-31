@@ -91,7 +91,7 @@ git:
 `kube` gives a path to a kubernetes config file (relative to the config.yml)  
 `slack` optional webhook to get notifactions of cluster updates  
 `namespaces` gives a list of namespaces for spacegun to operate on.  
-`server` gives hostname and port of the server (client uses both, server uses the port)  
+`server` gives hostname and port of the server (client uses both, server uses the port). Additionally spacegun can be started with the `--port` parameter so you can override this value.
 `git` contains the path to the remote git where all configurations are kept. And the (optional) crontab configures how often the service should poll for configuration changes.
 
 #### Pipelines

@@ -13,6 +13,7 @@ import { IO } from '../IO'
 import { load, applyWithConsent } from './helpers'
 
 import { PipelineDescription } from '../jobs/model/PipelineDescription'
+import { logDeployment } from './deployments'
 
 export const pipelinesCommand: CommandFn = async ({  }: Options, io: IO) => pipelines(io)
 export const pipelineSchedulesCommand: CommandFn = async (options: Options, io: IO) => pipelineSchedules(options, io)
@@ -33,19 +34,19 @@ async function pipelineSchedules(options: Options, io: IO) {
     logPipelineHeader(io)
     io.out(chalk.bold(pad(pipeline.name, 2)) + pad(`${pipeline.steps.length}`, 4) + pad(pipeline.cluster, 2))
     io.out('')
-    if (schedules !== undefined && schedules.lastRun !== undefined) {
-        io.out(chalk.magenta('last run') + moment(schedules.lastRun).toISOString())
-    } else {
-        io.out(chalk.magenta.bold('not run yet!'))
-    }
-    io.out('')
-    io.out(chalk.underline.bold(pad('scheduled runs', 8)))
-    if (schedules !== undefined) {
+    if (schedules !== undefined && schedules.nextRuns !== undefined) {
+        if (schedules.lastRun !== undefined) {
+            io.out(chalk.magenta(pad('last run', 2)) + moment(schedules.lastRun).toISOString())
+        } else {
+            io.out(chalk.magenta.bold('not run yet!'))
+        }
+        io.out('')
+        io.out(chalk.underline.bold(pad('scheduled runs', 8)))
         schedules.nextRuns.forEach(run => {
             io.out(moment(run).toISOString())
         })
     } else {
-        io.out('not scheduling this pipeline!')
+        io.out(chalk.magenta.bold('not scheduling this pipeline!'))
     }
 }
 
@@ -68,7 +69,15 @@ async function run(options: Options, io: IO) {
         )
     })
 
-    await applyWithConsent(options, io, () => call(jobsModule.run)(plan))
+    const result = await applyWithConsent(options, io, () => call(jobsModule.run)(plan))
+    if (result) {
+        console.log(chalk.bold('Successfully applied plan. Changed deployments are.'))
+        result.forEach(deployment => {
+            logDeployment(io, deployment)
+        })
+    } else {
+        console.log(chalk.bold('Did not apply plan.'))
+    }
 }
 
 function logPipelineHeader(io: IO) {

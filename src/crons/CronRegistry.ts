@@ -21,7 +21,7 @@ export class CronRegistry {
     public get crons(): Cron[] {
         const crons: Cron[] = []
         for (const [name, cron] of this.cronJobs.entries()) {
-            const dates = cron.nextDates(5) as any
+            const dates = (cron.nextDates(5) as any) || []
             const lastDate = cron.lastDate() as any
             const lastRun = lastDate ? moment(lastDate).valueOf() : undefined
             const nextRuns: number[] = dates.map((d: moment.Moment) => moment(d).valueOf())

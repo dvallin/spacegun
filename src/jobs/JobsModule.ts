@@ -9,6 +9,9 @@ import { DeploymentPlan } from './model/DeploymentPlan'
 import { PipelineDescription } from './model/PipelineDescription'
 import { Cron } from './model/Cron'
 
+import { Methods } from '../dispatcher/model/Methods'
+import { Deployment } from '../cluster/model/Deployment'
+
 let repo: JobsRepository | undefined = undefined
 export function init(jobs: JobsRepository) {
     repo = jobs
@@ -33,7 +36,7 @@ export const plan: Request<{ name: string }, JobPlan> = {
     mapper: (input: RequestInput) => ({ name: input.params!['name'] as string }),
 }
 
-export const run: Request<JobPlan, void> = {
+export const run: Request<JobPlan, Deployment[]> = {
     module: 'jobs',
     procedure: 'run',
     input: (input: JobPlan | undefined) => RequestInput.ofData({ deployments: input!.deployments }, ['name', input!.name]),
@@ -45,38 +48,23 @@ export const run: Request<JobPlan, void> = {
 }
 
 export class Module {
-    @Component({
-        moduleName: pipelines.module,
-        layer: Layers.Server,
-    })
+    @Component({ moduleName: pipelines.module, layer: Layers.Server })
     async [pipelines.procedure](): Promise<PipelineDescription[]> {
         return repo!.list
     }
 
-    @Component({
-        moduleName: schedules.module,
-        layer: Layers.Server,
-        mapper: schedules.mapper,
-    })
+    @Component({ moduleName: schedules.module, layer: Layers.Server, mapper: schedules.mapper })
     async [schedules.procedure](params: { name: string }): Promise<Cron | undefined> {
         return repo!.schedules(params.name)
     }
 
-    @Component({
-        moduleName: plan.module,
-        layer: Layers.Server,
-        mapper: plan.mapper,
-    })
+    @Component({ moduleName: plan.module, layer: Layers.Server, mapper: plan.mapper })
     async [plan.procedure](params: { name: string }): Promise<JobPlan> {
         return repo!.plan(params.name)
     }
 
-    @Component({
-        moduleName: run.module,
-        layer: Layers.Server,
-        mapper: run.mapper,
-    })
-    async [run.procedure](plan: JobPlan): Promise<void> {
+    @Component({ moduleName: run.module, layer: Layers.Server, mapper: run.mapper, method: Methods.Post })
+    async [run.procedure](plan: JobPlan): Promise<Deployment[]> {
         return repo!.apply(plan)
     }
 }

@@ -1,11 +1,6 @@
 import { parse } from '../src/options'
 
 describe('options', () => {
-    it('defaults correctly', () => {
-        process.argv = []
-        expect(parse().command).toEqual('help')
-    })
-
     describe('commands', () => {
         ;[
             'apply',
@@ -15,7 +10,7 @@ describe('options', () => {
             'images',
             'namespaces',
             'pipelines',
-            'pipelineSchedules',
+            'schedules',
             'pods',
             'run',
             'scalers',

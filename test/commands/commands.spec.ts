@@ -389,7 +389,7 @@ describe('commands', () => {
         })
     })
 
-    describe(commands.pipelineSchedules.name, () => {
+    describe(commands.schedules.name, () => {
         it('prints schedules of a pipeline', async () => {
             // given
             const pipeline = { name: '1->2', cluster: 'cluster2', steps: [], start: '' }
@@ -401,7 +401,7 @@ describe('commands', () => {
             const io = createIO({ choose, expect: expectFn })
 
             // when
-            await commands.pipelineSchedules(emptyOptions, io)
+            await commands.schedules(emptyOptions, io)
 
             // then
             expect(mockDispatched).toHaveBeenCalledTimes(2)

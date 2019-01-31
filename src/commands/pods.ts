@@ -12,16 +12,17 @@ import { pad } from '../pad'
 import { IO } from '../IO'
 
 import { load, foreachCluster, foreachNamespace } from './helpers'
+import { parseImageUrl } from '../parse-image-url'
 
 export const podsCommand: CommandFn = async (options: Options, io: IO) =>
     foreachCluster(options, io, (options, io, cluster) => foreachNamespace(options, io, cluster, pods))
 
 async function pods(io: IO, cluster: string, namespace?: string) {
     const pods = await load(call(clusterModule.pods)({ cluster, namespace }))
-    io.out(chalk.bold(pad('pod name', 5) + pad('starts', 1) + pad('status', 1) + pad('age', 2) + pad('image url', 5)))
+    io.out(chalk.bold(pad('pod name', 6) + pad('starts', 1) + pad('status', 1) + pad('age', 2) + pad('image name and tag', 5)))
     pods.forEach(pod => {
         const age: string = pad(moment(pod.createdAt).fromNow(true), 2)
-        io.out(pad(pod.name, 5) + getRestartText(pod.restarts) + getReadyText(pod.ready) + age + getURLText(pod.image))
+        io.out(pad(pod.name, 6) + getRestartText(pod.restarts) + getReadyText(pod.ready) + age + getImageText(pod.image))
     })
 }
 
@@ -39,12 +40,15 @@ function getRestartText(restarts: number | undefined): string {
     return restartText
 }
 
-function getURLText(image: Image | undefined): string {
+function getImageText(image: Image | undefined): string {
     let urlText: string
     if (image === undefined) {
         urlText = chalk.bold.magenta(pad('missing', 5))
     } else {
-        urlText = pad(image.url.substr(0), 5)
+        const url = parseImageUrl(image.url)
+        const hash = url.hash ? `@${url.hash.substring(0, 15)}` : ''
+        const tag = url.tag ? `:${url.tag}` : ''
+        urlText = pad(`${url.name}${tag}${hash}`)
     }
     return urlText
 }
