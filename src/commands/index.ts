@@ -24,7 +24,7 @@ export type Command =
     | 'pods'
     | 'images'
     | 'pipelines'
-    | 'pipelineSchedules'
+    | 'schedules'
     | 'run'
     | 'deployments'
     | 'deploy'
@@ -77,7 +77,7 @@ export async function printHelp(io: IO, error?: Error) {
         io.out(pad('restart', 2) + chalk.bold(pad('opens an interactive dialog to restart a deployment', 10)))
         io.out(pad('scalers', 2) + chalk.bold(pad('a summary of all scalers of all known clusters', 10)))
         io.out(pad('pipelines', 2) + chalk.bold(pad('a summary of all pipelines', 10)))
-        io.out(pad('pipelineSchedules', 2) + chalk.bold(pad('the next executions of a pipeline', 10)))
+        io.out(pad('schedules', 2) + chalk.bold(pad('the next executions of a pipeline', 10)))
         io.out(pad('run', 2) + chalk.bold(pad('run a pipeline manually', 10)))
         io.out(pad('help', 2) + chalk.bold(pad('renders this summary', 10)))
         io.out('')
@@ -109,7 +109,7 @@ const commands: { [k in Command]: CommandFn } = {
     pods: podsCommand,
     images: imagesCommand,
     pipelines: pipelinesCommand,
-    pipelineSchedules: pipelineSchedulesCommand,
+    schedules: pipelineSchedulesCommand,
     run: runCommand,
     deployments: deploymentsCommand,
     scalers: scalersCommand,

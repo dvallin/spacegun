@@ -34,19 +34,19 @@ async function pipelineSchedules(options: Options, io: IO) {
     logPipelineHeader(io)
     io.out(chalk.bold(pad(pipeline.name, 2)) + pad(`${pipeline.steps.length}`, 4) + pad(pipeline.cluster, 2))
     io.out('')
-    if (schedules !== undefined && schedules.lastRun !== undefined) {
-        io.out(chalk.magenta('last run') + moment(schedules.lastRun).toISOString())
-    } else {
-        io.out(chalk.magenta.bold('not run yet!'))
-    }
-    io.out('')
-    io.out(chalk.underline.bold(pad('scheduled runs', 8)))
-    if (schedules !== undefined) {
+    if (schedules !== undefined && schedules.nextRuns !== undefined) {
+        if (schedules.lastRun !== undefined) {
+            io.out(chalk.magenta(pad('last run', 2)) + moment(schedules.lastRun).toISOString())
+        } else {
+            io.out(chalk.magenta.bold('not run yet!'))
+        }
+        io.out('')
+        io.out(chalk.underline.bold(pad('scheduled runs', 8)))
         schedules.nextRuns.forEach(run => {
             io.out(moment(run).toISOString())
         })
     } else {
-        io.out('not scheduling this pipeline!')
+        io.out(chalk.magenta.bold('not scheduling this pipeline!'))
     }
 }
 

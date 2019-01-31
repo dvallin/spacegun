@@ -10,7 +10,7 @@ describe('options', () => {
             'images',
             'namespaces',
             'pipelines',
-            'pipelineSchedules',
+            'schedules',
             'pods',
             'run',
             'scalers',

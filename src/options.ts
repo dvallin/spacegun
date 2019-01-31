@@ -54,7 +54,7 @@ function parse(): Options {
             case 'images':
             case 'namespaces':
             case 'pipelines':
-            case 'pipelineSchedules':
+            case 'schedules':
             case 'pods':
             case 'run':
             case 'scalers':

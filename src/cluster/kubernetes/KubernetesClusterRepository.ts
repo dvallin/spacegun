@@ -21,7 +21,7 @@ import { Scaler } from '../model/Scaler'
 import { ClusterRepository } from '../ClusterRepository'
 import { Cache } from '../../Cache'
 
-import { extractImageName } from './extract-image-name'
+import { parseImageUrl } from '../../parse-image-url'
 
 import * as eventModule from '../../events/EventModule'
 
@@ -191,12 +191,17 @@ export class KubernetesClusterRepository implements ClusterRepository {
     }
 
     private createImage(containers: Array<V1Container> | undefined): Image | undefined {
-        if (containers !== undefined && containers.length >= 1) {
-            const url = containers[0].image
-            const name = extractImageName(url)
-            return { url, name }
+        if (containers === undefined || containers.length == 0) {
+            return undefined
         }
-        return undefined
+
+        const url = containers[0].image
+        const name = parseImageUrl(url).name
+        if (name === undefined) {
+            return undefined
+        }
+
+        return { url, name }
     }
 
     private getConfig(cluster: string): KubeConfig {
