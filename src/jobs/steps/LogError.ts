@@ -13,7 +13,7 @@ export class LogError {
             message: `Failed to apply pipeline ${pipeline.name}`,
             timestamp: Date.now(),
             topics: ['slack'],
-            description: `An error occured during pipeline execution: ${error.message}`,
+            description: `An error occurred during pipeline execution: ${error.message}`,
             fields: [
                 {
                     title: 'Stack',
