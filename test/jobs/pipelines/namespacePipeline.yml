@@ -1,8 +1,9 @@
-cluster: cluster
+cluster: targetCluster
 start: "plan"
 steps:
   - name: "plan"
     type: "planNamespaceDeployment"
+    cluster: "sourceCluster"
     source: "namespaceSource"
     target: "namespaceTarget"
     filter:
