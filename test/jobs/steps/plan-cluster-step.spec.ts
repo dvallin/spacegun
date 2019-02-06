@@ -102,7 +102,7 @@ describe(PlanClusterDeployment.name, () => {
 
         // then
         expect(plan.deployments).toEqual([])
-        expect(step.io.error).toHaveBeenCalledWith('deployment1 in cluster targetCluster has no image')
+        expect(step.io.error).toHaveBeenCalledWith('deployment1 in cluster sourceCluster has no image')
     })
 
     it('does not plan if server group does not match', async () => {
