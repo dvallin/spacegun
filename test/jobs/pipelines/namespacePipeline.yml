@@ -1,0 +1,19 @@
+cluster: cluster
+start: "plan"
+steps:
+  - name: "plan"
+    type: "planNamespaceDeployment"
+    source: "namespaceSource"
+    target: "namespaceTarget"
+    filter:
+      deployments:
+        - "deployment1"
+        - "deployment2"
+    onSuccess: "apply"
+    onFailure: "error"
+
+  - name: "apply"
+    type: "applyDeployment"
+
+  - name: "error"
+    type: "logError"
