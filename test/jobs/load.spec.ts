@@ -52,6 +52,27 @@ describe('job loading', () => {
                 { name: 'rollback1', type: 'rollback' },
             ],
         })
+        expect(pipelines.get('namespacePipeline')).toEqual({
+            cluster: 'targetCluster',
+            name: 'namespacePipeline',
+            start: 'plan',
+            steps: [
+                {
+                    name: 'plan',
+                    type: 'planNamespaceDeployment',
+                    cluster: 'sourceCluster',
+                    source: 'namespaceSource',
+                    target: 'namespaceTarget',
+                    filter: {
+                        deployments: ['deployment1', 'deployment2'],
+                    },
+                    onFailure: 'error',
+                    onSuccess: 'apply',
+                },
+                { name: 'apply', type: 'applyDeployment' },
+                { name: 'error', type: 'logError' },
+            ],
+        })
     })
 })
 
