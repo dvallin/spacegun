@@ -303,6 +303,21 @@ describe('JobsRepositoryImpl', () => {
         })
     })
 
+    it('runs namespace deployment pipeline', async () => {
+        // when
+        await repo.run('2n1->3n2').toPromise()
+
+        // then
+        expect(mockUpdateDeployment).toHaveBeenCalledWith({
+            group: { cluster: 'cluster3', namespace: 'namespace2' },
+            deployment: {
+                name: 'deployment2',
+                image: { name: 'image2', url: 'imageUrl:tag2:digest4' },
+            },
+            image: { name: 'image2', url: 'imageUrl:tag2:digest5' },
+        })
+    })
+
     it('calls slack', async () => {
         // when
         const deploymentPlan: DeploymentPlan = {
