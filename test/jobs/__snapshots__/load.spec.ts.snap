@@ -15,3 +15,9 @@ exports[`validateSteps ensures steps have name 1`] = `"a step of job jobname has
 exports[`validateSteps planClusterDeployment ensures cluster exists 1`] = `"in step stepName of job jobname the cluster expression is missing"`;
 
 exports[`validateSteps planClusterDeployment ensures cluster is not origin 1`] = `"in step stepName of job jobname the cluster expression cannot be the source"`;
+
+exports[`validateSteps planNamespaceDeployment ensures filter.namespaces is not set 1`] = `"in step stepName of job jobname you are not allowed to define a namespace filter"`;
+
+exports[`validateSteps planNamespaceDeployment ensures source namespace is set 1`] = `"in step stepName of job jobname the source namespace is missing"`;
+
+exports[`validateSteps planNamespaceDeployment ensures target namespace is set 1`] = `"in step stepName of job jobname the target namespace is missing"`;

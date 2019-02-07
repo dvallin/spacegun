@@ -40,7 +40,13 @@ describe('job loading', () => {
             start: 'probe1',
             steps: [
                 { name: 'probe1', type: 'clusterProbe', hook: 'https://some.hook.com', onSuccess: 'deployImage' },
-                { name: 'plan1', type: 'planClusterDeployment', cluster: 'cluster3', onFailure: 'rollback1', onSuccess: 'apply1' },
+                {
+                    name: 'plan1',
+                    type: 'planClusterDeployment',
+                    cluster: 'cluster3',
+                    onFailure: 'rollback1',
+                    onSuccess: 'apply1',
+                },
                 { name: 'apply1', type: 'applyDeployment', onFailure: 'rollback1', onSuccess: 'snapshot1' },
                 { name: 'snapshot1', type: 'takeSnapshot' },
                 { name: 'rollback1', type: 'rollback' },
@@ -94,7 +100,17 @@ describe('validateSteps', () => {
 
         it('ensures cluster is not origin', () => {
             expect(() =>
-                validateSteps([{ name: 'stepName', type: 'planClusterDeployment', cluster: 'clustername' }], 'jobname', 'clustername')
+                validateSteps(
+                    [
+                        {
+                            name: 'stepName',
+                            type: 'planClusterDeployment',
+                            cluster: 'clustername',
+                        },
+                    ],
+                    'jobname',
+                    'clustername'
+                )
             ).toThrowErrorMatchingSnapshot()
         })
 
@@ -107,6 +123,92 @@ describe('validateSteps', () => {
                 onSuccess: 'success',
             }
             expect(validateSteps([step], 'jobname', 'clustername')).toEqual([step])
+        })
+    })
+
+    describe('planNamespaceDeployment', () => {
+        it('ensures filter.namespaces is not set', () => {
+            expect(() =>
+                validateSteps(
+                    [
+                        {
+                            name: 'stepName',
+                            type: 'planNamespaceDeployment',
+                            source: 'sourceNamespace',
+                            target: 'targetNamespace',
+                            filter: {
+                                namespaces: ['sourceNamespace'],
+                            },
+                        },
+                    ],
+                    'jobname',
+                    'clustername'
+                )
+            ).toThrowErrorMatchingSnapshot()
+        })
+
+        it('ensures source namespace is set', () => {
+            expect(() =>
+                validateSteps(
+                    [
+                        {
+                            name: 'stepName',
+                            type: 'planNamespaceDeployment',
+                            target: 'targetNamespace',
+                        },
+                    ],
+                    'jobname',
+                    'clustername'
+                )
+            ).toThrowErrorMatchingSnapshot()
+        })
+
+        it('ensures target namespace is set', () => {
+            expect(() =>
+                validateSteps(
+                    [
+                        {
+                            name: 'stepName',
+                            type: 'planNamespaceDeployment',
+                            source: 'sourceNamespace',
+                        },
+                    ],
+                    'jobname',
+                    'clustername'
+                )
+            ).toThrowErrorMatchingSnapshot()
+        })
+
+        it('validates step', () => {
+            const step: StepDescription = {
+                name: 'stepName',
+                type: 'planNamespaceDeployment',
+                cluster: 'cluster',
+                source: 'source',
+                target: 'target',
+                filter: {
+                    deployments: ['deployment1', 'deployment2'],
+                },
+                onFailure: 'failure',
+                onSuccess: 'success',
+            }
+            expect(validateSteps([step], 'jobname', 'clustername')).toEqual([step])
+        })
+
+        it('uses target cluster as source cluster if no source cluster given', () => {
+            const input: StepDescription = {
+                name: 'stepName',
+                type: 'planNamespaceDeployment',
+                source: 'source',
+                target: 'target',
+                filter: {
+                    deployments: ['deployment1', 'deployment2'],
+                },
+                onFailure: 'failure',
+                onSuccess: 'success',
+            }
+            const expected: StepDescription = { ...input, cluster: 'clustername' }
+            expect(validateSteps([input], 'jobname', 'clustername')).toEqual([expected])
         })
     })
 
@@ -131,7 +233,12 @@ describe('validateSteps', () => {
 
     describe('planImageDeployment', () => {
         it('validates step', () => {
-            const step: StepDescription = { name: 'stepName', type: 'planImageDeployment', onFailure: 'failure', onSuccess: 'success' }
+            const step: StepDescription = {
+                name: 'stepName',
+                type: 'planImageDeployment',
+                onFailure: 'failure',
+                onSuccess: 'success',
+            }
             expect(validateSteps([step], 'jobname', 'clustername')).toEqual([step])
         })
     })

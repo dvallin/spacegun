@@ -1,5 +1,5 @@
 import { safeLoad } from 'js-yaml'
-import { readFileSync, readdirSync } from 'fs'
+import { readdirSync, readFileSync } from 'fs'
 
 import { PipelineDescription } from './model/PipelineDescription'
 import { StepDescription } from './model/Step'
@@ -43,6 +43,7 @@ export function validateStep(step: Partial<StepDescription>, name: string, clust
     if (step.name === undefined) {
         throw new Error(`a step of job ${name} has no name`)
     }
+    let clusterForStepDescription = step.cluster
     switch (step.type) {
         case 'planClusterDeployment': {
             if (step.cluster === undefined) {
@@ -50,6 +51,21 @@ export function validateStep(step: Partial<StepDescription>, name: string, clust
             }
             if (step.cluster === cluster) {
                 throw new Error(`in step ${step.name} of job ${name} the cluster expression cannot be the source`)
+            }
+            break
+        }
+        case 'planNamespaceDeployment': {
+            if (step.filter !== undefined && (step.filter.namespaces !== undefined && step.filter.namespaces.length > 0)) {
+                throw new Error(`in step ${step.name} of job ${name} you are not allowed to define a namespace filter`)
+            }
+            if (step.source === undefined) {
+                throw new Error(`in step ${step.name} of job ${name} the source namespace is missing`)
+            }
+            if (step.target === undefined) {
+                throw new Error(`in step ${step.name} of job ${name} the target namespace is missing`)
+            }
+            if (step.cluster === undefined) {
+                clusterForStepDescription = cluster
             }
             break
         }
@@ -74,7 +90,9 @@ export function validateStep(step: Partial<StepDescription>, name: string, clust
         onSuccess: step.onSuccess,
         onFailure: step.onFailure,
 
-        cluster: step.cluster,
+        cluster: clusterForStepDescription,
+        source: step.source,
+        target: step.target,
         tag: step.tag,
         hook: step.hook,
         timeout: step.timeout,
