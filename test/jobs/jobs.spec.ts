@@ -1,11 +1,7 @@
-jest.useFakeTimers()
-
 import axios from 'axios'
 
 import { Request } from '../../src/dispatcher/model/Request'
 import { Layers } from '../../src/dispatcher/model/Layers'
-process.env.LAYER = Layers.Standalone
-
 import { PipelineDescription } from '../../src/jobs/model/PipelineDescription'
 import { CronRegistry } from '../../src/crons/CronRegistry'
 
@@ -18,20 +14,33 @@ import { JobPlan } from '../../src/jobs/model/JobPlan'
 import { Event } from '../../src/events/model/Event'
 import { axiosResponse } from '../test-utils/axios'
 
+jest.useFakeTimers()
+
+process.env.LAYER = Layers.Standalone
+
 const mockDeployments: { [key: string]: Deployment[] } = {
     cluster1: [
         { name: 'deployment1', image: { name: 'image1', url: 'imageUrl:tag1:digest1' } },
         { name: 'deployment2', image: { name: 'image2', url: 'imageUrl:tag2:digest1' } },
     ],
-    cluster2: [
+    cluster2namespace1: [
         { name: 'deployment1', image: { name: 'image1', url: 'imageUrl:tag1:digest2' } },
         { name: 'deployment2', image: { name: 'image2', url: 'imageUrl:tag2:digest3' } },
+    ],
+    cluster2namespace3: [
+        { name: 'deployment1', image: { name: 'image1', url: 'imageUrl:tag1:digest3' } },
+        { name: 'deployment2', image: { name: 'image2', url: 'imageUrl:tag2:digest5' } },
+    ],
+    cluster3: [
+        { name: 'deployment1', image: { name: 'image1', url: 'imageUrl:tag1:digest2' } },
+        { name: 'deployment2', image: { name: 'image2', url: 'imageUrl:tag2:digest4' } },
     ],
 }
 
 const mockNamespaces: { [key: string]: string[] } = {
     cluster1: [],
-    cluster2: ['namespace1'],
+    cluster2: ['namespace1', 'namespace3'],
+    cluster3: ['namespace2'],
 }
 
 const mockUpdateDeployment = jest.fn()
@@ -44,7 +53,13 @@ jest.mock('../../src/dispatcher/index', () => ({
             case 'cluster': {
                 switch (request.procedure) {
                     case 'deployments': {
-                        return (input: { cluster: string }) => Promise.resolve(mockDeployments[input.cluster])
+                        return (input: { cluster: string; namespace: string }) => {
+                            if (input.cluster !== 'cluster2') {
+                                return Promise.resolve(mockDeployments[input.cluster])
+                            } else {
+                                return Promise.resolve(mockDeployments[input.cluster + input.namespace])
+                            }
+                        }
                     }
                     case 'namespaces': {
                         return (input: { cluster: string }) => Promise.resolve(mockNamespaces[input.cluster])
@@ -103,7 +118,21 @@ describe('JobsRepositoryImpl', () => {
         onSuccess: 'apply',
         filter: { namespaces: ['namespace1'], deployments: ['deployment1'] },
     }
-    const planImageStep: StepDescription = { name: 'plan', type: 'planImageDeployment', tag: 'latest', onSuccess: 'apply' }
+    const planImageStep: StepDescription = {
+        name: 'plan',
+        type: 'planImageDeployment',
+        tag: 'latest',
+        onSuccess: 'apply',
+    }
+    const planNamespaceStep: StepDescription = {
+        name: 'plan',
+        type: 'planNamespaceDeployment',
+        cluster: 'cluster2',
+        source: 'namespace3',
+        target: 'namespace2',
+        onSuccess: 'apply',
+        filter: { deployments: ['deployment2'] },
+    }
     const applyStep: StepDescription = { name: 'apply', type: 'applyDeployment' }
     const probeStep: StepDescription = { name: 'probe', type: 'clusterProbe', hook: 'someHook', onSuccess: 'plan' }
     const job1: PipelineDescription = {
@@ -120,13 +149,20 @@ describe('JobsRepositoryImpl', () => {
         start: 'plan',
         cron: everyMinuteEveryWorkday,
     }
+    const jobNamespaceDepl: PipelineDescription = {
+        name: '2n1->3n2',
+        cluster: 'cluster3',
+        steps: [planNamespaceStep, applyStep],
+        start: 'plan',
+    }
 
     beforeEach(() => {
         process.env.LAYER = Layers.Server
 
         const jobs = new Map()
-        jobs.set('1->2', job1)
-        jobs.set('i->1', job2)
+        jobs.set(job1.name, job1)
+        jobs.set(job2.name, job2)
+        jobs.set(jobNamespaceDepl.name, jobNamespaceDepl)
 
         crons = new CronRegistry()
         repo = new JobsRepositoryImpl(jobs, crons)
@@ -135,7 +171,7 @@ describe('JobsRepositoryImpl', () => {
     })
 
     it('registers the job names', () => {
-        expect(repo.list).toEqual([job1, job2])
+        expect(repo.list).toEqual([job1, job2, jobNamespaceDepl])
     })
 
     describe('cron jobs', () => {
@@ -204,6 +240,26 @@ describe('JobsRepositoryImpl', () => {
         expect(secondPlannedDeployment.image.url).toBe('image2:latest:otherDigest')
         expect(secondPlannedDeployment.deployment.name).toBe('deployment2')
         expect(secondPlannedDeployment.deployment.image!.url).toBe('imageUrl:tag2:digest1')
+    })
+
+    it('plans a namespace deployment job', async () => {
+        // when
+        const plan = await repo.plan(jobNamespaceDepl.name)
+
+        // then
+        expect(plan.name).toEqual('2n1->3n2')
+        expect(plan.deployments).toHaveLength(1)
+
+        const deployment = plan.deployments[0]
+
+        // deploy into cluster3 namespace2
+        expect(deployment.group.cluster).toBe('cluster3')
+        expect(deployment.group.namespace).toBe('namespace2')
+
+        // deployment2 goes from digest4 to digest5
+        expect(deployment.deployment.name).toBe('deployment2')
+        expect(deployment.deployment.image!.url).toBe('imageUrl:tag2:digest4')
+        expect(deployment.image.url).toBe('imageUrl:tag2:digest5')
     })
 
     it('does not break if pipeline is unknown', async () => {
@@ -281,7 +337,13 @@ describe('JobsRepositoryImpl', () => {
             name: 'pipeline',
             cluster: 'cluster2',
             start: 'step1',
-            steps: [{ name: 'step1', onFailure: 'step2', type: 'planImageDeployment' }, { name: 'step2', type: 'logError' }],
+            steps: [
+                { name: 'step1', onFailure: 'step2', type: 'planImageDeployment' },
+                {
+                    name: 'step2',
+                    type: 'logError',
+                },
+            ],
         }
         const map = new Map()
         map.set('pipeline', pipeline)
