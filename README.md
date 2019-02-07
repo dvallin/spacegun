@@ -145,6 +145,29 @@ The `planClusterDeployment` step will plan updates by looking into the develop c
 
 If `cron` is not present the server will not create a cronjob and the deployment needs to be manually run by a client.
 
+#### Deploying to differing namespaces
+
+If the namespaces in the clusters are not called the same, you can use the `planNamespaceDeployment` step, which allows you to provide a source and a target namespace. Deployments present in both namespaces will be compared and updated analogously to the `planClusterDeployment` step. Here is an example:
+
+```yaml
+cluster: k8s.live.my.cluster.com
+start: "plan"
+steps:
+  - name: "plan"
+    type: "planNamespaceDeployment"
+    cluster: "k8s.prelive.my.cluster.com"
+    source: "namespace1"
+    target: "namespace2"
+    onSuccess: "apply"
+
+  - name: "apply"
+    type: "applyDeployment"
+```
+
+This will update all deployments on the live cluster in namespace2 which have more recent versions on the prelive cluster in namespace1.
+
+A special case for this is the deployment in a different namespace inside the same cluster. For this you can either omit the `cluster` inside the step or fill it with the same url as the global `cluster`.
+
 #### Deciding which tag to deploy
 
 Spacegun will always check for image differences using tag _and_ image hash. So you if just want to deploy `latest` then do so like in the pipeline above. This will ensure that if you push a new image tagged with a specific tag, Spacegun will deploy it.
@@ -182,6 +205,8 @@ The planning steps can be filtered on namespaces and deployments.
 This planning step would only run for two namespaces and in each namespace only update the three deployments listed. Note that this makes sense if you do not have deployments that are uniquely named, else you could omit filtering by namespaces.
 
 Note that once you use filtering in one deployment pipeline, you likely have to add filtering to all your deployments. It might be a good idea, to have such special deployments running in a separated namespace and you might even manage them using a dedicated Spacegun instance.
+
+For `planNamespaceDeployment` you cannot filter on namespaces and Spacegun will tell you so if you try. Filtering on deployments is still possible. 
 
 #### Deploy only working clusters
 

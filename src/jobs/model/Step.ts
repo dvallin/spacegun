@@ -4,6 +4,7 @@ export type StepType =
     | 'clusterProbe'
     | 'planImageDeployment'
     | 'planClusterDeployment'
+    | 'planNamespaceDeployment'
     | 'applyDeployment'
     | 'takeSnapshot'
     | 'rollback'
@@ -18,7 +19,9 @@ export interface StepDescription {
     readonly filter?: Partial<Filter>
     readonly tag?: string // planImageDeployment
     readonly semanticTagExtractor?: string // planImageDeployment
-    readonly cluster?: string // planClusterDeployment
+    readonly cluster?: string // planClusterDeployment/planNamespaceDeployment?
+    readonly source?: string // planNamespaceDeployment
+    readonly target?: string // planNamespaceDeployment
     readonly hook?: string // clusterProbe
     readonly timeout?: number // clusterProbe
 }
