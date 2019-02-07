@@ -5,7 +5,7 @@ import { call } from '../../dispatcher'
 import * as clusterModule from '../../cluster/ClusterModule'
 import { ServerGroup } from '../../cluster/model/ServerGroup'
 import { Deployment } from '../../cluster/model/Deployment'
-import { Filter, matchesServerGroup, matchesDeployment } from '../model/Filter'
+import { Filter, matchesDeployment, matchesServerGroup } from '../model/Filter'
 
 import { DeploymentPlan } from '../model/DeploymentPlan'
 import { JobPlan } from '../model/JobPlan'
@@ -19,7 +19,7 @@ export class PlanClusterDeployment {
         }
 
         const sourceDeployments = await call(clusterModule.deployments)({
-            cluster: this.cluster!,
+            cluster: this.cluster,
             namespace: group.namespace,
         })
 
@@ -37,7 +37,7 @@ export class PlanClusterDeployment {
                 continue
             }
             if (sourceDeployment.image === undefined) {
-                this.io.error(`${targetDeployment.name} in cluster ${group.cluster} has no image`)
+                this.io.error(`${targetDeployment.name} in cluster ${this.cluster} has no image`)
                 continue
             }
             if (targetDeployment.image === undefined || targetDeployment.image.url !== sourceDeployment.image.url) {
