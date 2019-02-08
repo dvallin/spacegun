@@ -37,6 +37,10 @@ export class Application {
 
     public async run() {
         try {
+            if (this.options._unknown !== undefined) {
+                throw new Error(`unknown command line options: ${this.options._unknown.join(', ')}`)
+            }
+
             if (this.options.command !== 'help' && this.options.command !== 'version') {
                 const config = loadConfig(this.options.config)
                 this.initialize(config)

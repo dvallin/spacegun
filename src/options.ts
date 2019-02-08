@@ -12,22 +12,28 @@ export interface Options {
     port?: number
     tag?: string
     yes?: boolean
+    _unknown?: string[]
 }
 
 function parse(): Options {
-    const internalOptions = commandLineArgs([
-        { name: 'cluster', alias: 'c', type: String },
-        { name: 'command', defaultOption: true },
-        { name: 'config', type: String },
-        { name: 'port', type: Number },
-        { name: 'deployment', alias: 'd', type: String },
-        { name: 'help', alias: 'h', type: Boolean },
-        { name: 'namespace', alias: 'n', type: String },
-        { name: 'pipeline', alias: 'p', type: String },
-        { name: 'tag', alias: 't', type: String },
-        { name: 'version', alias: 'v', type: Boolean },
-        { name: 'yes', alias: 'y', type: Boolean },
-    ]) as {
+    const internalOptions = commandLineArgs(
+        [
+            { name: 'cluster', alias: 'c', type: String },
+            { name: 'command', defaultOption: true },
+            { name: 'config', type: String },
+            { name: 'port', type: Number },
+            { name: 'deployment', alias: 'd', type: String },
+            { name: 'help', alias: 'h', type: Boolean },
+            { name: 'namespace', alias: 'n', type: String },
+            { name: 'pipeline', alias: 'p', type: String },
+            { name: 'tag', alias: 't', type: String },
+            { name: 'version', alias: 'v', type: Boolean },
+            { name: 'yes', alias: 'y', type: Boolean },
+        ],
+        {
+            partial: true,
+        }
+    ) as {
         cluster?: string
         command?: string
         port?: number
@@ -39,6 +45,7 @@ function parse(): Options {
         tag?: string
         version?: boolean
         yes?: boolean
+        _unknown: string[]
     }
     let command: Command | undefined
     if (internalOptions.help) {
@@ -74,6 +81,7 @@ function parse(): Options {
         port: internalOptions.port,
         tag: internalOptions.tag,
         yes: internalOptions.yes,
+        _unknown: internalOptions._unknown,
     }
 }
 
