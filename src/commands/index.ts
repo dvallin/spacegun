@@ -59,11 +59,19 @@ export async function printHelp(io: IO, error?: Error) {
     } else {
         io.out(HELP_HEADER)
 
-        const clusters = await call(clusterModule.clusters)()
-        io.out('configured clusters: ' + m(clusters.join(', ')))
+        try {
+            const clusters = await call(clusterModule.clusters)()
+            io.out('configured clusters: ' + m(clusters.join(', ')))    
+        } catch(e) {
+            io.error('failed to retrieve configured clusters')
+        }
 
-        const endpoint = await call(imageModule.endpoint)()
-        io.out('configured image endpoint: ' + m(endpoint))
+        try {
+            const endpoint = await call(imageModule.endpoint)()
+            io.out('configured image endpoint: ' + m(endpoint))    
+        } catch(e) {
+            io.error('failed to retrieve configured image endpoint')
+        }
 
         io.out('')
         io.out(chalk.bold.underline('Available Commands'))
