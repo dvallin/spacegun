@@ -252,6 +252,14 @@ export class KubernetesClusterRepository implements ClusterRepository {
         // delete spacegun related annotations
         if (deployment.spec.template.metadata.annotations !== undefined) {
             delete deployment.spec.template.metadata.annotations['spacegun.deployment']
+        } else {
+            deployment.spec.template.metadata.annotations = {}
+        }
+        // delete kubernetes revision annotations
+        if (deployment.metadata.annotations !== undefined) {
+            delete deployment.metadata.annotations['deployment.kubernetes.io/revision']
+        } else {
+            deployment.metadata.annotations = {}
         }
 
         return {
