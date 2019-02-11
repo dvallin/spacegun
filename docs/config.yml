@@ -1,0 +1,2 @@
+docker: http://localhost:5000
+kube: kube-config

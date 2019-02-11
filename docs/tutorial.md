@@ -1,13 +1,16 @@
 # How to aim a Spacegun at your localhost
+
 In this tutorial I will guide you through a fun little local setup with minikube and help you get your feet wet in creating and managing Kubernetes deployments with Spacegun.
 
 ## Installation and local setup
+
 To install Spacegun, you can run `npm install -g spacegun`. This will install the standalone, server and client version of Spacegun.
 
-For starters, Spacegun needs two things configured. A Kubernetes cluster and a Docker registry. If you already have a Kubernetes cluster and a Docker registry running somewhere you can skip this part. 
+For starters, Spacegun needs two things configured. A Kubernetes cluster and a Docker registry. If you already have a Kubernetes cluster and a Docker registry running somewhere you can skip this part.
 
 ### Start a Minikube instance
-So let us start creating a Kubernetes cluster! Spacegun can pick up your kubeconfig automatically. For testing purposes we will use *Minikube*. You can find installation instructions in the [Minikube documentation](https://kubernetes.io/docs/tasks/tools/install-minikube/).
+
+So let us start creating a Kubernetes cluster! Spacegun can pick up your kubeconfig automatically. For testing purposes we will use _Minikube_. You can find installation instructions in the [Minikube documentation](https://kubernetes.io/docs/tasks/tools/install-minikube/).
 
 Now start a cluster with `minikube start`. It will download what feels like the whole internet and start a bunch of images. If it feels like the command is frozen, just give it some more time. Minikube does not perceive time they way you do. If the command still feels frozen, you are probably fine.
 
@@ -27,7 +30,7 @@ minikube   Ready    master   2m    v1.10.0
 To create a Docker registry you could just run
 
 ```
-$ docker run -d -p 5000:5000 --restart always --name registry registry:2`
+$ docker run -d -p 5000:5000 --restart always --name registry registry:2
 ```
 
 That creates a registry accessible via your console at `localhost:5000` but not from within the Kubernetes cluster. Instead of telling Kubernetes how to reach your machine, we will create the registry inside the Kubernetes cluster. The people from hasura.io have [a nice solution for that](https://blog.hasura.io/sharing-a-local-registry-for-minikube-37c7240d0615).
@@ -47,12 +50,11 @@ $ docker tag nginx localhost:5000/nginx
 $ docker push localhost:5000/nginx
 ```
 
-Or you can establish a port-foward to reach the Docker registry from your machine.
+And you can establish a port-foward to reach the Docker registry from your machine.
 
 ```
-$ kubectl port-forward --namespace kube-system \ 
-   $(kubectl get po -n kube-system | grep kube-registry-v0 | \
-   awk '{print $1;}') 5000:5000
+$ registry=$(kubectl get po -n kube-system | grep kube-registry-v0 | awk '{print $1;}')
+$ kubectl port-forward --namespace kube-system $registry 5000:5000
 ```
 
 So your machine's `localhost:5000` will be forwarded to the docker registry in your kubernetes. You can even view the content of the repository in your [web browser](http://localhost:5000/v2/_catalog).
@@ -94,10 +96,10 @@ If you run `spacegun pods` now, you will see a lot of internal Kubernetes pod, s
 ```
 $ spacegun pods
 minikube :: default
-pod name                                starts  status  age         image url                               
-nginx-deployment-86d59dd769-6vzkw       0       up      16 minutes  nginx:1.15.4                           
-nginx-deployment-86d59dd769-btdvr       0       up      16 minutes  nginx:1.15.4                            
-nginx-deployment-86d59dd769-hs9xr       0       up      16 minutes  nginx:1.15.4                           
+pod name                                starts  status  age         image url
+nginx-deployment-86d59dd769-6vzkw       0       up      16 minutes  nginx:1.15.4
+nginx-deployment-86d59dd769-btdvr       0       up      16 minutes  nginx:1.15.4
+nginx-deployment-86d59dd769-hs9xr       0       up      16 minutes  nginx:1.15.4
 ```
 
 If your nginx pods are listed as `down!` that is most likely because they are currently starting up. Using `kubectl` this is not all that obvious to see! Another nice metric is the `starts` column. This is the number of times Kubernetes had to restart the pod. If your pod is up but has a high restart count, you might have [OOM issues](https://en.wikipedia.org/wiki/Out_of_memory).
@@ -125,9 +127,10 @@ deployment name                         image url
 nginx-deployment                        localhost:5000/nginx:latest@sha256:87e9b6904b4286b8d41bba4461c0b736835fcc218f7ecbe5544b53fdd467189f
 ```
 
-And voilà as the French say, the pods are running the image we previously pushed into our local repository. 
+And voilà as the French say, the pods are running the image we previously pushed into our local repository.
 
 ## Migration and Bootstrapping
+
 Ok, now that we have tested out Spacegun a bit, let us configure an actual deployment pipeline! First let us take a snapshot of the cluster we are running.
 
 ```
@@ -165,7 +168,6 @@ steps:
 
 You can test it with `spacegun run` but it will tell you that there is nothing to deploy since we already deployed the newest version of the `latest`tag of `nginx` manually in the previous chapter. So let's push a fresh image.
 
-
 ```
 $ minikube ssh
 $ docker pull ubuntu
@@ -198,4 +200,4 @@ Now if you want to create a new deployment, you can create a new YAML file in th
 
 This is the end of the tutorial. I hope you got a better understanding of operating Spacegun. But there are a few more things to do. To fully automate Spacegun you will need to deploy a `spacegun-server` instance and have all your configuration files in a git repository. The [Spacegun README file](https://github.com/dvallin/spacegun/blob/master/README.md) will show you how to configure those. You can also want to integrate a [Slack hook](https://api.slack.com/incoming-webhooks).
 
-In case you are interested in improving Spacegun: We have [some issues in our GitHub](https://github.com/dvallin/spacegun/issues) you might want to work on. 
+In case you are interested in improving Spacegun: We have [some issues in our GitHub](https://github.com/dvallin/spacegun/issues) you might want to work on.

@@ -101,7 +101,7 @@ describe('KubernetesClusterProvider', () => {
             )
             expect(deployment).toEqual({ image: { name: 'image2', url: 'repo/image2:tag@some:digest' }, name: 'deployment1' })
             expect(replaceDeploymentMock).toHaveBeenCalledWith('deployment1', 'default', {
-                metadata: { name: 'deployment1' },
+                metadata: { name: 'deployment1', annotations: {} },
                 spec: {
                     template: {
                         metadata: { annotations: { 'spacegun.deployment': '1520899200000' } },
@@ -118,7 +118,7 @@ describe('KubernetesClusterProvider', () => {
             )
             expect(deployment).toEqual({ image: { name: 'image1', url: 'repo/image1:tag@some:digest' }, name: 'deployment1' })
             expect(replaceDeploymentMock).toHaveBeenCalledWith('deployment1', 'default', {
-                metadata: { name: 'deployment1' },
+                metadata: { name: 'deployment1', annotations: {} },
                 spec: {
                     template: {
                         metadata: { annotations: { 'spacegun.deployment': '1520899200000' } },
@@ -162,7 +162,7 @@ describe('KubernetesClusterProvider', () => {
 
             expect(replaceDeploymentMock).toHaveBeenCalledTimes(1)
             expect(replaceDeploymentMock).toHaveBeenCalledWith('deployment1', 'default', {
-                metadata: { name: 'deployment1' },
+                metadata: { name: 'deployment1', annotations: {} },
                 spec: {
                     replicas: 2,
                     template: { metadata: { annotations: {} }, spec: { containers: [{ image: 'repo/image1:tag@some:digest' }] } },
@@ -174,6 +174,34 @@ describe('KubernetesClusterProvider', () => {
             const snapshot: ClusterSnapshot = await cluster.takeSnapshot({
                 cluster: cluster.clusters[0],
             })
+
+            await cluster.applySnapshot({ cluster: cluster.clusters[0] }, snapshot, false)
+
+            expect(replaceDeploymentMock).not.toHaveBeenCalled()
+        })
+
+        it('does not call endpoints if kubernetes revision has changed', async () => {
+            const snapshot: ClusterSnapshot = await cluster.takeSnapshot({
+                cluster: cluster.clusters[0],
+            })
+            const deployment1 = snapshot.deployments[0].data as V1Deployment
+            deployment1.metadata.annotations = {
+                'deployment.kubernetes.io/revision': '123',
+            }
+
+            await cluster.applySnapshot({ cluster: cluster.clusters[0] }, snapshot, false)
+
+            expect(replaceDeploymentMock).not.toHaveBeenCalled()
+        })
+
+        it('does not call endpoints if spacegun deployment version has changed', async () => {
+            const snapshot: ClusterSnapshot = await cluster.takeSnapshot({
+                cluster: cluster.clusters[0],
+            })
+            const deployment1 = snapshot.deployments[0].data as V1Deployment
+            deployment1.spec.template.metadata.annotations = {
+                'spacegun.deployment': '1520899200000',
+            }
 
             await cluster.applySnapshot({ cluster: cluster.clusters[0] }, snapshot, false)
 
@@ -206,7 +234,7 @@ describe('KubernetesClusterProvider', () => {
 
             expect(createDeploymentMock).toHaveBeenCalledTimes(1)
             expect(createDeploymentMock).toHaveBeenCalledWith('default', {
-                metadata: { name: 'somesillydeployment' },
+                metadata: { name: 'somesillydeployment', annotations: {} },
                 spec: { replicas: 2, template: { metadata: { annotations: {} }, spec: { containers: [{ image: 'somenewsillyimage' }] } } },
             })
         })
