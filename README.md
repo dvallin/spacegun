@@ -1,7 +1,10 @@
 # Spacegun
 
+[![Version](https://img.shields.io/npm/v/spacegun.svg?style=flat)](https://www.npmjs.com/package/spacegun)
+[![License](https://img.shields.io/npm/l/spacegun.svg?style=flat)](https://opensource.org/licenses/MIT)
 [![Build Status](https://travis-ci.org/dvallin/spacegun.svg?branch=master)](https://travis-ci.org/dvallin/spacegun)
 [![codecov](https://codecov.io/gh/dvallin/spacegun/branch/master/graph/badge.svg)](https://codecov.io/gh/dvallin/spacegun)
+[![Sponsoring](https://img.shields.io/badge/Sponsored%20by-itemis-0E75BA.svg)](https://www.itemis.com)
 
 Straight-forward deployment management to get your docker images to kubernetes, without the headaches of fancy ui.
 
@@ -151,17 +154,17 @@ If the namespaces in the clusters are not called the same, you can use the `plan
 
 ```yaml
 cluster: k8s.live.my.cluster.com
-start: "plan"
+start: 'plan'
 steps:
-  - name: "plan"
-    type: "planNamespaceDeployment"
-    cluster: "k8s.prelive.my.cluster.com"
-    source: "namespace1"
-    target: "namespace2"
-    onSuccess: "apply"
+    - name: 'plan'
+      type: 'planNamespaceDeployment'
+      cluster: 'k8s.prelive.my.cluster.com'
+      source: 'namespace1'
+      target: 'namespace2'
+      onSuccess: 'apply'
 
-  - name: "apply"
-    type: "applyDeployment"
+    - name: 'apply'
+      type: 'applyDeployment'
 ```
 
 This will update all deployments on the live cluster in namespace2 which have more recent versions on the prelive cluster in namespace1.
@@ -206,7 +209,7 @@ This planning step would only run for two namespaces and in each namespace only 
 
 Note that once you use filtering in one deployment pipeline, you likely have to add filtering to all your deployments. It might be a good idea, to have such special deployments running in a separated namespace and you might even manage them using a dedicated Spacegun instance.
 
-For `planNamespaceDeployment` you cannot filter on namespaces and Spacegun will tell you so if you try. Filtering on deployments is still possible. 
+For `planNamespaceDeployment` you cannot filter on namespaces and Spacegun will tell you so if you try. Filtering on deployments is still possible.
 
 #### Deploy only working clusters
 

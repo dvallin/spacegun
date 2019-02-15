@@ -7,6 +7,5 @@ script:
     - yarn format:check
     - yarn test
     - yarn build
-    - yarn yarn audit
 after_success:
     - bash <(curl -s https://codecov.io/bash) -e TRAVIS_NODE_VERSION
