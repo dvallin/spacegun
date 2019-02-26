@@ -1,8 +1,10 @@
-import { ConfigRepository } from '../../config/ConfigRepository'
-import { Config, GitConfig } from '../../config'
+import { ConfigRepository } from '../ConfigRepository'
+import { Config, GitConfig } from '../index'
 import { Layers } from '../../dispatcher/model/Layers'
 
 import * as SimpleGit from 'simple-git/promise'
+import * as eventModule from '../../events/EventModule'
+import { call } from '../../dispatcher'
 
 export function fromConfig(config: Config): GitConfigRepository | undefined {
     if (config.git && process.env.LAYER === Layers.Server) {
@@ -30,6 +32,21 @@ export class GitConfigRepository implements ConfigRepository {
     }
 
     public async fetchNewConfig(): Promise<void> {
-        await this.git.pull()
+        await this.git.pull().catch(reason => GitConfigRepository.logPullErrorToSlack(reason))
+    }
+
+    private static logPullErrorToSlack(reason: any): void {
+        call(eventModule.log)({
+            message: `Failed to pull config repository`,
+            timestamp: Date.now(),
+            topics: ['slack'],
+            description: '',
+            fields: [
+                {
+                    title: 'Reason',
+                    value: reason,
+                },
+            ],
+        })
     }
 }

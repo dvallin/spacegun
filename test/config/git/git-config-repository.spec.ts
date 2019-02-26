@@ -1,9 +1,26 @@
 import { fromConfig, GitConfigRepository } from '../../../src/config/git/GitConfigRepository'
-import { Layers } from '../../../src/dispatcher/model/Layers'
+import { Config, GitConfig } from '../../../src/config'
 
-import { GitConfig, Config } from '../../../src/config/index'
+import { Layers } from '../../../src/dispatcher/model/Layers'
+import { Request } from '../../../src/dispatcher/model/Request'
+
+import { Event } from '../../../src/events/model/Event'
+
+const mockSlack = jest.fn()
 
 jest.mock('simple-git/promise', () => () => ({}))
+jest.mock('../../../src/dispatcher/index', () => ({
+    call: (request: Request<any, any>) => {
+        if (request.module === 'events' && request.procedure === 'log') {
+            return (message: Event) => {
+                mockSlack(message)
+            }
+        }
+        return undefined
+    },
+    add: () => {},
+    path: () => '',
+}))
 
 describe('GitConfigRepository', () => {
     beforeEach(() => {
@@ -70,6 +87,26 @@ describe('GitConfigRepository', () => {
                 await repo.fetchNewConfig()
 
                 expect(repo.git.pull).toHaveBeenCalledTimes(1)
+            })
+
+            it('logs an error when pull could not be performed', async () => {
+                repo.git.pull = jest.fn().mockReturnValue(Promise.reject('some plausible reject reason'))
+
+                const result = await repo.fetchNewConfig()
+
+                expect(result).rejects
+                expect(mockSlack).toHaveBeenCalledWith({
+                    message: 'Failed to pull config repository',
+                    timestamp: 1520899200000,
+                    topics: ['slack'],
+                    description: '',
+                    fields: [
+                        {
+                            title: 'Reason',
+                            value: 'some plausible reject reason',
+                        },
+                    ],
+                })
             })
         })
     })
