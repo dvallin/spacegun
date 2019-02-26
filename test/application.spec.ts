@@ -42,6 +42,12 @@ describe('Application', () => {
         expect(printHelp).toHaveBeenCalledTimes(1)
     })
 
+    it('calls the help function with unknown command line options', () => {
+        app.options._unknown = ['--unknown', '--comand', '--line-options']
+        app.run()
+        expect(printHelp).toHaveBeenCalledTimes(1)
+    })
+
     function configFileAvailable(filePath: string | undefined): boolean {
         try {
             typeof filePath === 'string' ? loadConfig(filePath) : loadConfig()
