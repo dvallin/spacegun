@@ -6,14 +6,15 @@
 [![codecov](https://codecov.io/gh/dvallin/spacegun/branch/master/graph/badge.svg)](https://codecov.io/gh/dvallin/spacegun)
 [![Sponsoring](https://img.shields.io/badge/Sponsored%20by-itemis-0E75BA.svg)](https://www.itemis.com)
 
-Straight-forward deployment management to get your docker images to kubernetes, without the headaches of fancy ui.
+**Version 0.1 has been released and Spacegun is battle proven at our own project.**
 
-**This project is not quite stable yet. But we are very close to release a v0.1.**
+Straight-forward deployment management to get your docker images to kubernetes, without the headaches of fancy ui.
 
 ## Features
 
 -   deployment pipelines as yaml
 -   managing multiple kubernetes clusters
+-   managing a single kubernetes cluster with namespaces
 -   version controlled configuration
 -   generating configuration from existing clusters
 -   slack integration
@@ -24,6 +25,7 @@ Straight-forward deployment management to get your docker images to kubernetes, 
 ## Getting Started
 
 There is a neat [tutorial](https://github.com/dvallin/spacegun/blob/master/docs/tutorial.md)
+and a [medium article](https://medium.com/@mschuler/keep-your-kubernetes-save-with-spacegun-cf04d9109eeb)
 
 ## Installing
 
