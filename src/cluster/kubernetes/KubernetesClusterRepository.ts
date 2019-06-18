@@ -1,8 +1,8 @@
 import {
     KubeConfig,
-    Core_v1Api,
-    Apps_v1beta2Api,
-    Autoscaling_v1Api,
+    CoreV1Api,
+    AppsV1beta2Api,
+    AutoscalingV1Api,
     V1beta2Deployment,
     V1Container,
     V1PodStatus,
@@ -54,26 +54,25 @@ export class KubernetesClusterRepository implements ClusterRepository {
 
     async namespaces(context: string): Promise<string[]> {
         return this.namespacesCache.calculate(context, async () => {
-            const api = this.build(context, (server: string) => new Core_v1Api(server))
+            const api = this.build(context, (server: string) => new CoreV1Api(server))
             const result = await api.listNamespace()
-            return result.body.items.map(namespace => namespace.metadata.name).filter(namespace => this.isNamespaceAllowed(namespace))
+            return result.body.items
+                .map(namespace => namespace.metadata!.name)
+                .filter(namespace => this.isNamespaceAllowed(namespace)) as string[]
         })
     }
 
     async pods(group: ServerGroup): Promise<Pod[]> {
-        const api = this.build(group.cluster, (server: string) => new Core_v1Api(server))
+        const api = this.build(group.cluster, (server: string) => new CoreV1Api(server))
         const namespace = this.getNamespace(group)
         const result = await api.listNamespacedPod(namespace)
         return result.body.items.map(item => {
-            const image = this.createImage(item.spec.containers)
-            let restarts
-            if (item.status.containerStatuses != undefined && item.status.containerStatuses.length >= 1) {
-                restarts = item.status.containerStatuses[0].restartCount
-            }
+            const image = this.createImage(item.spec!.containers)
+            const restarts = this.getRestarts(item.status)
             const ready = this.isReady(item.status)
-            const createdAt = moment(item.metadata.creationTimestamp).valueOf()
+            const createdAt = moment(item.metadata!.creationTimestamp).valueOf()
             return {
-                name: item.metadata.name,
+                name: item.metadata!.name || '',
                 createdAt,
                 image,
                 restarts,
@@ -83,35 +82,35 @@ export class KubernetesClusterRepository implements ClusterRepository {
     }
 
     async deployments(cluster: ServerGroup): Promise<Deployment[]> {
-        const api = this.build(cluster.cluster, (server: string) => new Apps_v1beta2Api(server))
+        const api = this.build(cluster.cluster, (server: string) => new AppsV1beta2Api(server))
         const namespace = this.getNamespace(cluster)
         const result = await api.listNamespacedDeployment(namespace)
         return result.body.items.map(item => {
-            const image = this.createImage(item.spec.template.spec.containers)
+            const image = this.createImage(item.spec!.template.spec!.containers)
             return {
-                name: item.metadata.name,
+                name: item.metadata!.name || '',
                 image,
             }
         })
     }
 
     async scalers(group: ServerGroup): Promise<Scaler[]> {
-        const api = this.build(group.cluster, (server: string) => new Autoscaling_v1Api(server))
+        const api = this.build(group.cluster, (server: string) => new AutoscalingV1Api(server))
         const namespace = this.getNamespace(group)
         const result = await api.listNamespacedHorizontalPodAutoscaler(namespace)
         return result.body.items.map(item => ({
-            name: item.metadata.name,
+            name: item.metadata!.name || '',
             replicas: {
-                current: item.status.currentReplicas,
-                minimum: item.spec.minReplicas,
-                maximum: item.spec.maxReplicas,
+                current: item.status!.currentReplicas,
+                minimum: item.spec!.minReplicas || 0,
+                maximum: item.spec!.maxReplicas,
             },
         }))
     }
 
     async updateDeployment(group: ServerGroup, deployment: Deployment, targetImage: Image): Promise<Deployment> {
         return this.replaceDeployment(group, deployment, d => {
-            d.spec.template.spec.containers[0].image = targetImage.url
+            d.spec!.template.spec!.containers[0].image = targetImage.url
         })
     }
 
@@ -120,19 +119,19 @@ export class KubernetesClusterRepository implements ClusterRepository {
     }
 
     async takeSnapshot(group: ServerGroup): Promise<ClusterSnapshot> {
-        const api = this.build(group.cluster, (server: string) => new Apps_v1beta2Api(server))
+        const api = this.build(group.cluster, (server: string) => new AppsV1beta2Api(server))
         const namespace = this.getNamespace(group)
         const result = await api.listNamespacedDeployment(namespace)
         return {
             deployments: result.body.items.map(d => ({
-                name: d.metadata.name,
+                name: d.metadata!.name || '',
                 data: this.minifyDeployment(d),
             })),
         }
     }
 
     async applySnapshot(group: ServerGroup, snapshot: ClusterSnapshot, ignoreImage: boolean): Promise<void> {
-        const api = this.build(group.cluster, (server: string) => new Apps_v1beta2Api(server))
+        const api = this.build(group.cluster, (server: string) => new AppsV1beta2Api(server))
         const namespace = this.getNamespace(group)
         const result = await api.listNamespacedDeployment(namespace)
 
@@ -140,16 +139,16 @@ export class KubernetesClusterRepository implements ClusterRepository {
         const created: string[] = []
         const errored: string[] = []
         for (const deployment of snapshot.deployments) {
-            const current = result.body.items.find(d => d.metadata.name === deployment.name)
+            const current = result.body.items.find(d => d.metadata!.name === deployment.name)
             const target = deployment.data as V1beta2Deployment
             if (current === undefined) {
                 await api.createNamespacedDeployment(namespace, target)
                 created.push(`Deployment ${deployment.name}`)
             } else {
                 if (ignoreImage) {
-                    const image = this.createImage(current.spec.template.spec.containers)
+                    const image = this.createImage(current.spec!.template.spec!.containers)
                     if (image !== undefined) {
-                        target.spec.template.spec.containers[0].image = image.url
+                        target.spec!.template.spec!.containers[0].image = image.url
                     }
                 }
                 if (this.needsUpdate(current, target)) {
@@ -181,13 +180,26 @@ export class KubernetesClusterRepository implements ClusterRepository {
         return group.namespace || 'default'
     }
 
-    private isNamespaceAllowed(namespace: string): boolean {
+    private isNamespaceAllowed(namespace: string | undefined): boolean {
+        if (namespace === undefined) {
+            return false
+        }
         return this.allowedNamespaces === undefined || this.allowedNamespaces.find(n => n === namespace) !== undefined
     }
 
-    private isReady(status: V1PodStatus): boolean {
+    private isReady(status: V1PodStatus | undefined): boolean {
+        if (status === undefined) {
+            return false
+        }
         const readyCondition = status.conditions && status.conditions.find(c => c.type === 'Ready')
         return readyCondition !== undefined && readyCondition.status === 'True'
+    }
+
+    private getRestarts(status: V1PodStatus | undefined): number {
+        if (status !== undefined && status.containerStatuses != undefined && status.containerStatuses.length >= 1) {
+            return status!.containerStatuses[0].restartCount
+        }
+        return 0
     }
 
     private createImage(containers: Array<V1Container> | undefined): Image | undefined {
@@ -195,7 +207,7 @@ export class KubernetesClusterRepository implements ClusterRepository {
             return undefined
         }
 
-        const url = containers[0].image
+        const url = containers[0].image || ''
         const name = parseImageUrl(url).name
         if (name === undefined) {
             return undefined
@@ -228,45 +240,45 @@ export class KubernetesClusterRepository implements ClusterRepository {
         deployment: Deployment,
         replacer: (d: V1beta2Deployment) => void
     ): Promise<Deployment> {
-        const api = this.build(group.cluster, (server: string) => new Apps_v1beta2Api(server))
+        const api = this.build(group.cluster, (server: string) => new AppsV1beta2Api(server))
         const namespace = this.getNamespace(group)
         const response = await api.readNamespacedDeployment(deployment.name, namespace)
 
         const target = this.minifyDeployment(response.body)
         replacer(target)
 
-        if (target.spec.template.metadata.annotations === undefined) {
-            target.spec.template.metadata.annotations = {}
+        if (target.spec!.template.metadata!.annotations === undefined) {
+            target.spec!.template.metadata!.annotations = {}
         }
-        target.spec.template.metadata.annotations['spacegun.deployment'] = Date.now().toString()
+        target.spec!.template.metadata!.annotations['spacegun.deployment'] = Date.now().toString()
 
         let result = await api.replaceNamespacedDeployment(deployment.name, namespace, target)
 
         return {
-            name: result.body.metadata.name,
-            image: this.createImage(result.body.spec.template.spec.containers),
+            name: result.body.metadata!.name || '',
+            image: this.createImage(result.body.spec!.template.spec!.containers),
         }
     }
 
     private minifyDeployment(deployment: V1beta2Deployment): V1beta2Deployment {
         // delete spacegun related annotations
-        if (deployment.spec.template.metadata.annotations !== undefined) {
-            delete deployment.spec.template.metadata.annotations['spacegun.deployment']
+        if (deployment.spec!.template.metadata!.annotations !== undefined) {
+            delete deployment.spec!.template.metadata!.annotations['spacegun.deployment']
         } else {
-            deployment.spec.template.metadata.annotations = {}
+            deployment.spec!.template.metadata!.annotations = {}
         }
         // delete kubernetes revision annotations
-        if (deployment.metadata.annotations !== undefined) {
-            delete deployment.metadata.annotations['deployment.kubernetes.io/revision']
+        if (deployment.metadata!.annotations !== undefined) {
+            delete deployment.metadata!.annotations['deployment.kubernetes.io/revision']
         } else {
-            deployment.metadata.annotations = {}
+            deployment.metadata!.annotations = {}
         }
 
         return {
             metadata: {
-                name: deployment.metadata.name,
-                namespace: deployment.metadata.namespace,
-                annotations: deployment.metadata.annotations,
+                name: deployment.metadata!.name,
+                namespace: deployment.metadata!.namespace,
+                annotations: deployment.metadata!.annotations,
             },
             spec: deployment.spec,
         } as V1beta2Deployment

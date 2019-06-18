@@ -1,4 +1,4 @@
-import { empty, from, Observable, of, OperatorFunction } from 'rxjs'
+import { empty, from, Observable, of, OperatorFunction, ObservableInput } from 'rxjs'
 import { catchError, map, mergeMap } from 'rxjs/operators'
 
 import { load } from '.'
@@ -106,38 +106,36 @@ export class JobsRepositoryImpl implements JobsRepository {
         switch (step.type) {
             case 'planClusterDeployment': {
                 const instance = new PlanClusterDeployment(step.name, step.cluster!, step.filter, this.io)
-                stepMapper = mergeMap<{ group: ServerGroup; deployments: Deployment[] }, JobPlan>(s =>
-                    instance.plan(s.group, name, s.deployments)
-                )
+                stepMapper = mergeMap(s => instance.plan(s.group, name, s.deployments))
                 break
             }
             case 'planNamespaceDeployment': {
                 const instance = new PlanNamespaceDeployment(step.name, step.cluster!, step.source!, step.target!, step.filter, this.io)
-                stepMapper = mergeMap<{ group: ServerGroup; deployments: Deployment[] }, JobPlan>(s =>
+                stepMapper = mergeMap<{ group: ServerGroup; deployments: Deployment[] }, ObservableInput<JobPlan>>(s =>
                     instance.plan(s.group, name, s.deployments)
                 )
                 break
             }
             case 'planImageDeployment': {
                 const instance = new PlanImageDeployment(step.name, step.tag!, step.semanticTagExtractor, step.filter, this.io)
-                stepMapper = mergeMap<{ group: ServerGroup; deployments: Deployment[] }, JobPlan>(s =>
+                stepMapper = mergeMap<{ group: ServerGroup; deployments: Deployment[] }, ObservableInput<JobPlan>>(s =>
                     instance.plan(s.group, name, s.deployments)
                 )
                 break
             }
             case 'applyDeployment': {
                 const instance = new ApplyDeployment(pipeline.name, this.io)
-                stepMapper = mergeMap(s => instance.apply(s))
+                stepMapper = mergeMap<JobPlan, ObservableInput<Deployment[]>>(s => instance.apply(s))
                 break
             }
             case 'logError': {
                 const instance = new LogError(this.io)
-                stepMapper = mergeMap(s => instance.apply(pipeline, s))
+                stepMapper = mergeMap<Error, ObservableInput<{}>>(s => instance.apply(pipeline, s))
                 break
             }
             case 'clusterProbe': {
                 const instance = new ClusterProbe()
-                stepMapper = mergeMap(s => instance.apply(s, step.hook!, step.timeout))
+                stepMapper = mergeMap<object, ObservableInput<object>>(s => instance.apply(s, step.hook!, step.timeout))
                 break
             }
             default:

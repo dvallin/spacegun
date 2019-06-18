@@ -18,7 +18,8 @@ jest.useFakeTimers()
 
 process.env.LAYER = Layers.Standalone
 
-const mockDeployments: { [key: string]: Deployment[] } = {
+type Deployments = { [name: string]: Deployment[] }
+const mockDeployments: Deployments = {
     cluster1: [
         { name: 'deployment1', image: { name: 'image1', url: 'imageUrl:tag1:digest1' } },
         { name: 'deployment2', image: { name: 'image2', url: 'imageUrl:tag2:digest1' } },
@@ -37,7 +38,8 @@ const mockDeployments: { [key: string]: Deployment[] } = {
     ],
 }
 
-const mockNamespaces: { [key: string]: string[] } = {
+type Namespaces = { [key: string]: string[] }
+const mockNamespaces: Namespaces = {
     cluster1: [],
     cluster2: ['namespace1', 'namespace3'],
     cluster3: ['namespace2'],
@@ -272,6 +274,7 @@ describe('JobsRepositoryImpl', () => {
 
     it('runs first pipeline', async () => {
         // given
+        //@ts-ignore
         axios.get = axiosResponse(200)
 
         // when

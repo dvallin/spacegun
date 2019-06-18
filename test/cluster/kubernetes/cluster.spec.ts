@@ -156,7 +156,7 @@ describe('KubernetesClusterProvider', () => {
                 cluster: cluster.clusters[0],
             })
             const deployment1 = snapshot.deployments[0].data as V1Deployment
-            deployment1.spec.replicas = 2
+            deployment1.spec!.replicas = 2
 
             await cluster.applySnapshot({ cluster: cluster.clusters[0] }, snapshot, false)
 
@@ -185,7 +185,7 @@ describe('KubernetesClusterProvider', () => {
                 cluster: cluster.clusters[0],
             })
             const deployment1 = snapshot.deployments[0].data as V1Deployment
-            deployment1.metadata.annotations = {
+            deployment1.metadata!.annotations = {
                 'deployment.kubernetes.io/revision': '123',
             }
 
@@ -199,7 +199,7 @@ describe('KubernetesClusterProvider', () => {
                 cluster: cluster.clusters[0],
             })
             const deployment1 = snapshot.deployments[0].data as V1Deployment
-            deployment1.spec.template.metadata.annotations = {
+            deployment1.spec!.template.metadata!.annotations = {
                 'spacegun.deployment': '1520899200000',
             }
 
@@ -213,7 +213,7 @@ describe('KubernetesClusterProvider', () => {
                 cluster: cluster.clusters[0],
             })
             const deployment1 = snapshot.deployments[0].data as V1Deployment
-            deployment1.spec.template.spec.containers[0].image = 'somenewsillyimage'
+            deployment1.spec!.template.spec!.containers[0].image = 'somenewsillyimage'
 
             await cluster.applySnapshot({ cluster: cluster.clusters[0] }, snapshot, true)
 
@@ -226,9 +226,9 @@ describe('KubernetesClusterProvider', () => {
             })
             const deployment1 = snapshot.deployments[0].data as V1Deployment
             snapshot.deployments[0].name = 'somesillydeployment'
-            deployment1.metadata.name = 'somesillydeployment'
-            deployment1.spec.replicas = 2
-            deployment1.spec.template.spec.containers[0].image = 'somenewsillyimage'
+            deployment1.metadata!.name = 'somesillydeployment'
+            deployment1.spec!.replicas = 2
+            deployment1.spec!.template.spec!.containers[0].image = 'somenewsillyimage'
 
             await cluster.applySnapshot({ cluster: cluster.clusters[0] }, snapshot, false)
 
@@ -245,9 +245,9 @@ describe('KubernetesClusterProvider', () => {
             })
 
             const deployment1 = snapshot.deployments[0].data as V1Deployment
-            deployment1.spec.replicas = 2
+            deployment1.spec!.replicas = 2
             const deployment2 = snapshot.deployments[1].data as V1Deployment
-            deployment2.spec.replicas = 2
+            deployment2.spec!.replicas = 2
 
             await cluster.applySnapshot({ cluster: cluster.clusters[0] }, snapshot, true)
 

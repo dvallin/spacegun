@@ -13,6 +13,7 @@ describe('SlackEventRepository', () => {
 
     describe('log', () => {
         beforeEach(() => {
+            //@ts-ignore
             axios.post = axiosSuccess()
         })
 

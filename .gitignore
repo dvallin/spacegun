@@ -5,3 +5,4 @@ production-config/
 
 yarn-error.log
 .idea/
+.envrc

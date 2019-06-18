@@ -14,19 +14,9 @@
         "noImplicitReturns": true,
         "noFallthroughCasesInSwitch": true,
         "baseUrl": ".",
-        "typeRoots": [
-            "node_modules/@types"
-        ],
-        "types": [
-            "jest",
-            "node"
-        ],
+        "types": ["jest", "node"],
         "allowSyntheticDefaultImports": false,
         "experimentalDecorators": true,
         "emitDecoratorMetadata": true
-    },
-    "include": [
-        "src/**/*",
-        "node_modules/@types"
-    ]
+    }
 }
