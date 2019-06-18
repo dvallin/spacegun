@@ -17,6 +17,7 @@ describe('DockerImageProvider', () => {
         const images = ['image1', 'image2']
 
         beforeEach(() => {
+            //@ts-ignore
             axios.get = axiosSuccess({ repositories: images })
         })
 
@@ -36,6 +37,7 @@ describe('DockerImageProvider', () => {
         const tags = ['tag1', 'tag2']
 
         beforeEach(() => {
+            //@ts-ignore
             axios.get = axiosSuccess({ tags })
         })
 
@@ -54,6 +56,7 @@ describe('DockerImageProvider', () => {
 
     describe('image', () => {
         beforeEach(() => {
+            //@ts-ignore
             axios.get = axiosSuccessHeader({ 'docker-content-digest': 'abcd' })
         })
 

@@ -31,6 +31,7 @@ describe('client dispatcher', () => {
 
     it('calls void remote functions via axios', () => {
         // given
+        //@ts-ignore
         axios.get = axiosSuccess()
 
         // when
@@ -45,6 +46,7 @@ describe('client dispatcher', () => {
 
     it('calls parameterized remote functions via axios', () => {
         // given
+        //@ts-ignore
         axios.get = axiosSuccess()
         const params = { param: 'p' }
 

@@ -1,4 +1,4 @@
-import { Autoscaling_v1Api as api3, Apps_v1beta2Api as api2, Core_v1Api as api1, KubeConfig } from '@kubernetes/client-node'
+import { AutoscalingV1Api as api3, AppsV1beta2Api as api2, CoreV1Api as api1, KubeConfig } from '@kubernetes/client-node'
 
 function mockPod(name: string, creationTimestamp: Date, image: string, restartCount: number, ready: boolean = true): object {
     const readyCondition = ready ? { type: 'Ready', status: 'True' } : { type: 'Ready', status: 'False' }
@@ -47,7 +47,7 @@ function mockScaler(name: string, currentReplicas: number, minReplicas: number, 
     }
 }
 
-const Core_v1Api = jest.fn<api1>().mockImplementation(function() {
+const CoreV1Api = jest.fn().mockImplementation(function() {
     const mockedApi = new api1()
     mockedApi.listNamespacedPod = jest.fn().mockResolvedValue({
         body: {
@@ -68,7 +68,7 @@ const Core_v1Api = jest.fn<api1>().mockImplementation(function() {
 export const replaceDeploymentMock = jest.fn()
 export const createDeploymentMock = jest.fn()
 
-const Apps_v1beta2Api = jest.fn<api2>().mockImplementation(function() {
+const AppsV1beta2Api = jest.fn().mockImplementation(function() {
     const mockedApi = new api2()
     mockedApi.listNamespacedDeployment = jest.fn().mockResolvedValue({
         body: {
@@ -96,7 +96,7 @@ const Apps_v1beta2Api = jest.fn<api2>().mockImplementation(function() {
     return mockedApi
 })
 
-const Autoscaling_v1Api = jest.fn<api3>().mockImplementation(function() {
+const AutoscalingV1Api = jest.fn().mockImplementation(function() {
     const mockedApi = new api3()
     mockedApi.listNamespacedHorizontalPodAutoscaler = jest.fn().mockResolvedValue({
         body: {
@@ -106,4 +106,4 @@ const Autoscaling_v1Api = jest.fn<api3>().mockImplementation(function() {
     return mockedApi
 })
 
-export { Core_v1Api, Apps_v1beta2Api, Autoscaling_v1Api, KubeConfig }
+export { CoreV1Api, AppsV1beta2Api, AutoscalingV1Api, KubeConfig }

@@ -98,12 +98,15 @@ describe('caller', () => {
 function mockAxiosMethod(method: string, mock: jest.Mock<{}>): void {
     switch (method) {
         case 'get':
+            //@ts-ignore
             axios.get = mock
             break
         case 'post':
+            //@ts-ignore
             axios.post = mock
             break
         case 'put':
+            //@ts-ignore
             axios.put = mock
             break
     }

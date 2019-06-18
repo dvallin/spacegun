@@ -21,6 +21,7 @@ describe('error handling middleware', () => {
     })
 
     it('eats exceptions and logs them to console error', async () => {
+        //@ts-ignore
         const errorHandlingMiddleware = (server.use as jest.Mock<{}>).mock.calls[0][0]
 
         const error = new Error('some error')
@@ -32,6 +33,7 @@ describe('error handling middleware', () => {
     })
 
     it('logs context to console warn on 404', async () => {
+        //@ts-ignore
         const errorHandlingMiddleware = (server.use as jest.Mock<{}>).mock.calls[0][0]
 
         const context = { status: 404 }

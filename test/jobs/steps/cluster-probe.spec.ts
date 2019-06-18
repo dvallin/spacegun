@@ -6,6 +6,7 @@ import { axiosResponse } from '../../test-utils/axios'
 describe(ClusterProbe.name, () => {
     it('resolves to input cluster probe returns status 200', async () => {
         // given
+        //@ts-ignore
         axios.get = axiosResponse(200)
 
         // when
@@ -16,6 +17,7 @@ describe(ClusterProbe.name, () => {
     })
 
     it('rejects if cluster probe return status not 200', async () => {
+        //@ts-ignore
         axios.get = axiosResponse(201)
         await expect(new ClusterProbe().apply({ input: '' }, 'hookurl')).rejects.toThrowErrorMatchingSnapshot()
     })
@@ -26,6 +28,7 @@ describe(ClusterProbe.name, () => {
     })
 
     it('calls axios with optional timeout', async () => {
+        //@ts-ignore
         axios.get = axiosResponse(200)
         await new ClusterProbe().apply({ input: '' }, 'hookurl', 1234)
         expect(axios.get).toHaveBeenCalledWith('hookurl', { timeout: 1234 })
