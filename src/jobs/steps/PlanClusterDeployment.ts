@@ -5,49 +5,64 @@ import { call } from '../../dispatcher'
 import * as clusterModule from '../../cluster/ClusterModule'
 import { ServerGroup } from '../../cluster/model/ServerGroup'
 import { Deployment } from '../../cluster/model/Deployment'
-import { Filter, matchesDeployment, matchesServerGroup } from '../model/Filter'
+import { Filter, matchesResource, matchesServerGroup } from '../model/Filter'
 
-import { DeploymentPlan } from '../model/DeploymentPlan'
+import { DeploymentPlan, DeployableResource } from '../model/DeploymentPlan'
 import { JobPlan } from '../model/JobPlan'
+import { Batch } from 'src/cluster/model/Batch'
 
 export class PlanClusterDeployment {
     public constructor(readonly name: string, readonly cluster: string, readonly filter?: Partial<Filter>, readonly io: IO = new IO()) {}
 
-    public async plan(group: ServerGroup, name: string, targetDeployments: Deployment[]): Promise<JobPlan> {
+    public async plan(group: ServerGroup, name: string, targetDeployments: Deployment[], targetBatches: Batch[]): Promise<JobPlan> {
         if (!matchesServerGroup(this.filter, group)) {
-            return { name, deployments: [] }
+            return { name, deployments: [], batches: [] }
         }
+        const deployments = await this.planDeployments(group, targetDeployments)
+        const batches = await this.planBatches(group, targetBatches)
+        return { name, deployments, batches }
+    }
 
+    async planDeployments(group: ServerGroup, targetDeployments: Deployment[]): Promise<DeploymentPlan<Deployment>[]> {
         const sourceDeployments = await call(clusterModule.deployments)({
             cluster: this.cluster,
             namespace: group.namespace,
         })
+        return this.planUpdates(group, sourceDeployments, targetDeployments)
+    }
 
-        const deployments: DeploymentPlan[] = []
-        for (const targetDeployment of targetDeployments) {
-            if (!matchesDeployment(this.filter, targetDeployment)) {
+    async planBatches(group: ServerGroup, targetBatches: Batch[]): Promise<DeploymentPlan<Batch>[]> {
+        const sourceBatches = await call(clusterModule.batches)({
+            cluster: this.cluster,
+            namespace: group.namespace,
+        })
+        return this.planUpdates(group, sourceBatches, targetBatches)
+    }
+
+    async planUpdates<T extends DeployableResource>(group: ServerGroup, sources: T[], targets: T[]): Promise<DeploymentPlan<T>[]> {
+        const deployments: DeploymentPlan<T>[] = []
+        for (const target of targets) {
+            if (!matchesResource(this.filter, target)) {
                 continue
             }
-            this.io.out(`planning cluster deployment ${targetDeployment.name} in ${this.name}`)
-            const sourceDeployment = sourceDeployments.find(d => d.name === targetDeployment.name)
-            if (sourceDeployment === undefined) {
-                this.io.error(
-                    `${targetDeployment.name} in cluster ${group.cluster} has no appropriate deployment in cluster ${this.cluster}`
-                )
+            this.io.out(`planning cluster deployment ${target.name} in ${this.name}`)
+            const source = sources.find(d => d.name === target.name)
+            if (source === undefined) {
+                this.io.error(`${target.name} in cluster ${group.cluster} has no appropriate deployment in cluster ${this.cluster}`)
                 continue
             }
-            if (sourceDeployment.image === undefined) {
-                this.io.error(`${targetDeployment.name} in cluster ${this.cluster} has no image`)
+            if (source.image === undefined) {
+                this.io.error(`${target.name} in cluster ${this.cluster} has no image`)
                 continue
             }
-            if (targetDeployment.image === undefined || targetDeployment.image.url !== sourceDeployment.image.url) {
+            if (target.image === undefined || source.image.url !== target.image.url) {
                 deployments.push({
                     group,
-                    deployment: targetDeployment,
-                    image: sourceDeployment.image,
+                    deployable: target,
+                    image: source.image,
                 })
             }
         }
-        return { name, deployments }
+        return deployments
     }
 }

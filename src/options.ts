@@ -7,6 +7,7 @@ export interface Options {
     command?: Command
     config?: string
     deployment?: string
+    batch?: string
     namespace?: string
     pipeline?: string
     port?: number
@@ -23,6 +24,7 @@ function parse(): Options {
             { name: 'config', type: String },
             { name: 'port', type: Number },
             { name: 'deployment', alias: 'd', type: String },
+            { name: 'batch', alias: 'b', type: String },
             { name: 'help', alias: 'h', type: Boolean },
             { name: 'namespace', alias: 'n', type: String },
             { name: 'pipeline', alias: 'p', type: String },
@@ -39,6 +41,7 @@ function parse(): Options {
         port?: number
         config?: string
         deployment?: string
+        batch?: string
         help?: boolean
         namespace?: string
         pipeline?: string
@@ -58,6 +61,7 @@ function parse(): Options {
             case 'deploy':
             case 'restart':
             case 'deployments':
+            case 'batches':
             case 'images':
             case 'namespaces':
             case 'pipelines':
@@ -76,6 +80,7 @@ function parse(): Options {
         command,
         config: internalOptions.config,
         deployment: internalOptions.deployment,
+        batch: internalOptions.batch,
         namespace: internalOptions.namespace,
         pipeline: internalOptions.pipeline,
         port: internalOptions.port,

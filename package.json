@@ -13,7 +13,7 @@
         "format": "prettier --config .prettierrc.yaml --write '{src,configs,test}/**/*.{ts,tsx,js,jsx,html}'",
         "format:check": "prettier --config .prettierrc.yaml --list-different '{src,configs,test}/**/*.{ts,tsx,js,jsx,html}'",
         "test": "tsc --noEmit -p test/tsconfig.test.json && jest --config=jest.conf.js --coverage",
-        "test:watch": "jest --config=jest.conf.js --watch",
+        "test:watch": "jest --config=jest.conf.js --watch --coverage",
         "spg": "bin/spg",
         "spacegun": "bin/spacegun",
         "spacegun-server": "bin/spacegun-server"

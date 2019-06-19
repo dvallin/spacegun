@@ -14,6 +14,7 @@ import { load, applyWithConsent } from './helpers'
 
 import { PipelineDescription } from '../jobs/model/PipelineDescription'
 import { logDeployment } from './deployments'
+import { DeploymentPlan, DeployableResource } from 'src/jobs/model/DeploymentPlan'
 
 export const pipelinesCommand: CommandFn = async ({  }: Options, io: IO) => pipelines(io)
 export const pipelineSchedulesCommand: CommandFn = async (options: Options, io: IO) => pipelineSchedules(options, io)
@@ -56,18 +57,10 @@ async function run(options: Options, io: IO) {
     const plan = await call(jobsModule.plan)(pipeline)
 
     io.out(chalk.bold(`planned deployment ${plan.name}`))
-    plan.deployments.forEach(deploymentPlan => {
-        let previousUrl = 'none'
-        if (deploymentPlan.deployment.image !== undefined) {
-            previousUrl = deploymentPlan.deployment.image.url
-        }
-        io.out(
-            pad(`${deploymentPlan.deployment.name}`, 3) +
-                chalk.bold(pad(`${previousUrl}`, 5)) +
-                chalk.magenta(pad('=>', 1)) +
-                chalk.bold(pad(`${deploymentPlan.image.url}`, 5))
-        )
-    })
+    io.out(chalk.bold(`planned service deployment updates`))
+    plan.deployments.forEach(deploymentPlan => logDeploymentPlan(deploymentPlan, io))
+    io.out(chalk.bold(`planned batch deployment updates`))
+    plan.batches.forEach(deploymentPlan => logDeploymentPlan(deploymentPlan, io))
 
     const result = await applyWithConsent(options, io, () => call(jobsModule.run)(plan))
     if (result) {
@@ -78,6 +71,19 @@ async function run(options: Options, io: IO) {
     } else {
         console.log(chalk.bold('Did not apply plan.'))
     }
+}
+
+function logDeploymentPlan<T extends DeployableResource>(deploymentPlan: DeploymentPlan<T>, io: IO) {
+    let previousUrl = 'none'
+    if (deploymentPlan.deployable.image !== undefined) {
+        previousUrl = deploymentPlan.deployable.image.url
+    }
+    io.out(
+        pad(`${deploymentPlan.deployable.name}`, 3) +
+            chalk.bold(pad(`${previousUrl}`, 5)) +
+            chalk.magenta(pad('=>', 1)) +
+            chalk.bold(pad(`${deploymentPlan.image.url}`, 5))
+    )
 }
 
 function logPipelineHeader(io: IO) {

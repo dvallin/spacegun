@@ -19,7 +19,7 @@ async function snapshot(io: IO, cluster: string, namespace?: string) {
     io.out(`Loading snapshot`)
     const snapshot = await load(call(clusterModule.takeSnapshot)({ cluster, namespace }))
 
-    io.out(`Saving snapshot`)
+    io.out(`Saving Deployment Snapshots`)
     for (const deployment of snapshot.deployments) {
         await call(configModule.saveArtifact)({
             path: `${cluster}/${namespace}/deployments`,
@@ -29,15 +29,30 @@ async function snapshot(io: IO, cluster: string, namespace?: string) {
             },
         })
     }
+
+    io.out(`Saving Batch Snapshots`)
+    for (const batch of snapshot.batches) {
+        await call(configModule.saveArtifact)({
+            path: `${cluster}/${namespace}/batches`,
+            artifact: {
+                name: batch.name,
+                data: batch.data,
+            },
+        })
+    }
 }
 
 async function applySnapshot(io: IO, cluster: string, namespace?: string) {
-    const knownArtifacts = await load(call(configModule.listArtifacts)(`${cluster}/${namespace}/deployments`))
-    for (const artifact of knownArtifacts) {
-        io.out(`Found snapshot for ${artifact.name}`)
+    const deployments = await load(call(configModule.listArtifacts)(`${cluster}/${namespace}/deployments`))
+    for (const artifact of deployments) {
+        io.out(`Found snapshot for deployment ${artifact.name}`)
+    }
+    const batches = await load(call(configModule.listArtifacts)(`${cluster}/${namespace}/batches`))
+    for (const artifact of batches) {
+        io.out(`Found snapshot for batch ${artifact.name}`)
     }
     await call(clusterModule.applySnapshot)({
         group: { cluster, namespace },
-        snapshot: { deployments: knownArtifacts },
+        snapshot: { deployments, batches },
     })
 }

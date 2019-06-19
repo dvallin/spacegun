@@ -200,10 +200,11 @@ The planning steps can be filtered on namespaces and deployments.
     namespaces:
       - "namespace1"
       - "namespace2"
-    deployments:
+    resources:
       - "deployment1"
       - "deployment2"
       - "deployment3"
+      - "batch1"
   onSuccess: "apply1"
 ```
 

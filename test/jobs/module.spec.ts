@@ -5,6 +5,7 @@ import { init, pipelines, plan, run, schedules } from '../../src/jobs/JobsModule
 import { PipelineDescription } from '../../src/jobs/model/PipelineDescription'
 import { call } from '../../src/dispatcher'
 import { JobsRepository } from '../../src/jobs/JobsRepository'
+import { JobPlan } from 'src/jobs/model/JobPlan'
 
 const planMock = jest.fn()
 const applyMock = jest.fn()
@@ -60,14 +61,15 @@ describe('image module', () => {
 
     it('calls apply', async () => {
         // given
-        const plan = {
+        const plan: JobPlan = {
             deployments: [
                 {
-                    deployment: { name: 'name' },
-                    image: { url: 'url', name: 'name', tag: 'tag' },
+                    deployable: { name: 'name' },
+                    image: { url: 'url', name: 'name' },
                     group: { cluster: 'cluster' },
                 },
             ],
+            batches: [],
             name: 'jobName',
         }
         applyMock.mockReturnValueOnce({})

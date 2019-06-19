@@ -4,11 +4,12 @@ import { call } from '../../dispatcher'
 
 import * as imageModule from '../../images/ImageModule'
 
-import { DeploymentPlan } from '../model/DeploymentPlan'
+import { DeploymentPlan, DeployableResource } from '../model/DeploymentPlan'
 import { Deployment } from '../../cluster/model/Deployment'
 import { ServerGroup } from '../../cluster/model/ServerGroup'
-import { Filter, matchesDeployment, matchesServerGroup } from '../model/Filter'
+import { Filter, matchesResource, matchesServerGroup } from '../model/Filter'
 import { JobPlan } from '../model/JobPlan'
+import { Batch } from 'src/cluster/model/Batch'
 
 export type FetchedDeployment = {}
 
@@ -21,50 +22,57 @@ export class PlanImageDeployment {
         readonly io: IO = new IO()
     ) {}
 
-    public async plan(group: ServerGroup, name: string, targetDeployments: Deployment[]): Promise<JobPlan> {
+    public async plan(group: ServerGroup, name: string, targetDeployments: Deployment[], targetBatches: Batch[]): Promise<JobPlan> {
         if (!matchesServerGroup(this.filter, group)) {
-            return { name, deployments: [] }
+            return { name, deployments: [], batches: [] }
         }
 
-        const deployments: DeploymentPlan[] = []
-        for (const targetDeployment of targetDeployments) {
-            if (!matchesDeployment(this.filter, targetDeployment)) {
+        const deployments: DeploymentPlan<Deployment>[] = await this.planUpdate(group, targetDeployments)
+        const batches: DeploymentPlan<Batch>[] = await this.planUpdate(group, targetBatches)
+
+        return { name, deployments, batches }
+    }
+
+    private async planUpdate<T extends DeployableResource>(group: ServerGroup, targets: T[]): Promise<DeploymentPlan<T>[]> {
+        const deployments: DeploymentPlan<T>[] = []
+        for (const target of targets) {
+            if (!matchesResource(this.filter, target)) {
                 continue
             }
-            this.io.out(`planning image deployment ${targetDeployment.name} in ${this.name}`)
-            if (targetDeployment.image === undefined) {
+            this.io.out(`planning image deployment ${target.name} in ${this.name}`)
+            if (target.image === undefined) {
                 this.io.error(
-                    `${targetDeployment.name} in cluster ${group.cluster} has no image, so spacegun cannot determine the right image source`
+                    `${target.name} in cluster ${group.cluster} has no image, so spacegun cannot determine the right image source`
                 )
                 continue
             }
 
             let tag = this.tag
             if (tag === undefined) {
-                const tags = await call(imageModule.tags)(targetDeployment.image)
+                const tags = await call(imageModule.tags)(target.image)
                 tag = this.getNewestTag(tags)
             }
 
             if (tag !== undefined) {
                 const image = await call(imageModule.image)({
                     tag,
-                    name: targetDeployment.image.name,
+                    name: target.image.name,
                 })
 
-                if (targetDeployment.image.url !== image.url) {
+                if (target.image.url !== image.url) {
                     deployments.push({
                         group,
                         image,
-                        deployment: targetDeployment,
+                        deployable: target,
                     })
                 }
             } else {
                 throw new Error(
-                    `Could not find a tag for deployment ${targetDeployment.name} in cluster ${group.cluster}, namespace ${group.namespace}`
+                    `Could not find a tag for resource ${target.name} in cluster ${group.cluster}, namespace ${group.namespace}`
                 )
             }
         }
-        return { name, deployments }
+        return deployments
     }
 
     private getNewestTag(tags: string[]): string | undefined {

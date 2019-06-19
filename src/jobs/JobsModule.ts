@@ -11,6 +11,7 @@ import { Cron } from './model/Cron'
 
 import { Methods } from '../dispatcher/model/Methods'
 import { Deployment } from '../cluster/model/Deployment'
+import { Batch } from 'src/cluster/model/Batch'
 
 let repo: JobsRepository | undefined = undefined
 export function init(jobs: JobsRepository) {
@@ -39,11 +40,13 @@ export const plan: Request<{ name: string }, JobPlan> = {
 export const run: Request<JobPlan, Deployment[]> = {
     module: 'jobs',
     procedure: 'run',
-    input: (input: JobPlan | undefined) => RequestInput.ofData({ deployments: input!.deployments }, ['name', input!.name]),
+    input: (input: JobPlan | undefined) =>
+        RequestInput.ofData({ deployments: input!.deployments, batches: input!.batches }, ['name', input!.name]),
     mapper: (input: RequestInput) =>
         ({
             name: input.params!['name'] as string,
-            deployments: input.data.deployments as DeploymentPlan[],
+            deployments: input.data.deployments as DeploymentPlan<Deployment>[],
+            batches: input.data.batches as DeploymentPlan<Batch>[],
         } as JobPlan),
 }
 

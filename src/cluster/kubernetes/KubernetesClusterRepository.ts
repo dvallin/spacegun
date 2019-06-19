@@ -6,6 +6,9 @@ import {
     V1beta2Deployment,
     V1Container,
     V1PodStatus,
+    BatchV1beta1Api,
+    V1beta1CronJob,
+    V1PodTemplate,
 } from '@kubernetes/client-node'
 
 import * as moment from 'moment'
@@ -16,7 +19,7 @@ import { Pod } from '../model/Pod'
 import { Image } from '../model/Image'
 import { Deployment } from '../model/Deployment'
 import { ServerGroup } from '../model/ServerGroup'
-import { ClusterSnapshot } from '../model/ClusterSnapshot'
+import { ClusterSnapshot, Snapshot } from '../model/ClusterSnapshot'
 import { Scaler } from '../model/Scaler'
 import { ClusterRepository } from '../ClusterRepository'
 import { Cache } from '../../Cache'
@@ -26,6 +29,7 @@ import { parseImageUrl } from '../../parse-image-url'
 import * as eventModule from '../../events/EventModule'
 
 import { call } from '../../dispatcher'
+import { Batch } from '../model/Batch'
 
 interface Api {
     setDefaultAuthentication(config: KubeConfig): void
@@ -81,9 +85,9 @@ export class KubernetesClusterRepository implements ClusterRepository {
         })
     }
 
-    async deployments(cluster: ServerGroup): Promise<Deployment[]> {
-        const api = this.build(cluster.cluster, (server: string) => new AppsV1beta2Api(server))
-        const namespace = this.getNamespace(cluster)
+    async deployments(group: ServerGroup): Promise<Deployment[]> {
+        const api = this.build(group.cluster, (server: string) => new AppsV1beta2Api(server))
+        const namespace = this.getNamespace(group)
         const result = await api.listNamespacedDeployment(namespace)
         return result.body.items.map(item => {
             const image = this.createImage(item.spec!.template.spec!.containers)
@@ -92,6 +96,29 @@ export class KubernetesClusterRepository implements ClusterRepository {
                 image,
             }
         })
+    }
+
+    async batches(group: ServerGroup): Promise<Batch[]> {
+        const api = this.build(group.cluster, (server: string) => new BatchV1beta1Api(server))
+        const namespace = this.getNamespace(group)
+        const result = await api.listNamespacedCronJob(namespace)
+        return result.body.items.map(item => {
+            const image = this.createImage(item.spec!.jobTemplate.spec!.template.spec!.containers)
+            return {
+                name: item.metadata!.name || '',
+                image,
+            }
+        })
+    }
+
+    async updateBatch(group: ServerGroup, batch: Batch, targetImage: Image): Promise<Deployment> {
+        return this.replaceBatch(group, batch, d => {
+            d.spec!.jobTemplate.spec!.template.spec!.containers[0].image = targetImage.url
+        })
+    }
+
+    async restartBatch(group: ServerGroup, batch: Batch): Promise<Batch> {
+        return this.replaceBatch(group, batch, () => {})
     }
 
     async scalers(group: ServerGroup): Promise<Scaler[]> {
@@ -119,48 +146,34 @@ export class KubernetesClusterRepository implements ClusterRepository {
     }
 
     async takeSnapshot(group: ServerGroup): Promise<ClusterSnapshot> {
-        const api = this.build(group.cluster, (server: string) => new AppsV1beta2Api(server))
         const namespace = this.getNamespace(group)
-        const result = await api.listNamespacedDeployment(namespace)
-        return {
-            deployments: result.body.items.map(d => ({
+        let deployments: Snapshot[]
+        {
+            const api = this.build(group.cluster, (server: string) => new AppsV1beta2Api(server))
+            const result = await api.listNamespacedDeployment(namespace)
+            deployments = result.body.items.map(d => ({
                 name: d.metadata!.name || '',
                 data: this.minifyDeployment(d),
-            })),
+            }))
         }
+        let batches: Snapshot[]
+        {
+            const api = this.build(group.cluster, (server: string) => new BatchV1beta1Api(server))
+            const result = await api.listNamespacedCronJob(namespace)
+            batches = result.body.items.map(d => ({
+                name: d.metadata!.name || '',
+                data: this.minifyBatch(d),
+            }))
+        }
+        return { batches, deployments }
     }
 
     async applySnapshot(group: ServerGroup, snapshot: ClusterSnapshot, ignoreImage: boolean): Promise<void> {
-        const api = this.build(group.cluster, (server: string) => new AppsV1beta2Api(server))
-        const namespace = this.getNamespace(group)
-        const result = await api.listNamespacedDeployment(namespace)
-
         const applied: string[] = []
         const created: string[] = []
         const errored: string[] = []
-        for (const deployment of snapshot.deployments) {
-            const current = result.body.items.find(d => d.metadata!.name === deployment.name)
-            const target = deployment.data as V1beta2Deployment
-            if (current === undefined) {
-                await api.createNamespacedDeployment(namespace, target)
-                created.push(`Deployment ${deployment.name}`)
-            } else {
-                if (ignoreImage) {
-                    const image = this.createImage(current.spec!.template.spec!.containers)
-                    if (image !== undefined) {
-                        target.spec!.template.spec!.containers[0].image = image.url
-                    }
-                }
-                if (this.needsUpdate(current, target)) {
-                    try {
-                        await api.replaceNamespacedDeployment(deployment.name, namespace, target)
-                        applied.push(`Deployment ${deployment.name}`)
-                    } catch (e) {
-                        errored.push(`Deployment ${deployment.name}`)
-                    }
-                }
-            }
-        }
+        await this.applyDeploymentSnapshots(group, snapshot.deployments, ignoreImage, applied, created, errored)
+        await this.applyBatchSnapshots(group, snapshot.batches, ignoreImage, applied, created, errored)
         if (created.length + applied.length + errored.length > 0) {
             call(eventModule.log)({
                 message: `Applied Snapshots`,
@@ -173,6 +186,78 @@ export class KubernetesClusterRepository implements ClusterRepository {
                     ...created.map(value => ({ value, title: 'Created' })),
                 ],
             })
+        }
+    }
+
+    async applyDeploymentSnapshots(
+        group: ServerGroup,
+        deployments: Snapshot[],
+        ignoreImage: boolean,
+        applied: string[],
+        created: string[],
+        errored: string[]
+    ): Promise<void> {
+        const api = this.build(group.cluster, (server: string) => new AppsV1beta2Api(server))
+        const namespace = this.getNamespace(group)
+        const result = await api.listNamespacedDeployment(namespace)
+        for (const deployment of deployments) {
+            const current = result.body.items.find(d => d.metadata!.name === deployment.name)
+            const target = deployment.data as V1beta2Deployment
+            if (current === undefined) {
+                await api.createNamespacedDeployment(namespace, target)
+                created.push(`Deployment ${deployment.name}`)
+            } else {
+                if (ignoreImage) {
+                    const image = this.createImage(current.spec!.template.spec!.containers)
+                    if (image !== undefined) {
+                        target.spec!.template.spec!.containers[0].image = image.url
+                    }
+                }
+                if (this.deploymentNeedsUpdate(current, target)) {
+                    try {
+                        await api.replaceNamespacedDeployment(deployment.name, namespace, target)
+                        applied.push(`Deployment ${deployment.name}`)
+                    } catch (e) {
+                        errored.push(`Deployment ${deployment.name}`)
+                    }
+                }
+            }
+        }
+    }
+
+    async applyBatchSnapshots(
+        group: ServerGroup,
+        batches: Snapshot[],
+        ignoreImage: boolean,
+        applied: string[],
+        created: string[],
+        errored: string[]
+    ): Promise<void> {
+        const api = this.build(group.cluster, (server: string) => new BatchV1beta1Api(server))
+        const namespace = this.getNamespace(group)
+        const result = await api.listNamespacedCronJob(namespace)
+        for (const deployment of batches) {
+            const current = result.body.items.find(d => d.metadata!.name === deployment.name)
+            const target = deployment.data as V1beta1CronJob
+            if (current === undefined) {
+                await api.createNamespacedCronJob(namespace, target)
+                created.push(`Batch ${deployment.name}`)
+            } else {
+                if (ignoreImage) {
+                    const image = this.createImage(current.spec!.jobTemplate.spec!.template.spec!.containers)
+                    if (image !== undefined) {
+                        target.spec!.jobTemplate.spec!.template.spec!.containers[0].image = image.url
+                    }
+                }
+                if (this.batchNeedsUpdate(current, target)) {
+                    try {
+                        await api.replaceNamespacedCronJob(deployment.name, namespace, target)
+                        applied.push(`Batch ${deployment.name}`)
+                    } catch (e) {
+                        errored.push(`Batch ${deployment.name}`)
+                    }
+                }
+            }
         }
     }
 
@@ -260,19 +345,30 @@ export class KubernetesClusterRepository implements ClusterRepository {
         }
     }
 
+    private async replaceBatch(group: ServerGroup, deployment: Deployment, replacer: (d: V1beta1CronJob) => void): Promise<Batch> {
+        const api = this.build(group.cluster, (server: string) => new BatchV1beta1Api(server))
+        const namespace = this.getNamespace(group)
+        const response = await api.readNamespacedCronJob(deployment.name, namespace)
+
+        const target = this.minifyBatch(response.body)
+        replacer(target)
+
+        if (target.spec!.jobTemplate.spec!.template.metadata!.annotations === undefined) {
+            target.spec!.jobTemplate.spec!.template.metadata!.annotations = {}
+        }
+        target.spec!.jobTemplate.spec!.template.metadata!.annotations['spacegun.batch'] = Date.now().toString()
+
+        let result = await api.replaceNamespacedCronJob(deployment.name, namespace, target)
+
+        return {
+            name: result.body.metadata!.name || '',
+            image: this.createImage(result.body.spec!.jobTemplate.spec!.template.spec!.containers),
+        }
+    }
+
     private minifyDeployment(deployment: V1beta2Deployment): V1beta2Deployment {
-        // delete spacegun related annotations
-        if (deployment.spec!.template.metadata!.annotations !== undefined) {
-            delete deployment.spec!.template.metadata!.annotations['spacegun.deployment']
-        } else {
-            deployment.spec!.template.metadata!.annotations = {}
-        }
-        // delete kubernetes revision annotations
-        if (deployment.metadata!.annotations !== undefined) {
-            delete deployment.metadata!.annotations['deployment.kubernetes.io/revision']
-        } else {
-            deployment.metadata!.annotations = {}
-        }
+        this.cleanPodMetadata(deployment.spec!.template)
+        this.cleanDeploymentMetadata(deployment)
 
         return {
             metadata: {
@@ -284,7 +380,49 @@ export class KubernetesClusterRepository implements ClusterRepository {
         } as V1beta2Deployment
     }
 
-    private needsUpdate(current: V1beta2Deployment, target: V1beta2Deployment): boolean {
+    private minifyBatch(batch: V1beta1CronJob): V1beta1CronJob {
+        this.cleanPodMetadata(batch.spec!.jobTemplate.spec!.template)
+        this.cleanBatchMetadata(batch)
+
+        return {
+            metadata: {
+                name: batch.metadata!.name,
+                namespace: batch.metadata!.namespace,
+                annotations: batch.metadata!.annotations,
+            },
+            spec: batch.spec,
+        } as V1beta1CronJob
+    }
+
+    private cleanPodMetadata(pod: V1PodTemplate): void {
+        if (pod.metadata!.annotations !== undefined) {
+            delete pod.metadata!.annotations['spacegun.deployment']
+            delete pod.metadata!.annotations['spacegun.batch']
+        } else {
+            pod.metadata!.annotations = {}
+        }
+    }
+
+    private cleanDeploymentMetadata(deployment: V1beta2Deployment): void {
+        if (deployment.metadata!.annotations !== undefined) {
+            delete deployment.metadata!.annotations['deployment.kubernetes.io/revision']
+        } else {
+            deployment.metadata!.annotations = {}
+        }
+    }
+
+    private cleanBatchMetadata(batch: V1beta1CronJob): void {
+        if (batch.metadata!.annotations !== undefined) {
+        } else {
+            batch.metadata!.annotations = {}
+        }
+    }
+
+    private deploymentNeedsUpdate(current: V1beta2Deployment, target: V1beta2Deployment): boolean {
         return JSON.stringify(this.minifyDeployment(target)) !== JSON.stringify(this.minifyDeployment(current))
+    }
+
+    private batchNeedsUpdate(current: V1beta1CronJob, target: V1beta1CronJob): boolean {
+        return JSON.stringify(this.minifyBatch(target)) !== JSON.stringify(this.minifyBatch(current))
     }
 }

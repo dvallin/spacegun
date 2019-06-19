@@ -1,9 +1,9 @@
-import { Deployment } from '../../cluster/model/Deployment'
 import { ServerGroup } from '../../cluster/model/ServerGroup'
+import { DeployableResource } from './DeploymentPlan'
 
 export interface Filter {
     readonly namespaces: string[]
-    readonly deployments: string[]
+    readonly resources: string[]
 }
 
 export function matchesServerGroup(filter: Partial<Filter> | undefined, group: ServerGroup) {
@@ -13,9 +13,9 @@ export function matchesServerGroup(filter: Partial<Filter> | undefined, group: S
     return filter.namespaces.some(n => n === group.namespace)
 }
 
-export function matchesDeployment(filter: Partial<Filter> | undefined, deployment: Deployment) {
-    if (filter === undefined || filter.deployments === undefined) {
+export function matchesResource(filter: Partial<Filter> | undefined, resource: DeployableResource) {
+    if (filter === undefined || filter.resources === undefined) {
         return true
     }
-    return filter.deployments.some(n => n === deployment.name)
+    return filter.resources.some(n => n === resource.name)
 }

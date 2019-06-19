@@ -208,7 +208,7 @@ describe('validateSteps', () => {
                 source: 'source',
                 target: 'target',
                 filter: {
-                    deployments: ['deployment1', 'deployment2'],
+                    resources: ['deployment1', 'deployment2'],
                 },
                 onFailure: 'failure',
                 onSuccess: 'success',
@@ -223,7 +223,7 @@ describe('validateSteps', () => {
                 source: 'source',
                 target: 'target',
                 filter: {
-                    deployments: ['deployment1', 'deployment2'],
+                    resources: ['deployment1', 'deployment2'],
                 },
                 onFailure: 'failure',
                 onSuccess: 'success',

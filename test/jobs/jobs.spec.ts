@@ -13,6 +13,7 @@ import { DeploymentPlan } from '../../src/jobs/model/DeploymentPlan'
 import { JobPlan } from '../../src/jobs/model/JobPlan'
 import { Event } from '../../src/events/model/Event'
 import { axiosResponse } from '../test-utils/axios'
+import { Batch } from 'src/cluster/model/Batch'
 
 jest.useFakeTimers()
 
@@ -38,6 +39,26 @@ const mockDeployments: Deployments = {
     ],
 }
 
+type Batches = { [name: string]: Batch[] }
+const mockBatches: Batches = {
+    cluster1: [
+        { name: 'batch1', image: { name: 'image1', url: 'imageUrl:tag1:digest1' } },
+        { name: 'batch2', image: { name: 'image2', url: 'imageUrl:tag2:digest1' } },
+    ],
+    cluster2namespace1: [
+        { name: 'batch1', image: { name: 'image1', url: 'imageUrl:tag1:digest2' } },
+        { name: 'batch2', image: { name: 'image2', url: 'imageUrl:tag2:digest3' } },
+    ],
+    cluster2namespace3: [
+        { name: 'batch1', image: { name: 'image1', url: 'imageUrl:tag1:digest3' } },
+        { name: 'batch2', image: { name: 'image2', url: 'imageUrl:tag2:digest5' } },
+    ],
+    cluster3: [
+        { name: 'batch1', image: { name: 'image1', url: 'imageUrl:tag1:digest2' } },
+        { name: 'batch2', image: { name: 'image2', url: 'imageUrl:tag2:digest4' } },
+    ],
+}
+
 type Namespaces = { [key: string]: string[] }
 const mockNamespaces: Namespaces = {
     cluster1: [],
@@ -46,6 +67,7 @@ const mockNamespaces: Namespaces = {
 }
 
 const mockUpdateDeployment = jest.fn()
+const mockUpdateBatch = jest.fn()
 const mockSlack = jest.fn()
 
 jest.mock('../../src/dispatcher/index', () => ({
@@ -63,13 +85,36 @@ jest.mock('../../src/dispatcher/index', () => ({
                             }
                         }
                     }
+                    case 'batches': {
+                        return (input: { cluster: string; namespace: string }) => {
+                            if (input.cluster !== 'cluster2') {
+                                return Promise.resolve(mockBatches[input.cluster])
+                            } else {
+                                return Promise.resolve(mockBatches[input.cluster + input.namespace])
+                            }
+                        }
+                    }
                     case 'namespaces': {
                         return (input: { cluster: string }) => Promise.resolve(mockNamespaces[input.cluster])
                     }
                     case 'updateDeployment': {
                         return (input: any) => {
                             mockUpdateDeployment(input)
-                            return Promise.resolve(mockDeployments[input.group.cluster])
+                            if (input.group.cluster !== 'cluster2') {
+                                return Promise.resolve(mockDeployments[input.group.cluster])
+                            } else {
+                                return Promise.resolve(mockDeployments[input.group.cluster + input.group.namespace])
+                            }
+                        }
+                    }
+                    case 'updateBatch': {
+                        return (input: any) => {
+                            mockUpdateBatch(input)
+                            if (input.group.cluster !== 'cluster2') {
+                                return Promise.resolve(mockBatches[input.group.cluster])
+                            } else {
+                                return Promise.resolve(mockBatches[input.group.cluster + input.group.namespace])
+                            }
                         }
                     }
                 }
@@ -118,7 +163,7 @@ describe('JobsRepositoryImpl', () => {
         type: 'planClusterDeployment',
         cluster: 'cluster1',
         onSuccess: 'apply',
-        filter: { namespaces: ['namespace1'], deployments: ['deployment1'] },
+        filter: { namespaces: ['namespace1'], resources: ['deployment1', 'batch1'] },
     }
     const planImageStep: StepDescription = {
         name: 'plan',
@@ -133,7 +178,7 @@ describe('JobsRepositoryImpl', () => {
         source: 'namespace3',
         target: 'namespace2',
         onSuccess: 'apply',
-        filter: { deployments: ['deployment2'] },
+        filter: { resources: ['deployment2', 'batch2'] },
     }
     const applyStep: StepDescription = { name: 'apply', type: 'applyDeployment' }
     const probeStep: StepDescription = { name: 'probe', type: 'clusterProbe', hook: 'someHook', onSuccess: 'plan' }
@@ -170,6 +215,8 @@ describe('JobsRepositoryImpl', () => {
         repo = new JobsRepositoryImpl(jobs, crons)
 
         mockUpdateDeployment.mockClear()
+        mockUpdateBatch.mockClear()
+        mockSlack.mockClear()
     })
 
     it('registers the job names', () => {
@@ -209,8 +256,8 @@ describe('JobsRepositoryImpl', () => {
 
         // deployment1 gets another image url
         expect(deploymentPlan.image!.url).toBe('imageUrl:tag1:digest1')
-        expect(deploymentPlan.deployment.name).toBe('deployment1')
-        expect(deploymentPlan.deployment.image!.url).toBe('imageUrl:tag1:digest2')
+        expect(deploymentPlan.deployable.name).toBe('deployment1')
+        expect(deploymentPlan.deployable.image!.url).toBe('imageUrl:tag1:digest2')
     })
 
     it('plans an image job', async () => {
@@ -229,8 +276,8 @@ describe('JobsRepositoryImpl', () => {
 
         // deployment1 gets from digest1 to otherDigest
         expect(firstPlannedDeployment.image.url).toBe('image1:latest:otherDigest')
-        expect(firstPlannedDeployment.deployment.name).toBe('deployment1')
-        expect(firstPlannedDeployment.deployment.image!.url).toBe('imageUrl:tag1:digest1')
+        expect(firstPlannedDeployment.deployable.name).toBe('deployment1')
+        expect(firstPlannedDeployment.deployable.image!.url).toBe('imageUrl:tag1:digest1')
 
         const secondPlannedDeployment = plan.deployments[1]
 
@@ -240,8 +287,8 @@ describe('JobsRepositoryImpl', () => {
 
         // deployment2 gets from digest1 to otherDigest
         expect(secondPlannedDeployment.image.url).toBe('image2:latest:otherDigest')
-        expect(secondPlannedDeployment.deployment.name).toBe('deployment2')
-        expect(secondPlannedDeployment.deployment.image!.url).toBe('imageUrl:tag2:digest1')
+        expect(secondPlannedDeployment.deployable.name).toBe('deployment2')
+        expect(secondPlannedDeployment.deployable.image!.url).toBe('imageUrl:tag2:digest1')
     })
 
     it('plans a namespace deployment job', async () => {
@@ -259,8 +306,8 @@ describe('JobsRepositoryImpl', () => {
         expect(deployment.group.namespace).toBe('namespace2')
 
         // deployment2 goes from digest4 to digest5
-        expect(deployment.deployment.name).toBe('deployment2')
-        expect(deployment.deployment.image!.url).toBe('imageUrl:tag2:digest4')
+        expect(deployment.deployable.name).toBe('deployment2')
+        expect(deployment.deployable.image!.url).toBe('imageUrl:tag2:digest4')
         expect(deployment.image.url).toBe('imageUrl:tag2:digest5')
     })
 
@@ -270,6 +317,7 @@ describe('JobsRepositoryImpl', () => {
 
         // then
         expect(mockUpdateDeployment).not.toHaveBeenCalled()
+        expect(mockUpdateBatch).not.toHaveBeenCalled()
     })
 
     it('runs first pipeline', async () => {
@@ -289,6 +337,14 @@ describe('JobsRepositoryImpl', () => {
             image: { name: 'image1', url: 'imageUrl:tag1:digest1' },
             group: { cluster: 'cluster2', namespace: 'namespace1' },
         })
+        expect(mockUpdateBatch).toHaveBeenCalledWith({
+            batch: {
+                image: { name: 'image1', url: 'imageUrl:tag1:digest2' },
+                name: 'batch1',
+            },
+            image: { name: 'image1', url: 'imageUrl:tag1:digest1' },
+            group: { cluster: 'cluster2', namespace: 'namespace1' },
+        })
     })
 
     it('runs second pipeline', async () => {
@@ -300,6 +356,14 @@ describe('JobsRepositoryImpl', () => {
             deployment: {
                 image: { name: 'image1', url: 'imageUrl:tag1:digest1' },
                 name: 'deployment1',
+            },
+            image: { name: 'image1', url: 'image1:latest:otherDigest', tag: 'latest' },
+            group: { cluster: 'cluster1' },
+        })
+        expect(mockUpdateBatch).toHaveBeenCalledWith({
+            batch: {
+                image: { name: 'image1', url: 'imageUrl:tag1:digest1' },
+                name: 'batch1',
             },
             image: { name: 'image1', url: 'image1:latest:otherDigest', tag: 'latest' },
             group: { cluster: 'cluster1' },
@@ -319,19 +383,27 @@ describe('JobsRepositoryImpl', () => {
             },
             image: { name: 'image2', url: 'imageUrl:tag2:digest5' },
         })
+        expect(mockUpdateBatch).toHaveBeenCalledWith({
+            group: { cluster: 'cluster3', namespace: 'namespace2' },
+            batch: {
+                name: 'batch2',
+                image: { name: 'image2', url: 'imageUrl:tag2:digest4' },
+            },
+            image: { name: 'image2', url: 'imageUrl:tag2:digest5' },
+        })
     })
 
     it('calls slack', async () => {
         // when
-        const deploymentPlan: DeploymentPlan = {
-            deployment: {
+        const deploymentPlan: DeploymentPlan<Deployment> = {
+            deployable: {
                 image: { name: 'image1', url: 'imageUrl:tag1:digest1' },
                 name: 'service1',
             },
             image: { name: 'image1', url: 'image:tag:digest' },
             group: { cluster: 'cluster1', namespace: 'namespace1' },
         }
-        const plan: JobPlan = { name: 'pipelineName', deployments: [deploymentPlan] }
+        const plan: JobPlan = { name: 'pipelineName', deployments: [deploymentPlan], batches: [] }
         await repo.apply(plan)
 
         // then

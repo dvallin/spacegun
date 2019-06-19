@@ -1,0 +1,193 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`KubernetesClusterProvider appliesSnapshots for batch jobs calls endpoints on snapshot change 1`] = `
+Array [
+  "batch1",
+  "default",
+  Object {
+    "metadata": Object {
+      "annotations": Object {},
+      "name": "batch1",
+      "namespace": undefined,
+    },
+    "spec": Object {
+      "jobTemplate": Object {
+        "spec": Object {
+          "template": Object {
+            "metadata": Object {
+              "annotations": Object {},
+            },
+            "spec": Object {
+              "containers": Array [
+                Object {
+                  "image": "repo/image1:tag@some:digest",
+                },
+              ],
+            },
+          },
+        },
+      },
+      "schedule": "some schedule",
+    },
+  },
+]
+`;
+
+exports[`KubernetesClusterProvider appliesSnapshots for batch jobs creates batch jobs if batch job is not known yet 1`] = `
+Array [
+  "default",
+  Object {
+    "metadata": Object {
+      "annotations": Object {},
+      "name": "somesillyjob",
+      "namespace": undefined,
+    },
+    "spec": Object {
+      "jobTemplate": Object {
+        "spec": Object {
+          "template": Object {
+            "metadata": Object {
+              "annotations": Object {},
+            },
+            "spec": Object {
+              "containers": Array [
+                Object {
+                  "image": "somenewsillyimage",
+                },
+              ],
+            },
+          },
+        },
+      },
+    },
+  },
+]
+`;
+
+exports[`KubernetesClusterProvider batches restarts batches 1`] = `
+Array [
+  "batch1",
+  "default",
+  Object {
+    "metadata": Object {
+      "annotations": Object {},
+      "name": "batch1",
+      "namespace": undefined,
+    },
+    "spec": Object {
+      "jobTemplate": Object {
+        "spec": Object {
+          "template": Object {
+            "metadata": Object {
+              "annotations": Object {
+                "spacegun.batch": "1520899200000",
+              },
+            },
+            "spec": Object {
+              "containers": Array [
+                Object {
+                  "image": "repo/image1:tag@some:digest",
+                },
+              ],
+            },
+          },
+        },
+      },
+    },
+  },
+]
+`;
+
+exports[`KubernetesClusterProvider batches updates batches 1`] = `
+Array [
+  "batch1",
+  "default",
+  Object {
+    "metadata": Object {
+      "annotations": Object {},
+      "name": "batch1",
+      "namespace": undefined,
+    },
+    "spec": Object {
+      "jobTemplate": Object {
+        "spec": Object {
+          "template": Object {
+            "metadata": Object {
+              "annotations": Object {
+                "spacegun.batch": "1520899200000",
+              },
+            },
+            "spec": Object {
+              "containers": Array [
+                Object {
+                  "image": "repo/image2:tag@some:digest",
+                },
+              ],
+            },
+          },
+        },
+      },
+    },
+  },
+]
+`;
+
+exports[`KubernetesClusterProvider deployments restarts deployments 1`] = `
+Array [
+  "deployment1",
+  "default",
+  Object {
+    "metadata": Object {
+      "annotations": Object {},
+      "name": "deployment1",
+      "namespace": undefined,
+    },
+    "spec": Object {
+      "template": Object {
+        "metadata": Object {
+          "annotations": Object {
+            "spacegun.deployment": "1520899200000",
+          },
+        },
+        "spec": Object {
+          "containers": Array [
+            Object {
+              "image": "repo/image1:tag@some:digest",
+            },
+          ],
+        },
+      },
+    },
+  },
+]
+`;
+
+exports[`KubernetesClusterProvider deployments updates deployments 1`] = `
+Array [
+  "deployment1",
+  "default",
+  Object {
+    "metadata": Object {
+      "annotations": Object {},
+      "name": "deployment1",
+      "namespace": undefined,
+    },
+    "spec": Object {
+      "template": Object {
+        "metadata": Object {
+          "annotations": Object {
+            "spacegun.deployment": "1520899200000",
+          },
+        },
+        "spec": Object {
+          "containers": Array [
+            Object {
+              "image": "repo/image2:tag@some:digest",
+            },
+          ],
+        },
+      },
+    },
+  },
+]
+`;
