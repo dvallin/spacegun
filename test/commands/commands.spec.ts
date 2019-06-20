@@ -306,7 +306,11 @@ describe('commands', () => {
                 .mockReturnValueOnce(batches)
                 .mockReturnValueOnce(tags)
                 .mockReturnValueOnce(image)
-                .mockReturnValueOnce({ name: 'deployment1' })
+                .mockReturnValueOnce({
+                    name: 'deployment1',
+                    concurrencyPolicy: 'Allow',
+                    schedule: '',
+                })
 
             const choose = jest.fn().mockImplementation(({}, b) => b[0])
             const chooseMultiple = jest.fn().mockImplementation(({}, {}, b) => ({ first: false, result: b[0] }))
@@ -427,7 +431,11 @@ describe('commands', () => {
                 .mockReturnValueOnce(namespaces)
                 .mockReturnValueOnce(deployments)
                 .mockReturnValueOnce(batches)
-                .mockReturnValueOnce({ name: 'deployment1' })
+                .mockReturnValueOnce({
+                    name: 'deployment1',
+                    concurrencyPolicy: 'Allow',
+                    schedule: '',
+                })
 
             const choose = jest.fn().mockImplementation(({}, b) => b[0])
             const chooseMultiple = jest.fn().mockImplementation(({}, {}, b) => ({ first: false, result: b[0] }))

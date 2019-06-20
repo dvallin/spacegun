@@ -341,6 +341,8 @@ describe('JobsRepositoryImpl', () => {
             batch: {
                 image: { name: 'image1', url: 'imageUrl:tag1:digest2' },
                 name: 'batch1',
+                concurrencyPolicy: 'Allow',
+                schedule: '',
             },
             image: { name: 'image1', url: 'imageUrl:tag1:digest1' },
             group: { cluster: 'cluster2', namespace: 'namespace1' },
@@ -364,6 +366,8 @@ describe('JobsRepositoryImpl', () => {
             batch: {
                 image: { name: 'image1', url: 'imageUrl:tag1:digest1' },
                 name: 'batch1',
+                concurrencyPolicy: 'Allow',
+                schedule: '',
             },
             image: { name: 'image1', url: 'image1:latest:otherDigest', tag: 'latest' },
             group: { cluster: 'cluster1' },
@@ -388,6 +392,8 @@ describe('JobsRepositoryImpl', () => {
             batch: {
                 name: 'batch2',
                 image: { name: 'image2', url: 'imageUrl:tag2:digest4' },
+                concurrencyPolicy: 'Allow',
+                schedule: '',
             },
             image: { name: 'image2', url: 'imageUrl:tag2:digest5' },
         })

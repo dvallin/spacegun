@@ -122,7 +122,20 @@ describe('KubernetesClusterProvider', () => {
             const batches: Batch[] = await cluster.batches({
                 cluster: cluster.clusters[0],
             })
-            expect(batches).toEqual([{ image: image1, name: 'batch1' }, { image: image2, name: 'batch2' }])
+            expect(batches).toEqual([
+                {
+                    image: image1,
+                    name: 'batch1',
+                    concurrencyPolicy: 'Allow',
+                    schedule: 'someSchedule',
+                },
+                {
+                    image: image2,
+                    name: 'batch2',
+                    concurrencyPolicy: 'Allow',
+                    schedule: 'someSchedule',
+                },
+            ])
         })
 
         it('updates batches', async () => {
@@ -131,16 +144,26 @@ describe('KubernetesClusterProvider', () => {
                 { image: image1, name: 'batch1', concurrencyPolicy: 'Allow', schedule: '' },
                 image2
             )
-            expect(batch).toEqual({ image: { name: 'image2', url: 'repo/image2:tag@some:digest' }, name: 'batch1' })
+            expect(batch).toEqual({
+                image: { name: 'image2', url: 'repo/image2:tag@some:digest' },
+                name: 'batch1',
+                concurrencyPolicy: 'Allow',
+                schedule: 'someSchedule',
+            })
             expect(callParameters(replaceBatchMock, 0)).toMatchSnapshot()
         })
 
         it('restarts batches', async () => {
-            const deployment: Deployment = await cluster.restartBatch(
+            const deployment: Batch = await cluster.restartBatch(
                 { cluster: cluster.clusters[0] },
                 { image: image1, name: 'batch1', concurrencyPolicy: 'Allow', schedule: '' }
             )
-            expect(deployment).toEqual({ image: { name: 'image1', url: 'repo/image1:tag@some:digest' }, name: 'batch1' })
+            expect(deployment).toEqual({
+                image: { name: 'image1', url: 'repo/image1:tag@some:digest' },
+                name: 'batch1',
+                concurrencyPolicy: 'Allow',
+                schedule: 'someSchedule',
+            })
             expect(callParameters(replaceBatchMock, 0)).toMatchSnapshot()
         })
     })

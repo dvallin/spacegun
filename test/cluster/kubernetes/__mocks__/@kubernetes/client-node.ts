@@ -44,6 +44,7 @@ function mockBatch(name: string, image: string): object {
     return {
         metadata: { name },
         spec: {
+            schedule: 'someSchedule',
             jobTemplate: {
                 spec: {
                     template: {

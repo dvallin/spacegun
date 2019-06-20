@@ -8,7 +8,6 @@ Array [
     "metadata": Object {
       "annotations": Object {},
       "name": "batch1",
-      "namespace": undefined,
     },
     "spec": Object {
       "jobTemplate": Object {
@@ -40,7 +39,6 @@ Array [
     "metadata": Object {
       "annotations": Object {},
       "name": "somesillyjob",
-      "namespace": undefined,
     },
     "spec": Object {
       "jobTemplate": Object {
@@ -59,6 +57,7 @@ Array [
           },
         },
       },
+      "schedule": "someSchedule",
     },
   },
 ]
@@ -72,7 +71,6 @@ Array [
     "metadata": Object {
       "annotations": Object {},
       "name": "batch1",
-      "namespace": undefined,
     },
     "spec": Object {
       "jobTemplate": Object {
@@ -93,6 +91,7 @@ Array [
           },
         },
       },
+      "schedule": "someSchedule",
     },
   },
 ]
@@ -106,7 +105,6 @@ Array [
     "metadata": Object {
       "annotations": Object {},
       "name": "batch1",
-      "namespace": undefined,
     },
     "spec": Object {
       "jobTemplate": Object {
@@ -127,6 +125,7 @@ Array [
           },
         },
       },
+      "schedule": "someSchedule",
     },
   },
 ]
@@ -140,7 +139,6 @@ Array [
     "metadata": Object {
       "annotations": Object {},
       "name": "deployment1",
-      "namespace": undefined,
     },
     "spec": Object {
       "template": Object {
@@ -170,7 +168,6 @@ Array [
     "metadata": Object {
       "annotations": Object {},
       "name": "deployment1",
-      "namespace": undefined,
     },
     "spec": Object {
       "template": Object {
