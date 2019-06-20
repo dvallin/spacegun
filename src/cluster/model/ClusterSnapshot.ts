@@ -1,5 +1,9 @@
-import { DeploymentSnapshot } from './DeploymentSnapshot'
+export interface Snapshot {
+    name: string
+    data: object
+}
 
 export interface ClusterSnapshot {
-    deployments: DeploymentSnapshot[]
+    batches: Snapshot[]
+    deployments: Snapshot[]
 }

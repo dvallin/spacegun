@@ -1,21 +1,21 @@
-import { matchesDeployment, matchesServerGroup } from '../../../src/jobs/model/Filter'
+import { matchesResource, matchesServerGroup } from '../../../src/jobs/model/Filter'
 
-describe(matchesDeployment.name, () => {
+describe(matchesResource.name, () => {
     const name = 'deployment'
 
     it('matches on missing filter', () => {
-        expect(matchesDeployment(undefined, { name })).toBeTruthy()
-        expect(matchesDeployment({}, { name })).toBeTruthy()
+        expect(matchesResource(undefined, { name })).toBeTruthy()
+        expect(matchesResource({}, { name })).toBeTruthy()
     })
 
     it('does not match if not contained in list', () => {
-        expect(matchesDeployment({ deployments: [] }, { name })).toBeFalsy()
-        expect(matchesDeployment({ deployments: ['other'] }, { name })).toBeFalsy()
+        expect(matchesResource({ resources: [] }, { name })).toBeFalsy()
+        expect(matchesResource({ resources: ['other'] }, { name })).toBeFalsy()
     })
 
     it('matches if  contained in list', () => {
-        expect(matchesDeployment({ deployments: [name] }, { name })).toBeTruthy()
-        expect(matchesDeployment({ deployments: ['other', name] }, { name })).toBeTruthy()
+        expect(matchesResource({ resources: [name] }, { name })).toBeTruthy()
+        expect(matchesResource({ resources: ['other', name] }, { name })).toBeTruthy()
     })
 })
 describe(matchesServerGroup.name, () => {

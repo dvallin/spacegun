@@ -6,6 +6,7 @@ import { ServerGroup } from '../../../src/cluster/model/ServerGroup'
 import { PlanNamespaceDeployment } from '../../../src/jobs/steps/PlanNamespaceDeployment'
 
 let mockDeployments: { [key: string]: Deployment[] } = {}
+let mockBatches: { [key: string]: Deployment[] } = {}
 
 jest.mock('../../../src/dispatcher/index', () => ({
     get: jest.fn(),
@@ -15,6 +16,9 @@ jest.mock('../../../src/dispatcher/index', () => ({
                 switch (request.procedure) {
                     case 'deployments': {
                         return (input: { cluster: string }) => Promise.resolve(mockDeployments[input.cluster])
+                    }
+                    case 'batches': {
+                        return (input: { cluster: string }) => Promise.resolve(mockBatches[input.cluster])
                     }
                 }
                 break
@@ -29,7 +33,7 @@ jest.mock('../../../src/dispatcher/index', () => ({
 describe(PlanNamespaceDeployment.name, () => {
     const targetGroup: ServerGroup = { cluster: 'targetCluster', namespace: 'targetNamespace' }
     const step = new PlanNamespaceDeployment('stepName', 'sourceCluster', 'sourceNamespace', 'targetNamespace', {
-        deployments: ['deployment1'],
+        resources: ['deployment1'],
     })
     const targetDeployments: Deployment[] = [{ name: 'deployment1' }]
 
@@ -38,12 +42,12 @@ describe(PlanNamespaceDeployment.name, () => {
         mockDeployments = { sourceCluster: [{ name: 'deployment1', image: { name: 'image1', url: 'url1' } }] }
 
         // when
-        const plan = await step.plan(targetGroup, 'pipeline1', targetDeployments)
+        const plan = await step.plan(targetGroup, 'pipeline1', targetDeployments, [])
 
         // then
         expect(plan.deployments).toEqual([
             {
-                deployment: { name: 'deployment1' },
+                deployable: { name: 'deployment1' },
                 group: { cluster: 'targetCluster', namespace: 'targetNamespace' },
                 image: { name: 'image1', url: 'url1' },
             },
@@ -58,7 +62,8 @@ describe(PlanNamespaceDeployment.name, () => {
                 namespace: 'otherNamespace',
             },
             'pipeline1',
-            targetDeployments
+            targetDeployments,
+            []
         )
 
         // then
@@ -70,12 +75,17 @@ describe(PlanNamespaceDeployment.name, () => {
         mockDeployments = { sourceCluster: [{ name: 'deployment2', image: { name: 'image1', url: 'url1' } }] }
 
         // when
-        const plan = await step.plan(targetGroup, 'pipeline1', [
-            {
-                name: 'deployment2',
-                image: { name: 'image1', url: 'url2' },
-            },
-        ])
+        const plan = await step.plan(
+            targetGroup,
+            'pipeline1',
+            [
+                {
+                    name: 'deployment2',
+                    image: { name: 'image1', url: 'url2' },
+                },
+            ],
+            []
+        )
 
         // then
         expect(plan.deployments).toEqual([])
@@ -87,7 +97,7 @@ describe(PlanNamespaceDeployment.name, () => {
         mockDeployments = { sourceCluster: [{ name: 'otherDeployment', image: { name: 'image1', url: 'url1' } }] }
 
         // when
-        const plan = await step.plan(targetGroup, 'pipeline1', targetDeployments)
+        const plan = await step.plan(targetGroup, 'pipeline1', targetDeployments, [])
 
         // then
         expect(plan.deployments).toEqual([])
@@ -103,7 +113,7 @@ describe(PlanNamespaceDeployment.name, () => {
         mockDeployments = { sourceCluster: [{ name: 'deployment1' }] }
 
         // when
-        const plan = await step.plan(targetGroup, 'pipeline1', targetDeployments)
+        const plan = await step.plan(targetGroup, 'pipeline1', targetDeployments, [])
 
         // then
         expect(plan.deployments).toEqual([])
@@ -116,7 +126,7 @@ describe(PlanNamespaceDeployment.name, () => {
         mockDeployments = { sourceCluster: deployments }
 
         // when
-        const plan = await step.plan(targetGroup, 'pipeline1', deployments)
+        const plan = await step.plan(targetGroup, 'pipeline1', deployments, [])
 
         // then
         expect(plan.deployments).toEqual([])
@@ -133,7 +143,7 @@ describe(PlanNamespaceDeployment.name, () => {
             ],
         }
         const step = new PlanNamespaceDeployment('stepName', 'sourceCluster', 'sourceNamespace', 'targetNamespace', {
-            deployments: ['deployment2', 'deployment3', 'deployment4', 'deployment5'],
+            resources: ['deployment2', 'deployment3', 'deployment4', 'deployment5'],
         })
         step.io.error = jest.fn()
         const targetDeployments: Deployment[] = [
@@ -144,12 +154,12 @@ describe(PlanNamespaceDeployment.name, () => {
         ]
 
         // when
-        const plan = await step.plan(targetGroup, 'pipeline1', targetDeployments)
+        const plan = await step.plan(targetGroup, 'pipeline1', targetDeployments, [])
 
         // then
         expect(plan.deployments).toEqual([
             {
-                deployment: { name: 'deployment5' },
+                deployable: { name: 'deployment5' },
                 group: { cluster: 'targetCluster', namespace: 'targetNamespace' },
                 image: { name: 'image5', url: 'url5' },
             },

@@ -11,6 +11,7 @@ import { Request } from '../dispatcher/model/Request'
 import { Component } from '../dispatcher/component'
 import { Layers } from '../dispatcher/model/Layers'
 import { Methods } from '../dispatcher/model/Methods'
+import { Batch } from './model/Batch'
 
 let repo: ClusterRepository | undefined = undefined
 export function init(clusterRepository: ClusterRepository) {
@@ -36,6 +37,25 @@ export const namespaces: Request<{ cluster: string }, string[]> = {
     mapper: (input: RequestInput) => ({ cluster: input.params!['cluster'] as string }),
 }
 
+export const updateBatch: Request<UpdateBatchParameters, Batch> = {
+    module: 'cluster',
+    procedure: 'updateBatch',
+    input: (input: UpdateBatchParameters | undefined) =>
+        RequestInput.ofData(
+            { batch: input!.batch, image: input!.image },
+            ['cluster', input!.group.cluster],
+            ['namespace', input!.group.namespace]
+        ),
+    mapper: (p: RequestInput): UpdateBatchParameters => ({
+        group: {
+            cluster: p.params!['cluster'],
+            namespace: p.params!['namespace'],
+        } as ServerGroup,
+        batch: p.data.batch as Batch,
+        image: p.data.image as Image,
+    }),
+}
+
 export const updateDeployment: Request<UpdateDeploymentParameters, Deployment> = {
     module: 'cluster',
     procedure: 'updateDeployment',
@@ -52,6 +72,20 @@ export const updateDeployment: Request<UpdateDeploymentParameters, Deployment> =
         } as ServerGroup,
         deployment: p.data.deployment as Deployment,
         image: p.data.image as Image,
+    }),
+}
+
+export const restartBatch: Request<RestartBatchParameters, Batch> = {
+    module: 'cluster',
+    procedure: 'restartBatch',
+    input: (input: RestartBatchParameters | undefined) =>
+        RequestInput.ofData({ batch: input!.batch }, ['cluster', input!.group.cluster], ['namespace', input!.group.namespace]),
+    mapper: (p: RequestInput): RestartBatchParameters => ({
+        group: {
+            cluster: p.params!['cluster'],
+            namespace: p.params!['namespace'],
+        } as ServerGroup,
+        batch: p.data.batch as Batch,
     }),
 }
 
@@ -72,6 +106,13 @@ export const restartDeployment: Request<RestartDeploymentParameters, Deployment>
 export const pods: Request<ServerGroup, Pod[]> = {
     module: 'cluster',
     procedure: 'pods',
+    input: serverGroupInput,
+    mapper: serverGroupMapper,
+}
+
+export const batches: Request<ServerGroup, Batch[]> = {
+    module: 'cluster',
+    procedure: 'batches',
     input: serverGroupInput,
     mapper: serverGroupMapper,
 }
@@ -124,9 +165,20 @@ export interface UpdateDeploymentParameters {
     image: Image
 }
 
+export interface UpdateBatchParameters {
+    group: ServerGroup
+    batch: Batch
+    image: Image
+}
+
 export interface RestartDeploymentParameters {
     group: ServerGroup
     deployment: Deployment
+}
+
+export interface RestartBatchParameters {
+    group: ServerGroup
+    batch: Batch
 }
 
 export interface ApplySnapshotParameters {
@@ -160,6 +212,35 @@ export class Module {
     })
     [pods.procedure](group: ServerGroup): Promise<Pod[]> {
         return repo!.pods(group)
+    }
+
+    @Component({
+        moduleName: updateBatch.module,
+        layer: Layers.Server,
+        mapper: updateBatch.mapper,
+        method: Methods.Put,
+    })
+    [updateBatch.procedure](input: UpdateBatchParameters): Promise<Batch> {
+        return repo!.updateBatch(input.group, input.batch, input.image)
+    }
+
+    @Component({
+        moduleName: restartBatch.module,
+        layer: Layers.Server,
+        mapper: restartBatch.mapper,
+        method: Methods.Put,
+    })
+    [restartBatch.procedure](input: RestartBatchParameters): Promise<Deployment> {
+        return repo!.restartBatch(input.group, input.batch)
+    }
+
+    @Component({
+        moduleName: batches.module,
+        layer: Layers.Server,
+        mapper: batches.mapper,
+    })
+    [batches.procedure](group: ServerGroup): Promise<Batch[]> {
+        return repo!.batches(group)
     }
 
     @Component({

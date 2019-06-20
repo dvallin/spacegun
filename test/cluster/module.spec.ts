@@ -14,13 +14,24 @@ import {
     UpdateDeploymentParameters,
     restartDeployment,
     RestartDeploymentParameters,
+    batches,
+    UpdateBatchParameters,
+    updateBatch,
+    RestartBatchParameters,
+    restartBatch,
 } from '../../src/cluster/ClusterModule'
 import { ClusterRepository } from '../../src/cluster/ClusterRepository'
 import { ApplySnapshotParameters } from '../../src/cluster/ClusterModule'
 import { call } from '../../src/dispatcher'
+import { Batch } from 'src/cluster/model/Batch'
+import { Image } from 'src/cluster/model/Image'
+import { Deployment } from 'src/cluster/model/Deployment'
 
 const podsMock = jest.fn()
 const namespacesMock = jest.fn()
+const batchesMock = jest.fn()
+const updateBatchMock = jest.fn()
+const restartBatchMock = jest.fn()
 const deploymentsMock = jest.fn()
 const updateDeploymentMock = jest.fn()
 const restartDeploymentMock = jest.fn()
@@ -31,6 +42,9 @@ const repo: ClusterRepository = {
     clusters: ['cluster1', 'cluster2'],
     pods: podsMock,
     namespaces: namespacesMock,
+    batches: batchesMock,
+    updateBatch: updateBatchMock,
+    restartBatch: restartBatchMock,
     deployments: deploymentsMock,
     updateDeployment: updateDeploymentMock,
     restartDeployment: restartDeploymentMock,
@@ -41,7 +55,7 @@ const repo: ClusterRepository = {
 
 init(repo)
 
-describe('cluster module', async () => {
+describe('cluster module', () => {
     beforeEach(() => {
         jest.resetAllMocks()
     })
@@ -93,6 +107,57 @@ describe('cluster module', async () => {
         expect(namespacesMock).toHaveBeenCalledWith('clusterName')
     })
 
+    it('calls batches', async () => {
+        // given
+        batchesMock.mockReturnValueOnce({})
+
+        // when
+        const result = await call(batches)({ cluster: 'clusterName' })
+
+        // then
+        expect(result).toEqual({})
+        expect(batchesMock).toHaveBeenCalledTimes(1)
+        expect(batchesMock).toHaveBeenCalledWith({ cluster: 'clusterName' })
+    })
+
+    it('calls update batch', async () => {
+        // given
+        updateBatchMock.mockReturnValueOnce({})
+        const batch: Batch = { name: 'batch1', schedule: '', concurrencyPolicy: 'Allow' }
+        const image: Image = { url: 'url', name: 'name' }
+        const params: UpdateBatchParameters = {
+            batch,
+            image,
+            group: { cluster: 'clusterName' },
+        }
+
+        // when
+        const result = await call(updateBatch)(params)
+
+        // then
+        expect(result).toEqual({})
+        expect(updateBatchMock).toHaveBeenCalledTimes(1)
+        expect(updateBatchMock).toHaveBeenCalledWith({ cluster: 'clusterName' }, batch, image)
+    })
+
+    it('calls restart deployment', async () => {
+        // given
+        restartBatchMock.mockReturnValueOnce({})
+        const batch: Batch = { name: 'batch1', schedule: '', concurrencyPolicy: 'Allow' }
+        const params: RestartBatchParameters = {
+            batch,
+            group: { cluster: 'clusterName' },
+        }
+
+        // when
+        const result = await call(restartBatch)(params)
+
+        // then
+        expect(result).toEqual({})
+        expect(restartBatchMock).toHaveBeenCalledTimes(1)
+        expect(restartBatchMock).toHaveBeenCalledWith({ cluster: 'clusterName' }, batch)
+    })
+
     it('calls deployments', async () => {
         // given
         deploymentsMock.mockReturnValueOnce({})
@@ -109,8 +174,8 @@ describe('cluster module', async () => {
     it('calls update deployment', async () => {
         // given
         updateDeploymentMock.mockReturnValueOnce({})
-        const deployment = { id: 1, name: 'deployment1' }
-        const image = { id: 2, url: 'url', name: 'name', tag: 'tag' }
+        const deployment: Deployment = { name: 'deployment1' }
+        const image: Image = { url: 'url', name: 'name' }
         const params: UpdateDeploymentParameters = {
             deployment,
             image,
@@ -161,7 +226,7 @@ describe('cluster module', async () => {
         it('calls apply snapshot', async () => {
             // given
             applySnapshotMock.mockReturnValueOnce({})
-            const params: ApplySnapshotParameters = { group: { cluster: 'clusterName' }, snapshot: { deployments: [] } }
+            const params: ApplySnapshotParameters = { group: { cluster: 'clusterName' }, snapshot: { deployments: [], batches: [] } }
 
             // when
             const result = await call(applySnapshot)(params)
@@ -169,13 +234,17 @@ describe('cluster module', async () => {
             // then
             expect(result).toEqual({})
             expect(applySnapshotMock).toHaveBeenCalledTimes(1)
-            expect(applySnapshotMock).toHaveBeenCalledWith({ cluster: 'clusterName' }, { deployments: [] }, true)
+            expect(applySnapshotMock).toHaveBeenCalledWith({ cluster: 'clusterName' }, { deployments: [], batches: [] }, true)
         })
 
         it('does not ignore image if flag is set', async () => {
             // given
             applySnapshotMock.mockReturnValueOnce({})
-            const params: ApplySnapshotParameters = { group: { cluster: 'clusterName' }, snapshot: { deployments: [] }, ignoreImage: false }
+            const params: ApplySnapshotParameters = {
+                group: { cluster: 'clusterName' },
+                snapshot: { deployments: [], batches: [] },
+                ignoreImage: false,
+            }
 
             // when
             const result = await call(applySnapshot)(params)
@@ -183,7 +252,7 @@ describe('cluster module', async () => {
             // then
             expect(result).toEqual({})
             expect(applySnapshotMock).toHaveBeenCalledTimes(1)
-            expect(applySnapshotMock).toHaveBeenCalledWith({ cluster: 'clusterName' }, { deployments: [] }, false)
+            expect(applySnapshotMock).toHaveBeenCalledWith({ cluster: 'clusterName' }, { deployments: [], batches: [] }, false)
         })
     })
 })

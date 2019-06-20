@@ -31,13 +31,17 @@ const image2 = { name: 'image2', url: 'repo/image2:tag@some:digest' }
 
 const mockLog = jest.fn()
 
-import { replaceDeploymentMock, createDeploymentMock } from './__mocks__/@kubernetes/client-node'
-import { V1Deployment } from '@kubernetes/client-node'
+import { replaceDeploymentMock, createDeploymentMock, replaceBatchMock, createBatchMock } from './__mocks__/@kubernetes/client-node'
+import { V1Deployment, V1beta1CronJob } from '@kubernetes/client-node'
+import { Batch } from 'src/cluster/model/Batch'
+import { callParameters } from '../../test-utils/jest'
 
 describe('KubernetesClusterProvider', () => {
     beforeEach(() => {
         createDeploymentMock.mockReset()
         replaceDeploymentMock.mockReset()
+        replaceBatchMock.mockReset()
+        createBatchMock.mockReset()
     })
 
     const cluster = KubernetesClusterRepository.fromConfig('./test/test-config/kube/config')
@@ -100,15 +104,7 @@ describe('KubernetesClusterProvider', () => {
                 image2
             )
             expect(deployment).toEqual({ image: { name: 'image2', url: 'repo/image2:tag@some:digest' }, name: 'deployment1' })
-            expect(replaceDeploymentMock).toHaveBeenCalledWith('deployment1', 'default', {
-                metadata: { name: 'deployment1', annotations: {} },
-                spec: {
-                    template: {
-                        metadata: { annotations: { 'spacegun.deployment': '1520899200000' } },
-                        spec: { containers: [{ image: 'repo/image2:tag@some:digest' }] },
-                    },
-                },
-            })
+            expect(callParameters(replaceDeploymentMock, 0)).toMatchSnapshot()
         })
 
         it('restarts deployments', async () => {
@@ -117,15 +113,58 @@ describe('KubernetesClusterProvider', () => {
                 { image: image1, name: 'deployment1' }
             )
             expect(deployment).toEqual({ image: { name: 'image1', url: 'repo/image1:tag@some:digest' }, name: 'deployment1' })
-            expect(replaceDeploymentMock).toHaveBeenCalledWith('deployment1', 'default', {
-                metadata: { name: 'deployment1', annotations: {} },
-                spec: {
-                    template: {
-                        metadata: { annotations: { 'spacegun.deployment': '1520899200000' } },
-                        spec: { containers: [{ image: 'repo/image1:tag@some:digest' }] },
-                    },
-                },
+            expect(callParameters(replaceDeploymentMock, 0)).toMatchSnapshot()
+        })
+    })
+
+    describe('batches', () => {
+        it('returns batches', async () => {
+            const batches: Batch[] = await cluster.batches({
+                cluster: cluster.clusters[0],
             })
+            expect(batches).toEqual([
+                {
+                    image: image1,
+                    name: 'batch1',
+                    concurrencyPolicy: 'Allow',
+                    schedule: 'someSchedule',
+                },
+                {
+                    image: image2,
+                    name: 'batch2',
+                    concurrencyPolicy: 'Allow',
+                    schedule: 'someSchedule',
+                },
+            ])
+        })
+
+        it('updates batches', async () => {
+            const batch: Batch = await cluster.updateBatch(
+                { cluster: cluster.clusters[0] },
+                { image: image1, name: 'batch1', concurrencyPolicy: 'Allow', schedule: '' },
+                image2
+            )
+            expect(batch).toEqual({
+                image: { name: 'image2', url: 'repo/image2:tag@some:digest' },
+                name: 'batch1',
+                concurrencyPolicy: 'Allow',
+                schedule: 'someSchedule',
+            })
+            expect(callParameters(replaceBatchMock, 0)).toMatchSnapshot()
+        })
+
+        it('restarts batches', async () => {
+            const deployment: Batch = await cluster.restartBatch(
+                { cluster: cluster.clusters[0] },
+                { image: image1, name: 'batch1', concurrencyPolicy: 'Allow', schedule: '' }
+            )
+            expect(deployment).toEqual({
+                image: { name: 'image1', url: 'repo/image1:tag@some:digest' },
+                name: 'batch1',
+                concurrencyPolicy: 'Allow',
+                schedule: 'someSchedule',
+            })
+            expect(callParameters(replaceBatchMock, 0)).toMatchSnapshot()
         })
     })
 
@@ -151,112 +190,204 @@ describe('KubernetesClusterProvider', () => {
     })
 
     describe('appliesSnapshots', () => {
-        it('calls endpoints on snapshot change', async () => {
-            const snapshot: ClusterSnapshot = await cluster.takeSnapshot({
-                cluster: cluster.clusters[0],
+        describe('for batch jobs', () => {
+            it('calls endpoints on snapshot change', async () => {
+                const snapshot: ClusterSnapshot = await cluster.takeSnapshot({
+                    cluster: cluster.clusters[0],
+                })
+                const batch1 = snapshot.batches[0].data as V1beta1CronJob
+                batch1.spec!.schedule = 'some schedule'
+
+                await cluster.applySnapshot({ cluster: cluster.clusters[0] }, snapshot, false)
+
+                expect(replaceBatchMock).toHaveBeenCalledTimes(1)
+                expect(callParameters(replaceBatchMock, 0)).toMatchSnapshot()
             })
-            const deployment1 = snapshot.deployments[0].data as V1Deployment
-            deployment1.spec!.replicas = 2
 
-            await cluster.applySnapshot({ cluster: cluster.clusters[0] }, snapshot, false)
+            it('does not call endpoints if nothing has changed', async () => {
+                const snapshot: ClusterSnapshot = await cluster.takeSnapshot({
+                    cluster: cluster.clusters[0],
+                })
 
-            expect(replaceDeploymentMock).toHaveBeenCalledTimes(1)
-            expect(replaceDeploymentMock).toHaveBeenCalledWith('deployment1', 'default', {
-                metadata: { name: 'deployment1', annotations: {} },
-                spec: {
-                    replicas: 2,
-                    template: { metadata: { annotations: {} }, spec: { containers: [{ image: 'repo/image1:tag@some:digest' }] } },
-                },
+                await cluster.applySnapshot({ cluster: cluster.clusters[0] }, snapshot, false)
+
+                expect(replaceBatchMock).not.toHaveBeenCalled()
+            })
+
+            it('does not call endpoints if spacegun batch version has changed', async () => {
+                const snapshot: ClusterSnapshot = await cluster.takeSnapshot({
+                    cluster: cluster.clusters[0],
+                })
+                const batch1 = snapshot.batches[0].data as V1beta1CronJob
+                batch1.spec!.jobTemplate.spec!.template.metadata!.annotations = {
+                    'spacegun.batch': '1520899200000',
+                }
+
+                await cluster.applySnapshot({ cluster: cluster.clusters[0] }, snapshot, false)
+
+                expect(replaceBatchMock).not.toHaveBeenCalled()
+            })
+
+            it('ignores image if flag is set', async () => {
+                const snapshot: ClusterSnapshot = await cluster.takeSnapshot({
+                    cluster: cluster.clusters[0],
+                })
+                const batch1 = snapshot.batches[0].data as V1beta1CronJob
+                batch1.spec!.jobTemplate.spec!.template.spec!.containers[0].image = 'somenewsillyimage'
+
+                await cluster.applySnapshot({ cluster: cluster.clusters[0] }, snapshot, true)
+
+                expect(replaceBatchMock).not.toHaveBeenCalled()
+            })
+
+            it('creates batch jobs if batch job is not known yet', async () => {
+                const snapshot: ClusterSnapshot = await cluster.takeSnapshot({
+                    cluster: cluster.clusters[0],
+                })
+                const batch1 = snapshot.batches[0].data as V1beta1CronJob
+                snapshot.batches[0].name = 'somesillyjob'
+                batch1.metadata!.name = 'somesillyjob'
+                batch1.spec!.jobTemplate.spec!.template.spec!.containers[0].image = 'somenewsillyimage'
+
+                await cluster.applySnapshot({ cluster: cluster.clusters[0] }, snapshot, false)
+
+                expect(createBatchMock).toHaveBeenCalledTimes(1)
+                expect(callParameters(createBatchMock, 0)).toMatchSnapshot()
+            })
+
+            it('sends results to slack', async () => {
+                const snapshot: ClusterSnapshot = await cluster.takeSnapshot({
+                    cluster: cluster.clusters[0],
+                })
+
+                const batch1 = snapshot.batches[0].data as V1beta1CronJob
+                batch1.spec!.schedule = 'some schedule'
+                const batch2 = snapshot.batches[1].data as V1beta1CronJob
+                batch2.spec!.schedule = 'some schedule'
+
+                await cluster.applySnapshot({ cluster: cluster.clusters[0] }, snapshot, true)
+
+                expect(mockLog).toHaveBeenCalledWith({
+                    description: 'Applied Snapshots in dev ∞ undefined',
+                    fields: [{ title: 'Updated', value: 'Batch batch1' }],
+                    message: 'Applied Snapshots',
+                    timestamp: 1520899200000,
+                    topics: ['slack'],
+                })
             })
         })
 
-        it('does not call endpoints if nothing has changed', async () => {
-            const snapshot: ClusterSnapshot = await cluster.takeSnapshot({
-                cluster: cluster.clusters[0],
+        describe('for deployments', () => {
+            it('calls endpoints on snapshot change', async () => {
+                const snapshot: ClusterSnapshot = await cluster.takeSnapshot({
+                    cluster: cluster.clusters[0],
+                })
+                const deployment1 = snapshot.deployments[0].data as V1Deployment
+                deployment1.spec!.replicas = 2
+
+                await cluster.applySnapshot({ cluster: cluster.clusters[0] }, snapshot, false)
+
+                expect(replaceDeploymentMock).toHaveBeenCalledTimes(1)
+                expect(replaceDeploymentMock).toHaveBeenCalledWith('deployment1', 'default', {
+                    metadata: { name: 'deployment1', annotations: {} },
+                    spec: {
+                        replicas: 2,
+                        template: { metadata: { annotations: {} }, spec: { containers: [{ image: 'repo/image1:tag@some:digest' }] } },
+                    },
+                })
             })
 
-            await cluster.applySnapshot({ cluster: cluster.clusters[0] }, snapshot, false)
+            it('does not call endpoints if nothing has changed', async () => {
+                const snapshot: ClusterSnapshot = await cluster.takeSnapshot({
+                    cluster: cluster.clusters[0],
+                })
 
-            expect(replaceDeploymentMock).not.toHaveBeenCalled()
-        })
+                await cluster.applySnapshot({ cluster: cluster.clusters[0] }, snapshot, false)
 
-        it('does not call endpoints if kubernetes revision has changed', async () => {
-            const snapshot: ClusterSnapshot = await cluster.takeSnapshot({
-                cluster: cluster.clusters[0],
-            })
-            const deployment1 = snapshot.deployments[0].data as V1Deployment
-            deployment1.metadata!.annotations = {
-                'deployment.kubernetes.io/revision': '123',
-            }
-
-            await cluster.applySnapshot({ cluster: cluster.clusters[0] }, snapshot, false)
-
-            expect(replaceDeploymentMock).not.toHaveBeenCalled()
-        })
-
-        it('does not call endpoints if spacegun deployment version has changed', async () => {
-            const snapshot: ClusterSnapshot = await cluster.takeSnapshot({
-                cluster: cluster.clusters[0],
-            })
-            const deployment1 = snapshot.deployments[0].data as V1Deployment
-            deployment1.spec!.template.metadata!.annotations = {
-                'spacegun.deployment': '1520899200000',
-            }
-
-            await cluster.applySnapshot({ cluster: cluster.clusters[0] }, snapshot, false)
-
-            expect(replaceDeploymentMock).not.toHaveBeenCalled()
-        })
-
-        it('ignores image if flag is set', async () => {
-            const snapshot: ClusterSnapshot = await cluster.takeSnapshot({
-                cluster: cluster.clusters[0],
-            })
-            const deployment1 = snapshot.deployments[0].data as V1Deployment
-            deployment1.spec!.template.spec!.containers[0].image = 'somenewsillyimage'
-
-            await cluster.applySnapshot({ cluster: cluster.clusters[0] }, snapshot, true)
-
-            expect(replaceDeploymentMock).not.toHaveBeenCalled()
-        })
-
-        it('creates deployments if deployment is not known yet', async () => {
-            const snapshot: ClusterSnapshot = await cluster.takeSnapshot({
-                cluster: cluster.clusters[0],
-            })
-            const deployment1 = snapshot.deployments[0].data as V1Deployment
-            snapshot.deployments[0].name = 'somesillydeployment'
-            deployment1.metadata!.name = 'somesillydeployment'
-            deployment1.spec!.replicas = 2
-            deployment1.spec!.template.spec!.containers[0].image = 'somenewsillyimage'
-
-            await cluster.applySnapshot({ cluster: cluster.clusters[0] }, snapshot, false)
-
-            expect(createDeploymentMock).toHaveBeenCalledTimes(1)
-            expect(createDeploymentMock).toHaveBeenCalledWith('default', {
-                metadata: { name: 'somesillydeployment', annotations: {} },
-                spec: { replicas: 2, template: { metadata: { annotations: {} }, spec: { containers: [{ image: 'somenewsillyimage' }] } } },
-            })
-        })
-
-        it('sends results to slack', async () => {
-            const snapshot: ClusterSnapshot = await cluster.takeSnapshot({
-                cluster: cluster.clusters[0],
+                expect(replaceDeploymentMock).not.toHaveBeenCalled()
             })
 
-            const deployment1 = snapshot.deployments[0].data as V1Deployment
-            deployment1.spec!.replicas = 2
-            const deployment2 = snapshot.deployments[1].data as V1Deployment
-            deployment2.spec!.replicas = 2
+            it('does not call endpoints if kubernetes revision has changed', async () => {
+                const snapshot: ClusterSnapshot = await cluster.takeSnapshot({
+                    cluster: cluster.clusters[0],
+                })
+                const deployment1 = snapshot.deployments[0].data as V1Deployment
+                deployment1.metadata!.annotations = {
+                    'deployment.kubernetes.io/revision': '123',
+                }
 
-            await cluster.applySnapshot({ cluster: cluster.clusters[0] }, snapshot, true)
+                await cluster.applySnapshot({ cluster: cluster.clusters[0] }, snapshot, false)
 
-            expect(mockLog).toHaveBeenCalledWith({
-                description: 'Applied Snapshots in dev ∞ undefined',
-                fields: [{ title: 'Failure', value: 'Deployment deployment2' }, { title: 'Updated', value: 'Deployment deployment1' }],
-                message: 'Applied Snapshots',
-                timestamp: 1520899200000,
-                topics: ['slack'],
+                expect(replaceDeploymentMock).not.toHaveBeenCalled()
+            })
+
+            it('does not call endpoints if spacegun deployment version has changed', async () => {
+                const snapshot: ClusterSnapshot = await cluster.takeSnapshot({
+                    cluster: cluster.clusters[0],
+                })
+                const deployment1 = snapshot.deployments[0].data as V1Deployment
+                deployment1.spec!.template.metadata!.annotations = {
+                    'spacegun.deployment': '1520899200000',
+                }
+
+                await cluster.applySnapshot({ cluster: cluster.clusters[0] }, snapshot, false)
+
+                expect(replaceDeploymentMock).not.toHaveBeenCalled()
+            })
+
+            it('ignores image if flag is set', async () => {
+                const snapshot: ClusterSnapshot = await cluster.takeSnapshot({
+                    cluster: cluster.clusters[0],
+                })
+                const deployment1 = snapshot.deployments[0].data as V1Deployment
+                deployment1.spec!.template.spec!.containers[0].image = 'somenewsillyimage'
+
+                await cluster.applySnapshot({ cluster: cluster.clusters[0] }, snapshot, true)
+
+                expect(replaceDeploymentMock).not.toHaveBeenCalled()
+            })
+
+            it('creates deployments if deployment is not known yet', async () => {
+                const snapshot: ClusterSnapshot = await cluster.takeSnapshot({
+                    cluster: cluster.clusters[0],
+                })
+                const deployment1 = snapshot.deployments[0].data as V1Deployment
+                snapshot.deployments[0].name = 'somesillydeployment'
+                deployment1.metadata!.name = 'somesillydeployment'
+                deployment1.spec!.replicas = 2
+                deployment1.spec!.template.spec!.containers[0].image = 'somenewsillyimage'
+
+                await cluster.applySnapshot({ cluster: cluster.clusters[0] }, snapshot, false)
+
+                expect(createDeploymentMock).toHaveBeenCalledTimes(1)
+                expect(createDeploymentMock).toHaveBeenCalledWith('default', {
+                    metadata: { name: 'somesillydeployment', annotations: {} },
+                    spec: {
+                        replicas: 2,
+                        template: { metadata: { annotations: {} }, spec: { containers: [{ image: 'somenewsillyimage' }] } },
+                    },
+                })
+            })
+
+            it('sends results to slack', async () => {
+                const snapshot: ClusterSnapshot = await cluster.takeSnapshot({
+                    cluster: cluster.clusters[0],
+                })
+
+                const deployment1 = snapshot.deployments[0].data as V1Deployment
+                deployment1.spec!.replicas = 2
+                const deployment2 = snapshot.deployments[1].data as V1Deployment
+                deployment2.spec!.replicas = 2
+
+                await cluster.applySnapshot({ cluster: cluster.clusters[0] }, snapshot, true)
+
+                expect(mockLog).toHaveBeenCalledWith({
+                    description: 'Applied Snapshots in dev ∞ undefined',
+                    fields: [{ title: 'Failure', value: 'Deployment deployment2' }, { title: 'Updated', value: 'Deployment deployment1' }],
+                    message: 'Applied Snapshots',
+                    timestamp: 1520899200000,
+                    topics: ['slack'],
+                })
             })
         })
     })

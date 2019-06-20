@@ -1,5 +1,5 @@
 import { empty, from, Observable, of, OperatorFunction, ObservableInput } from 'rxjs'
-import { catchError, map, mergeMap } from 'rxjs/operators'
+import { catchError, map, mergeMap, flatMap } from 'rxjs/operators'
 
 import { load } from '.'
 import { PipelineDescription } from './model/PipelineDescription'
@@ -25,8 +25,15 @@ import { Deployment } from '../cluster/model/Deployment'
 import { LogError } from './steps/LogError'
 import { ClusterProbe } from './steps/ClusterProbe'
 import { PlanNamespaceDeployment } from './steps/PlanNamespaceDeployment'
+import { Batch } from 'src/cluster/model/Batch'
 
 const internalLogErrorStep: string = '__internal_log_error'
+
+type JobState = {
+    group: ServerGroup
+    deployments: Deployment[]
+    batches: Batch[]
+}
 
 export class JobsRepositoryImpl implements JobsRepository {
     public readonly io: IO = new IO()
@@ -80,18 +87,26 @@ export class JobsRepositoryImpl implements JobsRepository {
         for (const step of pipeline.steps) {
             steps[step.name] = step
         }
-        const serverGroups = of<ServerGroup>({ cluster: pipeline.cluster, namespace })
-        const deployments = serverGroups.pipe(
+        const state: Observable<JobState> = this.createJobState({ cluster: pipeline.cluster, namespace })
+        return this.step(pipeline, steps, pipeline.start, state).pipe(map(() => {}))
+    }
+
+    createJobState(serverGroup: ServerGroup): Observable<JobState> {
+        return of(serverGroup).pipe(
             mergeMap(group =>
                 from(call(clusterModule.deployments)(group)).pipe(
-                    map(deployments => ({
-                        group,
-                        deployments,
-                    }))
+                    flatMap(deployments =>
+                        from(call(clusterModule.batches)(group)).pipe(
+                            map(batches => ({
+                                group,
+                                deployments,
+                                batches,
+                            }))
+                        )
+                    )
                 )
             )
         )
-        return this.step(pipeline, steps, pipeline.start, deployments as Observable<object>).pipe(map(() => {}))
     }
 
     step(
@@ -106,25 +121,27 @@ export class JobsRepositoryImpl implements JobsRepository {
         switch (step.type) {
             case 'planClusterDeployment': {
                 const instance = new PlanClusterDeployment(step.name, step.cluster!, step.filter, this.io)
-                stepMapper = mergeMap(s => instance.plan(s.group, name, s.deployments))
+                stepMapper = mergeMap<JobState, ObservableInput<JobPlan>>(s =>
+                    instance.plan(s.group, pipeline.name, s.deployments, s.batches)
+                )
                 break
             }
             case 'planNamespaceDeployment': {
                 const instance = new PlanNamespaceDeployment(step.name, step.cluster!, step.source!, step.target!, step.filter, this.io)
-                stepMapper = mergeMap<{ group: ServerGroup; deployments: Deployment[] }, ObservableInput<JobPlan>>(s =>
-                    instance.plan(s.group, name, s.deployments)
+                stepMapper = mergeMap<JobState, ObservableInput<JobPlan>>(s =>
+                    instance.plan(s.group, pipeline.name, s.deployments, s.batches)
                 )
                 break
             }
             case 'planImageDeployment': {
                 const instance = new PlanImageDeployment(step.name, step.tag!, step.semanticTagExtractor, step.filter, this.io)
-                stepMapper = mergeMap<{ group: ServerGroup; deployments: Deployment[] }, ObservableInput<JobPlan>>(s =>
-                    instance.plan(s.group, name, s.deployments)
+                stepMapper = mergeMap<JobState, ObservableInput<JobPlan>>(s =>
+                    instance.plan(s.group, pipeline.name, s.deployments, s.batches)
                 )
                 break
             }
             case 'applyDeployment': {
-                const instance = new ApplyDeployment(pipeline.name, this.io)
+                const instance = new ApplyDeployment(step.name, this.io)
                 stepMapper = mergeMap<JobPlan, ObservableInput<Deployment[]>>(s => instance.apply(s))
                 break
             }
@@ -163,23 +180,25 @@ export class JobsRepositoryImpl implements JobsRepository {
     }
 
     async apply(plan: JobPlan): Promise<Deployment[]> {
-        return new ApplyDeployment('manual plan').apply(plan)
+        return new ApplyDeployment('manual plan', this.io).apply(plan)
     }
 
     async planDeploymentForNamespaces(pipeline: PipelineDescription, namespaces: string[]): Promise<JobPlan> {
         if (namespaces.length === 0) {
             return await this.planDeployments(pipeline)
         } else {
-            const deployments: DeploymentPlan[] = []
+            const deployments: DeploymentPlan<Deployment>[] = []
+            const batches: DeploymentPlan<Batch>[] = []
             for (const namespace of namespaces) {
                 try {
                     const plan = await this.planDeployments(pipeline, namespace)
                     deployments.push(...plan.deployments)
+                    batches.push(...plan.batches)
                 } catch (e) {
                     this.io.error(e)
                 }
             }
-            return { name: pipeline.name, deployments }
+            return { name: pipeline.name, deployments, batches }
         }
     }
 
@@ -217,17 +236,7 @@ export class JobsRepositoryImpl implements JobsRepository {
             throw new Error('pipeline has no plan step')
         }
 
-        const serverGroups = of<ServerGroup>({ cluster: pipeline.cluster, namespace })
-        const deployments = serverGroups.pipe(
-            mergeMap(group =>
-                from(call(clusterModule.deployments)(group)).pipe(
-                    map(deployments => ({
-                        group,
-                        deployments,
-                    }))
-                )
-            )
-        )
-        return deployments.pipe(map(d => planStep.plan(d.group, pipeline.name, d.deployments))).toPromise()
+        const state: Observable<JobState> = this.createJobState({ cluster: pipeline.cluster, namespace })
+        return state.pipe(map(d => planStep.plan(d.group, pipeline.name, d.deployments, d.batches))).toPromise()
     }
 }

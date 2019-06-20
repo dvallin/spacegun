@@ -6,8 +6,6 @@
 [![codecov](https://codecov.io/gh/dvallin/spacegun/branch/master/graph/badge.svg)](https://codecov.io/gh/dvallin/spacegun)
 [![Sponsoring](https://img.shields.io/badge/Sponsored%20by-itemis-0E75BA.svg)](https://www.itemis.com)
 
-**Version 0.1 has been released and Spacegun is battle proven at our own project.**
-
 Straight-forward deployment management to get your docker images to kubernetes, without the headaches of fancy ui.
 
 ## Features
@@ -200,10 +198,11 @@ The planning steps can be filtered on namespaces and deployments.
     namespaces:
       - "namespace1"
       - "namespace2"
-    deployments:
+    resources:
       - "deployment1"
       - "deployment2"
       - "deployment3"
+      - "batch1"
   onSuccess: "apply1"
 ```
 
@@ -226,6 +225,24 @@ You might want to only deploy clusters that meet certain criteria. For example y
 ```
 
 The `tag` is an endpoint that Spacegun will call using `GET` method. If it returns a status code 200, Spacegun will proceed with the `onSuccess` step. Else the step will fail and proceed with the `onFailure` step. The timeout is an optional field giving the timeout for the hook call in milliseconds. If no timeout is set, spacegun will not cancel the connection on its own.
+
+### Deployments and Cronjobs
+
+Kubernetes deployments are called deployments in Spacegun. Kubernetes Cronjobs however, are called Batches to avoid confusion with the cronjobs that are driving Spacegun Deployments (Also Cronjobs are part of the Kubernetes Batch Api). Deploying, Restarting and Snapshots work exactly the same for batches and deployments.
+
+A snapshot might look like this. (Note that namespace `undefined` is resolved to the `default` namespace in kubernetes)
+
+```
+.
+└── minikube
+    └── undefined
+        ├── batches
+        │   └── hello.yml
+        └── deployments
+            └── nginx-deployment.yml
+```
+
+Here `hello.yml` is taken from the kubernetes [tutorial](https://kubernetes.io/docs/tasks/job/automated-tasks-with-cron-jobs/#creating-a-cron-job) on cron jobs. A `spacegun apply` would create your batch job. (In production you would push `hello.yml` to your config repository and your spacegun server would pick it up automatically once merged on master)
 
 ### Git
 

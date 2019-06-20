@@ -43,7 +43,7 @@ describe(PlanImageDeployment.name, () => {
     const group: ServerGroup = { cluster: 'targetCluster', namespace: 'namespace' }
     const step = new PlanImageDeployment('name', 'latest', undefined, {
         namespaces: ['namespace'],
-        deployments: ['deployment1'],
+        resources: ['deployment1'],
     })
     const targetDeployments: Deployment[] = [
         {
@@ -57,12 +57,12 @@ describe(PlanImageDeployment.name, () => {
         mockImages = { image1: { name: 'image1', tag: 'tag', url: 'url1' } }
 
         // when
-        const plan = await step.plan(group, 'pipeline1', targetDeployments)
+        const plan = await step.plan(group, 'pipeline1', targetDeployments, [])
 
         // then
         expect(plan.deployments).toEqual([
             {
-                deployment: { name: 'deployment1', image: { name: 'image1', url: 'url2' } },
+                deployable: { name: 'deployment1', image: { name: 'image1', url: 'url2' } },
                 group: { cluster: 'targetCluster', namespace: 'namespace' },
                 image: { name: 'image1', tag: 'tag', url: 'url1' },
             },
@@ -74,7 +74,7 @@ describe(PlanImageDeployment.name, () => {
         mockImages = { image1: { name: 'image1', tag: 'tag', url: 'url2' } }
 
         // when
-        const plan = await step.plan(group, 'pipeline1', targetDeployments)
+        const plan = await step.plan(group, 'pipeline1', targetDeployments, [])
 
         // then
         expect(plan.deployments).toEqual([])
@@ -85,7 +85,7 @@ describe(PlanImageDeployment.name, () => {
         mockImages = { image1: { name: 'image1', tag: 'tag', url: 'url1' } }
 
         // when
-        const plan = await step.plan(group, 'pipeline1', [{ name: 'deployment2', image: { name: 'image1', url: 'url2' } }])
+        const plan = await step.plan(group, 'pipeline1', [{ name: 'deployment2', image: { name: 'image1', url: 'url2' } }], [])
 
         // then
         expect(plan.deployments).toEqual([])
@@ -97,7 +97,7 @@ describe(PlanImageDeployment.name, () => {
         mockImages = { image1: { name: 'image1', tag: 'tag', url: 'url1' } }
 
         // when
-        const plan = await step.plan(group, 'pipeline1', [{ name: 'deployment1' }])
+        const plan = await step.plan(group, 'pipeline1', [{ name: 'deployment1' }], [])
 
         // then
         expect(plan.deployments).toEqual([])
@@ -111,7 +111,7 @@ describe(PlanImageDeployment.name, () => {
         mockImages = { image1: { name: 'image1', tag: 'tag', url: 'url1' } }
 
         // when
-        const plan = await step.plan({ cluster: 'cluster', namespace: 'other' }, 'pipeline1', targetDeployments)
+        const plan = await step.plan({ cluster: 'cluster', namespace: 'other' }, 'pipeline1', targetDeployments, [])
 
         // then
         expect(plan.deployments).toEqual([])
@@ -126,7 +126,7 @@ describe(PlanImageDeployment.name, () => {
             const step = new PlanImageDeployment('name', 'latest', undefined, undefined)
 
             // when
-            const plan = await step.plan(group, 'pipeline1', targetDeployments)
+            const plan = await step.plan(group, 'pipeline1', targetDeployments, [])
 
             // then
             expect(plan.deployments[0].image).toEqual(latestImage)
@@ -139,7 +139,7 @@ describe(PlanImageDeployment.name, () => {
             const step = new PlanImageDeployment('name', undefined, undefined, undefined)
 
             // when
-            const plan = await step.plan(group, 'pipeline1', targetDeployments)
+            const plan = await step.plan(group, 'pipeline1', targetDeployments, [])
 
             // then
             expect(mockImageRequest).toHaveBeenCalledWith({ name: 'image1', tag: 'c' })
@@ -153,7 +153,7 @@ describe(PlanImageDeployment.name, () => {
             const step = new PlanImageDeployment('name', undefined, 'latest', undefined)
 
             // when
-            const plan = await step.plan(group, 'pipeline1', targetDeployments)
+            const plan = await step.plan(group, 'pipeline1', targetDeployments, [])
 
             // then
             expect(mockImageRequest).toHaveBeenCalledWith({ name: 'image1', tag: 'latest' })
@@ -167,7 +167,7 @@ describe(PlanImageDeployment.name, () => {
             const step = new PlanImageDeployment('name', undefined, 'latest.', undefined)
 
             // when
-            const plan = await step.plan(group, 'pipeline1', targetDeployments)
+            const plan = await step.plan(group, 'pipeline1', targetDeployments, [])
 
             // then
             expect(mockImageRequest).toHaveBeenCalledTimes(1)
@@ -181,7 +181,7 @@ describe(PlanImageDeployment.name, () => {
             const step = new PlanImageDeployment('name', undefined, '\\d{4}-\\d{1,2}-\\d{1,2}$', undefined)
 
             // when
-            await step.plan(group, 'pipeline1', targetDeployments)
+            await step.plan(group, 'pipeline1', targetDeployments, [])
 
             // then
             expect(mockImageRequest).toHaveBeenCalledTimes(1)
@@ -194,7 +194,7 @@ describe(PlanImageDeployment.name, () => {
             const step = new PlanImageDeployment('name', undefined, 'latest.', undefined)
 
             // when /
-            expect(step.plan(group, 'pipeline1', targetDeployments)).rejects.toMatchSnapshot()
+            expect(step.plan(group, 'pipeline1', targetDeployments, [])).rejects.toMatchSnapshot()
         })
 
         it('throws an error if it cannot match a unique tag', async () => {
@@ -203,7 +203,7 @@ describe(PlanImageDeployment.name, () => {
             const step = new PlanImageDeployment('name', undefined, 'latest', undefined)
 
             // when / then
-            expect(step.plan(group, 'pipeline1', targetDeployments)).rejects.toMatchSnapshot()
+            expect(step.plan(group, 'pipeline1', targetDeployments, [])).rejects.toMatchSnapshot()
         })
     })
 })

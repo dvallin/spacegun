@@ -3,8 +3,10 @@ import { Request } from '../../../src/dispatcher/model/Request'
 import { PlanClusterDeployment } from '../../../src/jobs/steps/PlanClusterDeployment'
 import { ServerGroup } from '../../../src/cluster/model/ServerGroup'
 import { Deployment } from '../../../src/cluster/model/Deployment'
+import { Batch } from 'src/cluster/model/Batch'
 
 let mockDeployments: { [key: string]: Deployment[] } = {}
+let mockBatches: { [key: string]: Batch[] } = {}
 
 jest.mock('../../../src/dispatcher/index', () => ({
     get: jest.fn(),
@@ -14,6 +16,9 @@ jest.mock('../../../src/dispatcher/index', () => ({
                 switch (request.procedure) {
                     case 'deployments': {
                         return (input: { cluster: string }) => Promise.resolve(mockDeployments[input.cluster])
+                    }
+                    case 'batches': {
+                        return (input: { cluster: string }) => Promise.resolve(mockBatches[input.cluster])
                     }
                 }
                 break
@@ -29,7 +34,7 @@ describe(PlanClusterDeployment.name, () => {
     const group: ServerGroup = { cluster: 'targetCluster', namespace: 'namespace' }
     const step = new PlanClusterDeployment('name', 'sourceCluster', {
         namespaces: ['namespace'],
-        deployments: ['deployment1'],
+        resources: ['deployment1'],
     })
     const targetDeployments: Deployment[] = [
         {
@@ -43,12 +48,12 @@ describe(PlanClusterDeployment.name, () => {
         mockDeployments = { sourceCluster: [{ name: 'deployment1', image: { name: 'image1', url: 'url1' } }] }
 
         // when
-        const plan = await step.plan(group, 'pipeline1', targetDeployments)
+        const plan = await step.plan(group, 'pipeline1', targetDeployments, [])
 
         // then
         expect(plan.deployments).toEqual([
             {
-                deployment: { name: 'deployment1', image: { name: 'image1', url: 'url2' } },
+                deployable: { name: 'deployment1', image: { name: 'image1', url: 'url2' } },
                 group: { cluster: 'targetCluster', namespace: 'namespace' },
                 image: { name: 'image1', url: 'url1' },
             },
@@ -60,7 +65,7 @@ describe(PlanClusterDeployment.name, () => {
         mockDeployments = { sourceCluster: [{ name: 'deployment1', image: { name: 'image1', url: 'url1' } }] }
 
         // when
-        const plan = await step.plan(group, 'pipeline1', [{ name: 'deployment1', image: { name: 'image1', url: 'url1' } }])
+        const plan = await step.plan(group, 'pipeline1', [{ name: 'deployment1', image: { name: 'image1', url: 'url1' } }], [])
 
         // then
         expect(plan.deployments).toEqual([])
@@ -71,7 +76,7 @@ describe(PlanClusterDeployment.name, () => {
         mockDeployments = { sourceCluster: [{ name: 'deployment2', image: { name: 'image1', url: 'url1' } }] }
 
         // when
-        const plan = await step.plan(group, 'pipeline1', [{ name: 'deployment2', image: { name: 'image1', url: 'url2' } }])
+        const plan = await step.plan(group, 'pipeline1', [{ name: 'deployment2', image: { name: 'image1', url: 'url2' } }], [])
 
         // then
         expect(plan.deployments).toEqual([])
@@ -83,7 +88,7 @@ describe(PlanClusterDeployment.name, () => {
         mockDeployments = { sourceCluster: [{ name: 'otherDeployment', image: { name: 'image1', url: 'url1' } }] }
 
         // when
-        const plan = await step.plan(group, 'pipeline1', targetDeployments)
+        const plan = await step.plan(group, 'pipeline1', targetDeployments, [])
 
         // then
         expect(plan.deployments).toEqual([])
@@ -98,7 +103,7 @@ describe(PlanClusterDeployment.name, () => {
         mockDeployments = { sourceCluster: [{ name: 'deployment1' }] }
 
         // when
-        const plan = await step.plan(group, 'pipeline1', targetDeployments)
+        const plan = await step.plan(group, 'pipeline1', targetDeployments, [])
 
         // then
         expect(plan.deployments).toEqual([])
@@ -107,7 +112,7 @@ describe(PlanClusterDeployment.name, () => {
 
     it('does not plan if server group does not match', async () => {
         // when
-        const plan = await step.plan({ cluster: 'cluster', namespace: 'other' }, 'pipeline1', targetDeployments)
+        const plan = await step.plan({ cluster: 'cluster', namespace: 'other' }, 'pipeline1', targetDeployments, [])
 
         // then
         expect(plan.deployments).toEqual([])

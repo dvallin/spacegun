@@ -1,9 +1,179 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
+exports[`view batches fetches namespaces and batches 1`] = `
+Object {
+  "name": "cluster1",
+  "namespaces": Array [
+    Object {
+      "batches": Array [
+        Object {
+          "justSome": "batch",
+        },
+      ],
+      "name": "namespace1",
+    },
+    Object {
+      "batches": undefined,
+      "name": "namespace2",
+    },
+  ],
+  "title": "Spacegun ∞ Batch Jobs ∞ cluster1",
+}
+`;
+
+exports[`view deployments fetches namespaces and deployments 1`] = `
+Object {
+  "name": "cluster1",
+  "namespaces": Array [
+    Object {
+      "deployments": Array [
+        Object {
+          "justSome": "deployment",
+        },
+      ],
+      "name": "namespace1",
+    },
+    Object {
+      "deployments": undefined,
+      "name": "namespace2",
+    },
+  ],
+  "title": "Spacegun ∞ Deployments ∞ cluster1",
+}
+`;
+
+exports[`view images fetches images 1`] = `
+Object {
+  "focusedImage": undefined,
+  "images": Array [
+    Object {
+      "name": "image1",
+      "tag": "tag1",
+    },
+    Object {
+      "name": "image1",
+      "tag": "tag2",
+    },
+    Object {
+      "name": "image1",
+      "tag": "tag3",
+    },
+  ],
+  "name": "image1",
+  "title": "Spacegun ∞ Images ∞ [object Object]",
+}
+`;
+
+exports[`view index fetches namespaces and clusters 1`] = `
+Object {
+  "clusters": Array [
+    Object {
+      "name": "cluster1",
+      "namespaces": Array [
+        "namespace1",
+        "namespace2",
+      ],
+    },
+    Object {
+      "name": "cluster2",
+      "namespaces": Array [
+        "namespace3",
+      ],
+    },
+  ],
+  "config": undefined,
+  "errors": Array [
+    "Jobs could not be loaded: knownPipelines is not iterable",
+  ],
+  "images": undefined,
+  "jobs": Array [],
+  "title": "Spacegun ∞ Dashboard",
+  "version": undefined,
+}
+`;
+
+exports[`view index fetches pipelines 1`] = `
+Object {
+  "clusters": Array [],
+  "config": undefined,
+  "errors": Array [],
+  "images": undefined,
+  "jobs": Array [
+    Object {
+      "lastRun": "1970-01-01T00:00:00.042Z",
+      "nextRun": "1970-01-01T00:00:00.001Z",
+      "pipeline": Object {
+        "cluster": "cluster1",
+        "cron": "cron1",
+        "name": "pipeline1",
+        "start": "start1",
+        "steps": Array [],
+      },
+    },
+    Object {
+      "lastRun": undefined,
+      "nextRun": undefined,
+      "pipeline": Object {
+        "cluster": "cluster2",
+        "name": "pipeline2",
+        "start": "start1",
+        "steps": Array [],
+      },
+    },
+  ],
+  "title": "Spacegun ∞ Dashboard",
+  "version": undefined,
+}
+`;
+
 exports[`view index reports errors 1`] = `
 Array [
   "Clusters could not be loaded: error1",
   "Jobs could not be loaded: error2",
   "Images could not be loaded: error3",
 ]
+`;
+
+exports[`view namespace fetches pods, batches and deployments 1`] = `
+Object {
+  "batches": Array [
+    Object {
+      "justSome": "batch",
+    },
+  ],
+  "clusterName": "cluster1",
+  "deployments": Array [
+    Object {
+      "justSome": "deployment",
+    },
+  ],
+  "namespaceName": "namespace1",
+  "pods": Array [
+    Object {
+      "justSome": "pod",
+    },
+  ],
+  "title": "Spacegun ∞ Pods ∞ cluster1",
+}
+`;
+
+exports[`view pods fetches namespaces and pods 1`] = `
+Object {
+  "name": "cluster1",
+  "namespaces": Array [
+    Object {
+      "name": "namespace1",
+      "pods": Array [
+        Object {
+          "justSome": "pod",
+        },
+      ],
+    },
+    Object {
+      "name": "namespace2",
+      "pods": undefined,
+    },
+  ],
+  "title": "Spacegun ∞ Pods ∞ cluster1",
+}
 `;

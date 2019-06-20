@@ -1,0 +1,21 @@
+doctype html
+html(lang="en")
+  include includes/head.pug
+body
+    h1
+        a(href="/")="Home"
+        span=" ∞ Pods"
+    
+
+    each n in namespaces
+        h3=name+" ∞ "+n.name
+        table(class="u-full-width")
+            thead
+                tr
+                    th="Name"
+                    th="Current Image Url"
+            tbody
+                each deployment in n.deployments
+                    tr
+                        td=deployment.name
+                        td=deployment.image.url

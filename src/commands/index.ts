@@ -16,6 +16,7 @@ import { imagesCommand } from './images'
 import { pipelinesCommand, runCommand, pipelineSchedulesCommand } from './pipelines'
 import { deployCommand, restartCommand } from './deploy'
 import { deploymentsCommand } from './deployments'
+import { batchesCommand } from './batches'
 import { scalersCommand } from './scalers'
 import { snapshotCommand, applySnapshotCommand } from './snapshots'
 
@@ -27,6 +28,7 @@ export type Command =
     | 'schedules'
     | 'run'
     | 'deployments'
+    | 'batches'
     | 'deploy'
     | 'restart'
     | 'scalers'
@@ -81,6 +83,7 @@ export async function printHelp(io: IO, error?: Error) {
         io.out(pad('apply', 2) + chalk.bold(pad('apply the snapshot of the cluster', 10)))
         io.out(pad('images', 2) + chalk.bold(pad('a list of all images in the docker registry', 10)))
         io.out(pad('deployments', 2) + chalk.bold(pad('a summary of all deployements of all known clusters', 10)))
+        io.out(pad('batches', 2) + chalk.bold(pad('a summary of all batch jobs of all known clusters', 10)))
         io.out(pad('deploy', 2) + chalk.bold(pad('opens an interactive dialog to deploy an image', 10)))
         io.out(pad('restart', 2) + chalk.bold(pad('opens an interactive dialog to restart a deployment', 10)))
         io.out(pad('scalers', 2) + chalk.bold(pad('a summary of all scalers of all known clusters', 10)))
@@ -120,6 +123,7 @@ const commands: { [k in Command]: CommandFn } = {
     schedules: pipelineSchedulesCommand,
     run: runCommand,
     deployments: deploymentsCommand,
+    batches: batchesCommand,
     scalers: scalersCommand,
     deploy: deployCommand,
     restart: restartCommand,

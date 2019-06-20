@@ -14,7 +14,7 @@ export function save(filePath: string, data: object): Promise<void> {
             if (e) {
                 reject(e)
             } else {
-                writeFileSync(filePath, safeDump(data), 'utf8')
+                writeFileSync(filePath, safeDump(data, { skipInvalid: true }), 'utf8')
                 resolve()
             }
         })
