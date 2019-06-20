@@ -23,6 +23,9 @@ import {
 import { ClusterRepository } from '../../src/cluster/ClusterRepository'
 import { ApplySnapshotParameters } from '../../src/cluster/ClusterModule'
 import { call } from '../../src/dispatcher'
+import { Batch } from 'src/cluster/model/Batch'
+import { Image } from 'src/cluster/model/Image'
+import { Deployment } from 'src/cluster/model/Deployment'
 
 const podsMock = jest.fn()
 const namespacesMock = jest.fn()
@@ -120,8 +123,8 @@ describe('cluster module', () => {
     it('calls update batch', async () => {
         // given
         updateBatchMock.mockReturnValueOnce({})
-        const batch = { id: 1, name: 'batch1' }
-        const image = { id: 2, url: 'url', name: 'name', tag: 'tag' }
+        const batch: Batch = { name: 'batch1', schedule: '', concurrencyPolicy: 'Allow' }
+        const image: Image = { url: 'url', name: 'name' }
         const params: UpdateBatchParameters = {
             batch,
             image,
@@ -140,7 +143,7 @@ describe('cluster module', () => {
     it('calls restart deployment', async () => {
         // given
         restartBatchMock.mockReturnValueOnce({})
-        const batch = { id: 1, name: 'batch1' }
+        const batch: Batch = { name: 'batch1', schedule: '', concurrencyPolicy: 'Allow' }
         const params: RestartBatchParameters = {
             batch,
             group: { cluster: 'clusterName' },
@@ -171,8 +174,8 @@ describe('cluster module', () => {
     it('calls update deployment', async () => {
         // given
         updateDeploymentMock.mockReturnValueOnce({})
-        const deployment = { id: 1, name: 'deployment1' }
-        const image = { id: 2, url: 'url', name: 'name', tag: 'tag' }
+        const deployment: Deployment = { name: 'deployment1' }
+        const image: Image = { url: 'url', name: 'name' }
         const params: UpdateDeploymentParameters = {
             deployment,
             image,

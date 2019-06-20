@@ -126,13 +126,20 @@ describe('KubernetesClusterProvider', () => {
         })
 
         it('updates batches', async () => {
-            const batch: Batch = await cluster.updateBatch({ cluster: cluster.clusters[0] }, { image: image1, name: 'batch1' }, image2)
+            const batch: Batch = await cluster.updateBatch(
+                { cluster: cluster.clusters[0] },
+                { image: image1, name: 'batch1', concurrencyPolicy: 'Allow', schedule: '' },
+                image2
+            )
             expect(batch).toEqual({ image: { name: 'image2', url: 'repo/image2:tag@some:digest' }, name: 'batch1' })
             expect(callParameters(replaceBatchMock, 0)).toMatchSnapshot()
         })
 
         it('restarts batches', async () => {
-            const deployment: Deployment = await cluster.restartBatch({ cluster: cluster.clusters[0] }, { image: image1, name: 'batch1' })
+            const deployment: Deployment = await cluster.restartBatch(
+                { cluster: cluster.clusters[0] },
+                { image: image1, name: 'batch1', concurrencyPolicy: 'Allow', schedule: '' }
+            )
             expect(deployment).toEqual({ image: { name: 'image1', url: 'repo/image1:tag@some:digest' }, name: 'batch1' })
             expect(callParameters(replaceBatchMock, 0)).toMatchSnapshot()
         })

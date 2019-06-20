@@ -8,7 +8,6 @@ let
     yarn = nixpkgs.yarn.override {
       nodejs = [ nodejs ];
     };
-
 in
     with nixpkgs;
     stdenv.mkDerivation rec {
@@ -19,6 +18,7 @@ in
             # You can search for package names using nix-env -qaP | grep <name>
             nodejs
             yarn
+            nixpkgs.minikube
         ];
 
         shellHook = ''

@@ -1,0 +1,25 @@
+doctype html
+html(lang="en")
+  include includes/head.pug
+body
+    h1
+        a(href="/")="Home"
+        span=" ∞ Batches"
+    
+
+    each n in namespaces
+        h3=name+" ∞ "+n.name
+        table(class="u-full-width")
+            thead
+                tr
+                    th="Name"
+                    th="Current Image Url"
+                    th="Cron"
+                    th="Concurrency"
+            tbody
+                each batch in n.batches
+                    tr
+                        td=batch.name
+                        td=batch.image.url
+                        td=batch.schedule
+                        td=batch.concurrencyPolicy

@@ -42,20 +42,20 @@ const mockDeployments: Deployments = {
 type Batches = { [name: string]: Batch[] }
 const mockBatches: Batches = {
     cluster1: [
-        { name: 'batch1', image: { name: 'image1', url: 'imageUrl:tag1:digest1' } },
-        { name: 'batch2', image: { name: 'image2', url: 'imageUrl:tag2:digest1' } },
+        { name: 'batch1', image: { name: 'image1', url: 'imageUrl:tag1:digest1' }, concurrencyPolicy: 'Allow', schedule: '' },
+        { name: 'batch2', image: { name: 'image2', url: 'imageUrl:tag2:digest1' }, concurrencyPolicy: 'Allow', schedule: '' },
     ],
     cluster2namespace1: [
-        { name: 'batch1', image: { name: 'image1', url: 'imageUrl:tag1:digest2' } },
-        { name: 'batch2', image: { name: 'image2', url: 'imageUrl:tag2:digest3' } },
+        { name: 'batch1', image: { name: 'image1', url: 'imageUrl:tag1:digest2' }, concurrencyPolicy: 'Allow', schedule: '' },
+        { name: 'batch2', image: { name: 'image2', url: 'imageUrl:tag2:digest3' }, concurrencyPolicy: 'Allow', schedule: '' },
     ],
     cluster2namespace3: [
-        { name: 'batch1', image: { name: 'image1', url: 'imageUrl:tag1:digest3' } },
-        { name: 'batch2', image: { name: 'image2', url: 'imageUrl:tag2:digest5' } },
+        { name: 'batch1', image: { name: 'image1', url: 'imageUrl:tag1:digest3' }, concurrencyPolicy: 'Allow', schedule: '' },
+        { name: 'batch2', image: { name: 'image2', url: 'imageUrl:tag2:digest5' }, concurrencyPolicy: 'Allow', schedule: '' },
     ],
     cluster3: [
-        { name: 'batch1', image: { name: 'image1', url: 'imageUrl:tag1:digest2' } },
-        { name: 'batch2', image: { name: 'image2', url: 'imageUrl:tag2:digest4' } },
+        { name: 'batch1', image: { name: 'image1', url: 'imageUrl:tag1:digest2' }, concurrencyPolicy: 'Allow', schedule: '' },
+        { name: 'batch2', image: { name: 'image2', url: 'imageUrl:tag2:digest4' }, concurrencyPolicy: 'Allow', schedule: '' },
     ],
 }
 

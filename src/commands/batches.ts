@@ -24,15 +24,15 @@ async function batches(io: IO, cluster: string, namespace?: string) {
 }
 
 export function logBatchHeader(io: IO) {
-    io.out(chalk.bold(pad('deployment name', 5) + pad('image url', 7)))
+    io.out(chalk.bold(pad('batch name', 5) + pad('image url', 7) + pad('cron', 2) + pad('concurrency', 2)))
 }
 
-export function logBatch(io: IO, deployment: Batch) {
+export function logBatch(io: IO, batch: Batch) {
     let urlText
-    if (deployment.image === undefined) {
+    if (batch.image === undefined) {
         urlText = chalk.bold.magenta(pad('missing', 7))
     } else {
-        urlText = pad(deployment.image.url, 7)
+        urlText = pad(batch.image.url, 7)
     }
-    io.out(pad(deployment.name, 5) + urlText)
+    io.out(pad(batch.name, 5) + urlText + pad(batch.schedule, 2) + pad(batch.concurrencyPolicy, 2))
 }

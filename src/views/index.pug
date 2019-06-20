@@ -16,13 +16,23 @@ body
             thead
                 tr
                     th="Name"
-                    th="Known Namespaces"
+                    th="Resources"
+                    th="Namespaces"
             tbody
                 each cluster in clusters
                     tr
+                        td=cluster.name
                         td
-                            a(href=`pods/${cluster.name}`)=cluster.name
-                        td=cluster.namespaces
+                            a(href=`deployments/${cluster.name}`)="deployments"
+                            span=" ∆ "
+                            a(href=`batches/${cluster.name}`)="batches"
+                            span=" ∆ "
+                            a(href=`pods/${cluster.name}`)="pods"
+                        td
+                            each n, index in cluster.namespaces
+                                a(href=`namespace/${cluster.name}/${n}`)=n
+                                if index < cluster.namespaces.length - 1
+                                   span=" ∆ "
 
     if jobs
         h2="Jobs"

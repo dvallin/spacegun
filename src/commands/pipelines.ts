@@ -64,12 +64,12 @@ async function run(options: Options, io: IO) {
 
     const result = await applyWithConsent(options, io, () => call(jobsModule.run)(plan))
     if (result) {
-        console.log(chalk.bold('Successfully applied plan. Changed deployments are.'))
+        io.out(chalk.bold('Successfully applied plan. Changed deployments are.'))
         result.forEach(deployment => {
             logDeployment(io, deployment)
         })
     } else {
-        console.log(chalk.bold('Did not apply plan.'))
+        io.out(chalk.bold('Did not apply plan.'))
     }
 }
 

@@ -36,7 +36,7 @@ async function deploy(options: Options, io: IO) {
         })
     )
 
-    if (resource.first) {
+    if (isDeployment(resource)) {
         io.out('deploy ' + chalk.cyan(image.url) + ' into deployment ' + chalk.cyan(cluster + '::' + resource.result.name))
         await applyWithConsent(options, io, async () => {
             const updated = await load(
@@ -49,7 +49,8 @@ async function deploy(options: Options, io: IO) {
             logDeploymentHeader(io)
             logDeployment(io, updated)
         })
-    } else {
+    }
+    if (isBatch(resource)) {
         io.out('deploy ' + chalk.cyan(image.url) + ' into batch ' + chalk.cyan(cluster + '::' + resource.result.name))
         await applyWithConsent(options, io, async () => {
             const updated = await load(
@@ -69,7 +70,7 @@ async function restart(options: Options, io: IO) {
     const cluster = await chooseCluster(options, io)
     const namespace = await chooseNamespace(options, io, cluster)
     const resource = await chooseResource(options, io, cluster, namespace)
-    if (resource.first) {
+    if (isDeployment(resource)) {
         io.out('restart deployment ' + chalk.cyan(cluster + '::' + resource.result.name))
         await applyWithConsent(options, io, async () => {
             const updated = await load(
@@ -81,7 +82,8 @@ async function restart(options: Options, io: IO) {
             logDeploymentHeader(io)
             logDeployment(io, updated)
         })
-    } else {
+    }
+    if (isBatch(resource)) {
         io.out('restart batch ' + chalk.cyan(cluster + '::' + resource.result.name))
         await applyWithConsent(options, io, async () => {
             const updated = await load(
@@ -96,12 +98,15 @@ async function restart(options: Options, io: IO) {
     }
 }
 
-export async function chooseResource(
-    options: Options,
-    io: IO,
-    cluster: string,
-    namespace: string | undefined
-): Promise<{ first: boolean; result: Deployment | Batch }> {
+type ChosenResource = { first: boolean; result: Deployment | Batch }
+function isDeployment(result: ChosenResource): result is { first: boolean; result: Deployment } {
+    return result.first
+}
+function isBatch(result: ChosenResource): result is { first: boolean; result: Batch } {
+    return !result.first
+}
+
+export async function chooseResource(options: Options, io: IO, cluster: string, namespace: string | undefined): Promise<ChosenResource> {
     const deployments = await load(call(clusterModule.deployments)({ cluster, namespace }))
     const batches = await load(call(clusterModule.batches)({ cluster, namespace }))
 
@@ -118,10 +123,23 @@ export async function chooseResource(
         }
         return { first: false, result: batch }
     } else {
-        io.out('Choose the target deployment')
-        deployments.forEach((deployment, index) => {
-            io.out(chalk.bold.cyan(index.toString()) + ': ' + pad(deployment.name, 5))
-        })
+        io.out('Choose the target resource')
+        if (deployments.length + batches.length === 0) {
+            throw new Error(`no resources found!`)
+        }
+        if (deployments.length > 0) {
+            io.out('deployments')
+            deployments.forEach((deployment, index) => {
+                io.out(chalk.bold.cyan(index.toString()) + ': ' + pad(deployment.name, 5))
+            })
+        }
+        if (batches.length > 0) {
+            io.out('batches')
+            batches.forEach((batch, index) => {
+                const i = deployments.length + index
+                io.out(chalk.bold.cyan(i.toString()) + ': ' + pad(batch.name, 5))
+            })
+        }
         return await io.chooseMultiple('> ', deployments, batches)
     }
 }

@@ -1,7 +1,7 @@
 import * as moment from 'moment'
 import { call } from '../dispatcher'
 import { Resource } from '../dispatcher/resource'
-import { clusters, namespaces, pods } from '../cluster/ClusterModule'
+import { clusters, namespaces, pods, deployments, batches } from '../cluster/ClusterModule'
 import { pipelines, schedules } from '../jobs/JobsModule'
 import { Config } from '../config'
 import { list, tags, image } from '../images/ImageModule'
@@ -75,6 +75,50 @@ export class Module {
         }
     }
 
+    @Resource({ path: '/deployments/:cluster' })
+    public async deployments(params: { cluster: string }): Promise<object> {
+        const cluster = params.cluster
+        const knownNamespaces = await call(namespaces)({ cluster })
+        const namespacesWithDeployments = []
+
+        for (const namespace of knownNamespaces) {
+            const knownDeployments = await call(deployments)({ cluster, namespace })
+
+            namespacesWithDeployments.push({
+                name: namespace,
+                deployments: knownDeployments,
+            })
+        }
+
+        return {
+            title: 'Spacegun ∞ Deployments ∞ ' + cluster,
+            name: params.cluster,
+            namespaces: namespacesWithDeployments,
+        }
+    }
+
+    @Resource({ path: '/batches/:cluster' })
+    public async batches(params: { cluster: string }): Promise<object> {
+        const cluster = params.cluster
+        const knownNamespaces = await call(namespaces)({ cluster })
+        const namespaceWithBatches = []
+
+        for (const namespace of knownNamespaces) {
+            const knownBatches = await call(batches)({ cluster, namespace })
+
+            namespaceWithBatches.push({
+                name: namespace,
+                batches: knownBatches,
+            })
+        }
+
+        return {
+            title: 'Spacegun ∞ Batch Jobs ∞ ' + cluster,
+            name: params.cluster,
+            namespaces: namespaceWithBatches,
+        }
+    }
+
     @Resource({ path: '/pods/:cluster' })
     public async pods(params: { cluster: string }): Promise<object> {
         const cluster = params.cluster
@@ -94,6 +138,24 @@ export class Module {
             title: 'Spacegun ∞ Pods ∞ ' + cluster,
             name: params.cluster,
             namespaces: namespacesWithPods,
+        }
+    }
+
+    @Resource({ path: '/namespace/:cluster/:namespace' })
+    public async namespace(params: { cluster: string; namespace: string }): Promise<object> {
+        const { cluster, namespace } = params
+
+        const knownPods = await call(pods)({ cluster, namespace })
+        const knownBatches = await call(batches)({ cluster, namespace })
+        const knownDeployments = await call(deployments)({ cluster, namespace })
+
+        return {
+            title: 'Spacegun ∞ Pods ∞ ' + cluster,
+            clusterName: params.cluster,
+            namespaceName: namespace,
+            pods: knownPods,
+            batches: knownBatches,
+            deployments: knownDeployments,
         }
     }
 

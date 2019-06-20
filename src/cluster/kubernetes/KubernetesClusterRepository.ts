@@ -8,7 +8,7 @@ import {
     V1PodStatus,
     BatchV1beta1Api,
     V1beta1CronJob,
-    V1PodTemplate,
+    V1ObjectMeta,
 } from '@kubernetes/client-node'
 
 import * as moment from 'moment'
@@ -76,7 +76,7 @@ export class KubernetesClusterRepository implements ClusterRepository {
             const ready = this.isReady(item.status)
             const createdAt = moment(item.metadata!.creationTimestamp).valueOf()
             return {
-                name: item.metadata!.name || '',
+                name: item.metadata!.name!,
                 createdAt,
                 image,
                 restarts,
@@ -92,7 +92,7 @@ export class KubernetesClusterRepository implements ClusterRepository {
         return result.body.items.map(item => {
             const image = this.createImage(item.spec!.template.spec!.containers)
             return {
-                name: item.metadata!.name || '',
+                name: item.metadata!.name!,
                 image,
             }
         })
@@ -104,14 +104,18 @@ export class KubernetesClusterRepository implements ClusterRepository {
         const result = await api.listNamespacedCronJob(namespace)
         return result.body.items.map(item => {
             const image = this.createImage(item.spec!.jobTemplate.spec!.template.spec!.containers)
+            const schedule = item.spec!.schedule
+            const concurrencyPolicy = item.spec!.concurrencyPolicy || 'Allow'
             return {
-                name: item.metadata!.name || '',
+                name: item.metadata!.name!,
+                schedule,
+                concurrencyPolicy,
                 image,
             }
         })
     }
 
-    async updateBatch(group: ServerGroup, batch: Batch, targetImage: Image): Promise<Deployment> {
+    async updateBatch(group: ServerGroup, batch: Batch, targetImage: Image): Promise<Batch> {
         return this.replaceBatch(group, batch, d => {
             d.spec!.jobTemplate.spec!.template.spec!.containers[0].image = targetImage.url
         })
@@ -126,7 +130,7 @@ export class KubernetesClusterRepository implements ClusterRepository {
         const namespace = this.getNamespace(group)
         const result = await api.listNamespacedHorizontalPodAutoscaler(namespace)
         return result.body.items.map(item => ({
-            name: item.metadata!.name || '',
+            name: item.metadata!.name!,
             replicas: {
                 current: item.status!.currentReplicas,
                 minimum: item.spec!.minReplicas || 0,
@@ -152,7 +156,7 @@ export class KubernetesClusterRepository implements ClusterRepository {
             const api = this.build(group.cluster, (server: string) => new AppsV1beta2Api(server))
             const result = await api.listNamespacedDeployment(namespace)
             deployments = result.body.items.map(d => ({
-                name: d.metadata!.name || '',
+                name: d.metadata!.name!,
                 data: this.minifyDeployment(d),
             }))
         }
@@ -161,7 +165,7 @@ export class KubernetesClusterRepository implements ClusterRepository {
             const api = this.build(group.cluster, (server: string) => new BatchV1beta1Api(server))
             const result = await api.listNamespacedCronJob(namespace)
             batches = result.body.items.map(d => ({
-                name: d.metadata!.name || '',
+                name: d.metadata!.name!,
                 data: this.minifyBatch(d),
             }))
         }
@@ -332,15 +336,16 @@ export class KubernetesClusterRepository implements ClusterRepository {
         const target = this.minifyDeployment(response.body)
         replacer(target)
 
-        if (target.spec!.template.metadata!.annotations === undefined) {
-            target.spec!.template.metadata!.annotations = {}
+        const metadata = target.spec!.template.metadata!
+        if (metadata.annotations === undefined) {
+            metadata.annotations = {}
         }
-        target.spec!.template.metadata!.annotations['spacegun.deployment'] = Date.now().toString()
+        metadata.annotations['spacegun.deployment'] = Date.now().toString()
 
         let result = await api.replaceNamespacedDeployment(deployment.name, namespace, target)
 
         return {
-            name: result.body.metadata!.name || '',
+            name: result.body.metadata!.name!,
             image: this.createImage(result.body.spec!.template.spec!.containers),
         }
     }
@@ -353,69 +358,66 @@ export class KubernetesClusterRepository implements ClusterRepository {
         const target = this.minifyBatch(response.body)
         replacer(target)
 
-        if (target.spec!.jobTemplate.spec!.template.metadata!.annotations === undefined) {
-            target.spec!.jobTemplate.spec!.template.metadata!.annotations = {}
+        const metadata = target.spec!.jobTemplate.spec!.template.metadata!
+        if (metadata.annotations === undefined) {
+            metadata.annotations = {}
         }
-        target.spec!.jobTemplate.spec!.template.metadata!.annotations['spacegun.batch'] = Date.now().toString()
+        metadata.annotations['spacegun.batch'] = Date.now().toString()
 
         let result = await api.replaceNamespacedCronJob(deployment.name, namespace, target)
 
+        const schedule = result.body.spec!.schedule
+        const concurrencyPolicy = result.body.spec!.concurrencyPolicy || 'Allow'
+        const name = result.body.metadata!.name!
         return {
-            name: result.body.metadata!.name || '',
+            name,
+            schedule,
+            concurrencyPolicy,
             image: this.createImage(result.body.spec!.jobTemplate.spec!.template.spec!.containers),
         }
     }
 
     private minifyDeployment(deployment: V1beta2Deployment): V1beta2Deployment {
-        this.cleanPodMetadata(deployment.spec!.template)
-        this.cleanDeploymentMetadata(deployment)
-
+        this.cleanMetadata(deployment.metadata)
+        if (deployment.spec!) {
+            this.cleanMetadata(deployment.spec!.template.metadata)
+        }
         return {
-            metadata: {
-                name: deployment.metadata!.name,
-                namespace: deployment.metadata!.namespace,
-                annotations: deployment.metadata!.annotations,
-            },
+            metadata: deployment.metadata,
             spec: deployment.spec,
         } as V1beta2Deployment
     }
 
     private minifyBatch(batch: V1beta1CronJob): V1beta1CronJob {
-        this.cleanPodMetadata(batch.spec!.jobTemplate.spec!.template)
-        this.cleanBatchMetadata(batch)
-
+        this.cleanMetadata(batch.metadata)
+        if (batch.spec) {
+            this.cleanMetadata(batch.spec.jobTemplate.metadata)
+            if (batch.spec.jobTemplate.spec) {
+                this.cleanMetadata(batch.spec.jobTemplate.spec.template.metadata)
+            }
+        }
         return {
-            metadata: {
-                name: batch.metadata!.name,
-                namespace: batch.metadata!.namespace,
-                annotations: batch.metadata!.annotations,
-            },
+            metadata: batch.metadata,
             spec: batch.spec,
         } as V1beta1CronJob
     }
 
-    private cleanPodMetadata(pod: V1PodTemplate): void {
-        if (pod.metadata!.annotations !== undefined) {
-            delete pod.metadata!.annotations['spacegun.deployment']
-            delete pod.metadata!.annotations['spacegun.batch']
-        } else {
-            pod.metadata!.annotations = {}
+    private cleanMetadata(metadata: V1ObjectMeta | undefined): void {
+        if (metadata === undefined) {
+            return
         }
-    }
-
-    private cleanDeploymentMetadata(deployment: V1beta2Deployment): void {
-        if (deployment.metadata!.annotations !== undefined) {
-            delete deployment.metadata!.annotations['deployment.kubernetes.io/revision']
+        if (metadata.annotations !== undefined) {
+            delete metadata.annotations['deployment.kubernetes.io/revision']
+            delete metadata.annotations['spacegun.deployment']
+            delete metadata.annotations['spacegun.batch']
         } else {
-            deployment.metadata!.annotations = {}
+            metadata.annotations = {}
         }
-    }
-
-    private cleanBatchMetadata(batch: V1beta1CronJob): void {
-        if (batch.metadata!.annotations !== undefined) {
-        } else {
-            batch.metadata!.annotations = {}
-        }
+        delete metadata.uid
+        delete metadata.creationTimestamp
+        delete metadata.deletionTimestamp
+        delete metadata.resourceVersion
+        delete metadata.generation
     }
 
     private deploymentNeedsUpdate(current: V1beta2Deployment, target: V1beta2Deployment): boolean {
