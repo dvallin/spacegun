@@ -38,10 +38,7 @@ describe('view', () => {
 
             const result = (await m.index()) as { clusters: object[] }
 
-            expect(result.clusters).toEqual([
-                { name: 'cluster1', namespaces: ['namespace1', 'namespace2'] },
-                { name: 'cluster2', namespaces: ['namespace3'] },
-            ])
+            expect(result).toMatchSnapshot()
         })
 
         it('fetches pipelines', async () => {
@@ -56,16 +53,7 @@ describe('view', () => {
 
             const result = (await m.index()) as { jobs: object[] }
 
-            expect(result.jobs).toEqual([
-                {
-                    pipeline: { cluster: 'cluster1', cron: 'cron1', name: 'pipeline1', start: 'start1', steps: [] },
-                    lastRun: '1970-01-01T00:00:00.042Z',
-                    nextRun: '1970-01-01T00:00:00.001Z',
-                },
-                {
-                    pipeline: { cluster: 'cluster2', name: 'pipeline2', start: 'start1', steps: [] },
-                },
-            ])
+            expect(result).toMatchSnapshot()
         })
 
         it('fetches images', async () => {
@@ -80,16 +68,46 @@ describe('view', () => {
         })
     })
 
+    describe('deployments', () => {
+        it('fetches namespaces and deployments', async () => {
+            mockDispatchFn.mockResolvedValueOnce(['namespace1', 'namespace2']).mockResolvedValueOnce([{ justSome: 'deployment' }])
+
+            const result = (await m.deployments({ cluster: 'cluster1' })) as { namespaces: object[] }
+
+            expect(result).toMatchSnapshot()
+        })
+    })
+
+    describe('batches', () => {
+        it('fetches namespaces and batches', async () => {
+            mockDispatchFn.mockResolvedValueOnce(['namespace1', 'namespace2']).mockResolvedValueOnce([{ justSome: 'batch' }])
+
+            const result = (await m.batches({ cluster: 'cluster1' })) as { namespaces: object[] }
+
+            expect(result).toMatchSnapshot()
+        })
+    })
+
     describe('pods', () => {
         it('fetches namespaces and pods', async () => {
             mockDispatchFn.mockResolvedValueOnce(['namespace1', 'namespace2']).mockResolvedValueOnce([{ justSome: 'pod' }])
 
             const result = (await m.pods({ cluster: 'cluster1' })) as { namespaces: object[] }
 
-            expect(result.namespaces).toEqual([
-                { name: 'namespace1', pods: [{ justSome: 'pod' }] },
-                { name: 'namespace2', pods: undefined },
-            ])
+            expect(result).toMatchSnapshot()
+        })
+    })
+
+    describe('namespace', () => {
+        it('fetches pods, batches and deployments', async () => {
+            mockDispatchFn
+                .mockResolvedValueOnce([{ justSome: 'pod' }])
+                .mockResolvedValueOnce([{ justSome: 'batch' }])
+                .mockResolvedValueOnce([{ justSome: 'deployment' }])
+
+            const result = (await m.namespace({ cluster: 'cluster1', namespace: 'namespace1' })) as { namespaces: object[] }
+
+            expect(result).toMatchSnapshot()
         })
     })
 
@@ -99,11 +117,7 @@ describe('view', () => {
 
             const result = (await m.images({ image: 'image1' })) as { images: object[] }
 
-            expect(result.images).toEqual([
-                { name: 'image1', tag: 'tag1' },
-                { name: 'image1', tag: 'tag2' },
-                { name: 'image1', tag: 'tag3' },
-            ])
+            expect(result).toMatchSnapshot()
         })
 
         describe('focused image', () => {

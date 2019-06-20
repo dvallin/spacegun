@@ -20,7 +20,7 @@ describe('out', () => {
     })
 })
 
-describe('out', () => {
+describe('error', () => {
     it('should print to console', () => {
         // given
         jest.spyOn(global.console, 'error')
@@ -92,25 +92,75 @@ describe('choose', () => {
     it('should accept on one of the options', async () => {
         // given
         const responseIndex: number = 1
-        const options: string[] = ['1', '2', '3']
         const io: IO = new IO(new RespondOnce(responseIndex))
 
         // when
-        const answer = await io.choose('', options)
+        const answer = await io.choose('', ['1', '2', '3'])
 
         // then
-        expect(answer).toEqual(options[responseIndex])
+        expect(answer).toEqual('2')
     })
 
     const outOfRangeIndices: number[] = [-1, 3]
     outOfRangeIndices.forEach((val: number) => {
         it(`should reject on chosen index ${val} out of range`, () => {
             // given
-            const options: string[] = ['1', '2', '3']
             const io: IO = new IO(new RespondOnce(val))
 
             // when + then
-            return expect(io.choose('', options)).rejects.toEqual(new Error(`${val} is not in the valid range`))
+            return expect(io.choose('', ['1', '2', '3'])).rejects.toEqual(new Error(`${val} is not in the valid range`))
+        })
+    })
+})
+
+describe('chooseMultiple', () => {
+    it('should print question', async () => {
+        // given
+        jest.spyOn(process.stdout, 'write')
+        const io: IO = new IO(new RespondOnce(0))
+        const message = 'test message for expect'
+
+        // when
+        await io.chooseMultiple(message, ['1'], ['2', '3'])
+
+        // then
+        expect(process.stdout.write).toHaveBeenCalledWith(message)
+    })
+
+    it('should accept on one of the options', async () => {
+        // given
+        const responseIndex: number = 0
+        const io: IO = new IO(new RespondOnce(responseIndex))
+
+        // when
+        const answer = await io.chooseMultiple('', ['1'], ['2', '3'])
+
+        // then
+        expect(answer.result).toEqual('1')
+        expect(answer.first).toBeTruthy()
+    })
+
+    it('should accept on one of the options', async () => {
+        // given
+        const responseIndex: number = 1
+        const io: IO = new IO(new RespondOnce(responseIndex))
+
+        // when
+        const answer = await io.chooseMultiple('', ['1'], ['2', '3'])
+
+        // then
+        expect(answer.result).toEqual('2')
+        expect(answer.first).toBeFalsy()
+    })
+
+    const outOfRangeIndices: number[] = [-1, 3]
+    outOfRangeIndices.forEach((val: number) => {
+        it(`should reject on chosen index ${val} out of range`, () => {
+            // given
+            const io: IO = new IO(new RespondOnce(val))
+
+            // when + then
+            return expect(io.chooseMultiple('', ['1'], ['2', '3'])).rejects.toEqual(new Error(`${val} is not in the valid range`))
         })
     })
 })
