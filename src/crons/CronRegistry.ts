@@ -10,17 +10,7 @@ export class CronRegistry {
     private readonly io: IO = new IO()
 
     public register(name: string, cronTab: string, promiseProvider: () => Promise<void>, start: boolean = false) {
-        console.log('register ', name, start)
-        const cron = new CronJob(
-            cronTab,
-            () => {
-                console.log('execute ', name, start)
-                this.executeTask(name, promiseProvider)
-            },
-            () => {},
-            start,
-            'UTC'
-        )
+        const cron = new CronJob(cronTab, () => this.executeTask(name, promiseProvider), () => {}, start, 'UTC')
         this.cronJobs.set(name, cron)
     }
 

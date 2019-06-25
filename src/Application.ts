@@ -89,29 +89,21 @@ export class Application {
         }
 
         initArtifacts(artifactRepoFromConfig(config))
-        console.log('intialized artifacts')
         initViews(config)
-        console.log('intialized views')
         initEvents([SlackEventRepository.fromConfig(config.slack)])
-        console.log('intialized events')
         initCluster(KubernetesClusterRepository.fromConfig(config.kube, config.namespaces))
-        console.log('intialized cluster')
         initImages(DockerImageRepository.fromConfig(config.docker))
-        console.log('intialized images')
 
         const jobs = JobsRepositoryImpl.fromConfig(config.pipelines, this.crons)
         initJobs(jobs)
-        console.log('intialized jobs')
 
         if (process.env.LAYER === Layers.Server) {
             const gitRepo = gitRepoFromConfig(config)
-            console.log('intialized git')
             if (gitRepo !== undefined) {
                 await this.checkForConfigChange(gitRepo)
                 this.crons.register('config-reload', config.git!.cron, () => this.checkForConfigChange(gitRepo))
             }
             this.crons.startAllCrons()
-            console.log('intialized crons')
         }
     }
 }

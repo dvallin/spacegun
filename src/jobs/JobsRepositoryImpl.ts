@@ -47,12 +47,8 @@ export class JobsRepositoryImpl implements JobsRepository {
         if (process.env.LAYER === Layers.Server) {
             Array.from(this.pipelines.keys()).forEach(name => {
                 const job = this.pipelines.get(name)
-                console.log('register', job)
                 if (job !== undefined && job.cron !== undefined) {
-                    cronRegistry.register(name, job.cron, () => {
-                        console.log(name, this.pipelines)
-                        return Promise.resolve()
-                    })
+                    cronRegistry.register(name, job.cron, () => this.run(name).toPromise())
                 }
             })
         }
