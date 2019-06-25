@@ -47,6 +47,16 @@ describe('FileSystemConfigRepository', () => {
                 expect(mockLoad).toHaveBeenCalledWith('test/test-config/artifacts/some/path/artifact1.yml')
                 expect(mockLoad).toHaveBeenCalledWith('test/test-config/artifacts/some/path/artifact2.yml')
             })
+
+            it('does not throw', async () => {
+                mockList.mockImplementation(() => {
+                    throw new Error()
+                })
+
+                const artifacts = await repo.listArtifacts('some/path')
+
+                expect(artifacts).toEqual([])
+            })
         })
     })
 })

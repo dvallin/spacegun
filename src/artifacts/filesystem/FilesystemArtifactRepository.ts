@@ -18,13 +18,17 @@ export class FilesystemArtifactRepository implements ArtifactRepository {
     }
 
     public async listArtifacts(path: string): Promise<Artifact[]> {
-        const filenames = list(`${this.artifactPath}/${path}`)
-        return filenames
-            .filter(name => name.endsWith(YML_EXT))
-            .map(name => name.substr(0, name.length - YML_EXT.length))
-            .map(name => ({
-                name,
-                data: load(`${this.artifactPath}/${path}/${name}${YML_EXT}`),
-            }))
+        try {
+            const filenames = list(`${this.artifactPath}/${path}`)
+            return filenames
+                .filter(name => name.endsWith(YML_EXT))
+                .map(name => name.substr(0, name.length - YML_EXT.length))
+                .map(name => ({
+                    name,
+                    data: load(`${this.artifactPath}/${path}/${name}${YML_EXT}`),
+                }))
+        } catch (_e) {
+            return []
+        }
     }
 }
