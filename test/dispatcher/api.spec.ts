@@ -25,7 +25,7 @@ describe('register', () => {
 
         it('register get requests', () => {
             expect(get).toHaveBeenCalledTimes(1)
-            expect(callParameters(get, 0)[0]).toEqual('/moduleName/procedureName')
+            expect(callParameters(get, 0)[0]).toEqual('/api/moduleName/procedureName')
         })
     })
 
@@ -44,7 +44,7 @@ describe('register', () => {
 
         it('register put requests', () => {
             expect(put).toHaveBeenCalledTimes(1)
-            expect(callParameters(put, 0)[0]).toEqual('/moduleName/procedureName')
+            expect(callParameters(put, 0)[0]).toEqual('/api/moduleName/procedureName')
         })
     })
 
@@ -63,7 +63,7 @@ describe('register', () => {
 
         it('register post requests', () => {
             expect(post).toHaveBeenCalledTimes(1)
-            expect(callParameters(post, 0)[0]).toEqual('/moduleName/procedureName')
+            expect(callParameters(post, 0)[0]).toEqual('/api/moduleName/procedureName')
         })
     })
 

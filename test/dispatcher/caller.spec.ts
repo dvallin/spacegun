@@ -29,7 +29,7 @@ describe('caller', () => {
                 // then
                 const callParams = axiosCallParameters(method)
                 const config: AxiosRequestConfig = callParams[callParams.length - 1]
-                expect(config.baseURL).toEqual('http://localhost:3000')
+                expect(config.baseURL).toEqual('http://localhost:3000/api/')
             })
 
             it('serializes the params', () => {

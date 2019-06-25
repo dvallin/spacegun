@@ -43,7 +43,7 @@ export function init(host: string, port: number) {
 }
 
 export function register<S, T>(procedureName: string, procedure: PromiseProvider<S, T>, configuration: ComponentConfiguration<S>) {
-    const url = `/${path(configuration.moduleName, procedureName)}`
+    const url = `/api/${path(configuration.moduleName, procedureName)}`
     if (configuration.method === Methods.Post) {
         router.post(url, handle(procedure, configuration))
     } else if (configuration.method === Methods.Put) {

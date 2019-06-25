@@ -1,5 +1,5 @@
 docker: http://localhost:5000
 kube: kube-config
 server:
-    host: localhost
+    host: http://localhost
     port: 8080
