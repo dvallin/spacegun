@@ -1,12 +1,10 @@
 language: node_js
 node_js:
     - '12'
-install:
-    - yarn
 script:
-    - yarn format:check
-    - yarn yarn audit
-    - yarn test
-    - yarn build
+    - npm run format:check
+    - npm audit
+    - npm test
+    - npm run build
 after_success:
     - bash <(curl -s https://codecov.io/bash) -e TRAVIS_NODE_VERSION
