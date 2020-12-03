@@ -1,5 +1,5 @@
 import * as ora from 'ora'
-import chalk from 'chalk'
+import * as chalk from 'chalk'
 
 import { call } from '../dispatcher'
 import { pad } from '../pad'

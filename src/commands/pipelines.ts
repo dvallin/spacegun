@@ -1,4 +1,4 @@
-import chalk from 'chalk'
+import * as chalk from 'chalk'
 import * as moment from 'moment'
 
 import { CommandFn } from './'
@@ -16,7 +16,7 @@ import { PipelineDescription } from '../jobs/model/PipelineDescription'
 import { logDeployment } from './deployments'
 import { DeploymentPlan, DeployableResource } from 'src/jobs/model/DeploymentPlan'
 
-export const pipelinesCommand: CommandFn = async ({  }: Options, io: IO) => pipelines(io)
+export const pipelinesCommand: CommandFn = async ({}: Options, io: IO) => pipelines(io)
 export const pipelineSchedulesCommand: CommandFn = async (options: Options, io: IO) => pipelineSchedules(options, io)
 export const runCommand: CommandFn = async (options: Options, io: IO) => run(options, io)
 

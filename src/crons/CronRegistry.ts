@@ -9,8 +9,13 @@ export class CronRegistry {
     public readonly running: Map<string, Promise<void>> = new Map()
     private readonly io: IO = new IO()
 
-    public register(name: string, cronTab: string, promiseProvider: () => Promise<void>, start: boolean = false) {
-        const cron = new CronJob(cronTab, () => this.executeTask(name, promiseProvider), () => {}, start, 'UTC')
+    public register(name: string, cronTime: string, promiseProvider: () => Promise<void>, start: boolean = false) {
+        const cron = new CronJob({
+            cronTime,
+            onTick: () => this.executeTask(name, promiseProvider),
+            start,
+            timeZone: 'UTC',
+        })
         this.cronJobs.set(name, cron)
     }
 

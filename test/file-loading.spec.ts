@@ -12,9 +12,9 @@ jest.mock('fs', () => ({
     writeFileSync: (path: string, data: string) => mockWriteFile(path, data),
 }))
 
-jest.mock('mkdirp', () => (path: string, callback: (e?: Error) => void) => {
+jest.mock('mkdirp', () => (path: string) => {
     mockMkdir(path)
-    callback(mockMkdirError)
+    return mockMkdirError ? Promise.reject(mockMkdirError) : Promise.resolve(undefined)
 })
 
 const ymlSerialObject = 'some: param\nsomeOther: 2\n'
@@ -41,7 +41,6 @@ describe(save.name, () => {
 
     it('propagates file io errors', () => {
         mockMkdirError = new Error('some issue happened')
-
         return expect(save('some/path/file.yml', testObject)).rejects.toMatchSnapshot()
     })
 })

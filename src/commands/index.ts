@@ -1,4 +1,4 @@
-import chalk from 'chalk'
+import * as chalk from 'chalk'
 
 import { call } from '../dispatcher'
 import { pad } from '../pad'
@@ -127,8 +127,8 @@ const commands: { [k in Command]: CommandFn } = {
     scalers: scalersCommand,
     deploy: deployCommand,
     restart: restartCommand,
-    help: async ({  }: Options, io: IO) => printHelp(io),
-    version: async ({  }: Options, io: IO) => printVersion(io),
+    help: async ({}: Options, io: IO) => printHelp(io),
+    version: async ({}: Options, io: IO) => printVersion(io),
 }
 
 export { commands }

@@ -5,21 +5,21 @@ import { CronRegistry } from '../../src/crons/CronRegistry'
 describe('CronRegistry', () => {
     it('registers crons', () => {
         const registry = new CronRegistry()
-        registry.register('cron1', '* * * * * *', () => Promise.resolve())
+        registry.register('cron1', '* * * * *', () => Promise.resolve())
         expect(registry.crons).toEqual([
             {
                 isRunning: false,
                 isStarted: false,
                 lastRun: undefined,
                 name: 'cron1',
-                nextRuns: [1520899201000, 1520899202000, 1520899203000, 1520899204000, 1520899205000],
+                nextRuns: [1520899260000, 1520899320000, 1520899380000, 1520899440000, 1520899500000],
             },
         ])
     })
 
     it('starts crons', () => {
         const registry = new CronRegistry()
-        registry.register('cron1', '* * * * * *', () => Promise.resolve())
+        registry.register('cron1', '* * * * *', () => Promise.resolve())
         registry.startAllCrons()
         expect(registry.crons[0].isStarted).toBeTruthy()
         expect(registry.crons[0].isRunning).toBeFalsy()
@@ -27,14 +27,14 @@ describe('CronRegistry', () => {
 
     it('starts crons on register if flag is set', () => {
         const registry = new CronRegistry()
-        registry.register('cron1', '* * * * * *', () => Promise.resolve(), true)
+        registry.register('cron1', '* * * * *', () => Promise.resolve(), true)
         expect(registry.crons[0].isStarted).toBeTruthy()
         expect(registry.crons[0].isRunning).toBeFalsy()
     })
 
     it('starting them twice does not break anything', () => {
         const registry = new CronRegistry()
-        registry.register('cron1', '* * * * * *', () => Promise.resolve())
+        registry.register('cron1', '* * * * *', () => Promise.resolve())
         registry.startAllCrons()
         registry.startAllCrons()
         expect(registry.crons[0].isStarted).toBeTruthy()
@@ -43,7 +43,7 @@ describe('CronRegistry', () => {
 
     it('stops crons', () => {
         const registry = new CronRegistry()
-        registry.register('cron1', '* * * * * *', () => Promise.resolve())
+        registry.register('cron1', '* * * * *', () => Promise.resolve())
         registry.startAllCrons()
         registry.stopAllCrons()
         expect(registry.crons[0].isStarted).toBeFalsy()
@@ -52,14 +52,14 @@ describe('CronRegistry', () => {
 
     it('removes crons', () => {
         const registry = new CronRegistry()
-        registry.register('cron1', '* * * * * *', () => Promise.resolve())
+        registry.register('cron1', '* * * * *', () => Promise.resolve())
         registry.removeAllCrons()
         expect(registry.crons).toHaveLength(0)
     })
 
     it('runs started crons', () => {
         const registry = new CronRegistry()
-        registry.register('cron1', '* * * * * *', () => Promise.resolve())
+        registry.register('cron1', '* * * * *', () => Promise.resolve())
         registry.startAllCrons()
 
         jest.runOnlyPendingTimers()
@@ -70,7 +70,7 @@ describe('CronRegistry', () => {
 
     it('handles failing crons', async () => {
         const registry = new CronRegistry()
-        registry.register('failureCron', '* * * * * *', () => Promise.reject(new Error()))
+        registry.register('failureCron', '* * * * *', () => Promise.reject(new Error()))
         await callCronJobCallback(registry, 'failureCron')
         expect(registry.running.size).toBe(0)
     })
@@ -80,7 +80,7 @@ describe('CronRegistry', () => {
         let runs = 0
         registry.register(
             'cron1',
-            '* * * * * *',
+            '* * * * *',
             () =>
                 new Promise(resolve => {
                     runs++

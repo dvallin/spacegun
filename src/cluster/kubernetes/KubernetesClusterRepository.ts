@@ -1,14 +1,14 @@
 import {
     KubeConfig,
     CoreV1Api,
-    AppsV1beta2Api,
     AutoscalingV1Api,
-    V1beta2Deployment,
     V1Container,
     V1PodStatus,
     BatchV1beta1Api,
     V1beta1CronJob,
     V1ObjectMeta,
+    AppsV1Api,
+    V1Deployment,
 } from '@kubernetes/client-node'
 
 import * as moment from 'moment'
@@ -86,7 +86,7 @@ export class KubernetesClusterRepository implements ClusterRepository {
     }
 
     async deployments(group: ServerGroup): Promise<Deployment[]> {
-        const api = this.build(group.cluster, (server: string) => new AppsV1beta2Api(server))
+        const api = this.build(group.cluster, (server: string) => new AppsV1Api(server))
         const namespace = this.getNamespace(group)
         const result = await api.listNamespacedDeployment(namespace)
         return result.body.items.map(item => {
@@ -153,7 +153,7 @@ export class KubernetesClusterRepository implements ClusterRepository {
         const namespace = this.getNamespace(group)
         let deployments: Snapshot[]
         {
-            const api = this.build(group.cluster, (server: string) => new AppsV1beta2Api(server))
+            const api = this.build(group.cluster, (server: string) => new AppsV1Api(server))
             const result = await api.listNamespacedDeployment(namespace)
             deployments = result.body.items.map(d => ({
                 name: d.metadata!.name!,
@@ -201,12 +201,12 @@ export class KubernetesClusterRepository implements ClusterRepository {
         created: string[],
         errored: string[]
     ): Promise<void> {
-        const api = this.build(group.cluster, (server: string) => new AppsV1beta2Api(server))
+        const api = this.build(group.cluster, (server: string) => new AppsV1Api(server))
         const namespace = this.getNamespace(group)
         const result = await api.listNamespacedDeployment(namespace)
         for (const deployment of deployments) {
             const current = result.body.items.find(d => d.metadata!.name === deployment.name)
-            const target = deployment.data as V1beta2Deployment
+            const target = deployment.data as V1Deployment
             if (current === undefined) {
                 await api.createNamespacedDeployment(namespace, target)
                 created.push(`Deployment ${deployment.name}`)
@@ -324,12 +324,8 @@ export class KubernetesClusterRepository implements ClusterRepository {
         return api
     }
 
-    private async replaceDeployment(
-        group: ServerGroup,
-        deployment: Deployment,
-        replacer: (d: V1beta2Deployment) => void
-    ): Promise<Deployment> {
-        const api = this.build(group.cluster, (server: string) => new AppsV1beta2Api(server))
+    private async replaceDeployment(group: ServerGroup, deployment: Deployment, replacer: (d: V1Deployment) => void): Promise<Deployment> {
+        const api = this.build(group.cluster, (server: string) => new AppsV1Api(server))
         const namespace = this.getNamespace(group)
         const response = await api.readNamespacedDeployment(deployment.name, namespace)
 
@@ -377,7 +373,7 @@ export class KubernetesClusterRepository implements ClusterRepository {
         }
     }
 
-    private minifyDeployment(deployment: V1beta2Deployment): V1beta2Deployment {
+    private minifyDeployment(deployment: V1Deployment): V1Deployment {
         this.cleanMetadata(deployment.metadata)
         if (deployment.spec!) {
             this.cleanMetadata(deployment.spec!.template.metadata)
@@ -385,7 +381,7 @@ export class KubernetesClusterRepository implements ClusterRepository {
         return {
             metadata: deployment.metadata,
             spec: deployment.spec,
-        } as V1beta2Deployment
+        } as V1Deployment
     }
 
     private minifyBatch(batch: V1beta1CronJob): V1beta1CronJob {
@@ -420,7 +416,7 @@ export class KubernetesClusterRepository implements ClusterRepository {
         delete metadata.generation
     }
 
-    private deploymentNeedsUpdate(current: V1beta2Deployment, target: V1beta2Deployment): boolean {
+    private deploymentNeedsUpdate(current: V1Deployment, target: V1Deployment): boolean {
         return JSON.stringify(this.minifyDeployment(target)) !== JSON.stringify(this.minifyDeployment(current))
     }
 
