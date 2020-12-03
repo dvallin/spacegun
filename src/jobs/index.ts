@@ -55,7 +55,7 @@ export function validateStep(step: Partial<StepDescription>, name: string, clust
             break
         }
         case 'planNamespaceDeployment': {
-            if (step.filter !== undefined && (step.filter.namespaces !== undefined && step.filter.namespaces.length > 0)) {
+            if (step.filter !== undefined && step.filter.namespaces !== undefined && step.filter.namespaces.length > 0) {
                 throw new Error(`in step ${step.name} of job ${name} you are not allowed to define a namespace filter`)
             }
             if (step.source === undefined) {

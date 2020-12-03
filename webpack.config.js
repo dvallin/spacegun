@@ -25,7 +25,7 @@ const plugins = [
             VERSION: JSON.stringify(pjson.version),
         },
     }),
-    new CopyWebpackPlugin([{ context: 'src', from: 'views/**/*.pug' }, 'assets/**/*.css']),
+    new CopyWebpackPlugin({ patterns: [{ context: 'src', from: 'views/**/*.pug' }, 'assets/**/*.css'] }),
 ]
 if (process.env.ANALYZE === 'true') {
     plugins.push(new BundleAnalyzerPlugin())

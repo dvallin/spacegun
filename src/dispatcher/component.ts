@@ -14,7 +14,7 @@ export interface ComponentConfiguration<T> {
 }
 
 export function Component<T>(configuration: ComponentConfiguration<T>) {
-    return function(target: any, procedureName: string, {  }: PropertyDescriptor) {
+    return function(target: any, procedureName: string, {}: PropertyDescriptor) {
         addPromiseProvider(procedureName, configuration, target)
         registerApi(procedureName, target[procedureName], configuration)
     }

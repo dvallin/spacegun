@@ -94,7 +94,10 @@ describe('KubernetesClusterProvider', () => {
             const deployments: Deployment[] = await cluster.deployments({
                 cluster: cluster.clusters[0],
             })
-            expect(deployments).toEqual([{ image: image1, name: 'deployment1' }, { image: image2, name: 'deployment2' }])
+            expect(deployments).toEqual([
+                { image: image1, name: 'deployment1' },
+                { image: image2, name: 'deployment2' },
+            ])
         })
 
         it('updates deployments', async () => {
@@ -383,7 +386,10 @@ describe('KubernetesClusterProvider', () => {
 
                 expect(mockLog).toHaveBeenCalledWith({
                     description: 'Applied Snapshots in dev ∞ undefined',
-                    fields: [{ title: 'Failure', value: 'Deployment deployment2' }, { title: 'Updated', value: 'Deployment deployment1' }],
+                    fields: [
+                        { title: 'Failure', value: 'Deployment deployment2' },
+                        { title: 'Updated', value: 'Deployment deployment1' },
+                    ],
                     message: 'Applied Snapshots',
                     timestamp: 1520899200000,
                     topics: ['slack'],

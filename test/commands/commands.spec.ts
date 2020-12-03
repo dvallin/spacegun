@@ -552,7 +552,10 @@ describe('commands', () => {
                 .mockReturnValueOnce(['cluster'])
                 .mockReturnValueOnce([])
                 .mockReturnValueOnce({
-                    deployments: [{ data: {}, name: 'deployment1' }, { data: {}, name: 'deployment2' }],
+                    deployments: [
+                        { data: {}, name: 'deployment1' },
+                        { data: {}, name: 'deployment2' },
+                    ],
                     batches: [{ name: 'batch1', image: { name: 'image' } }],
                 })
 
@@ -572,7 +575,10 @@ describe('commands', () => {
     describe('apply', () => {
         it('applies snapshots', async () => {
             // given
-            const deployments = [{ name: 'deployment1', image: { name: 'image' } }, { name: 'deployment2', image: { name: 'image' } }]
+            const deployments = [
+                { name: 'deployment1', image: { name: 'image' } },
+                { name: 'deployment2', image: { name: 'image' } },
+            ]
             const batches = [{ name: 'batch1', image: { name: 'image' } }]
             mockDispatchFn
                 .mockReturnValueOnce(['cluster'])

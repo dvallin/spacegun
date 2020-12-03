@@ -5,7 +5,7 @@ export interface ResourceConfiguration {
 }
 
 export function Resource(configuration: ResourceConfiguration) {
-    return function(target: any, procedureName: string, {  }: PropertyDescriptor) {
+    return function(target: any, procedureName: string, {}: PropertyDescriptor) {
         registerResource(configuration, procedureName, target[procedureName])
     }
 }

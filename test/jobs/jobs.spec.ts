@@ -156,8 +156,8 @@ jest.mock('../../src/dispatcher/index', () => ({
 describe('JobsRepositoryImpl', () => {
     let repo: JobsRepositoryImpl
     let crons: CronRegistry
-    const twelvePMEveryWorkday = '0 0 0 12 * * MON-FRI'
-    const everyMinuteEveryWorkday = '0 */5 * * * MON-FRI'
+    const twelvePMEveryWorkday = '0 0 0 12 * MON-FRI'
+    const everyMinuteEveryWorkday = '0 */5 * * MON-FRI'
     const planClusterStep: StepDescription = {
         name: 'plan',
         type: 'planClusterDeployment',
@@ -236,8 +236,8 @@ describe('JobsRepositoryImpl', () => {
         })
 
         it('shows next five runs', () => {
-            expect(repo.crons[0].nextRuns).toEqual([1520942400000, 1521028800000, 1521115200000, 1521201600000, 1521460800000])
-            expect(repo.crons[1].nextRuns).toEqual([1520899500000, 1520899800000, 1520900100000, 1520900400000, 1520900700000])
+            expect(repo.crons[0].nextRuns).toMatchSnapshot()
+            expect(repo.crons[1].nextRuns).toMatchSnapshot()
         })
     })
 

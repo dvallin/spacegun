@@ -1,7 +1,7 @@
 import {
     BatchV1beta1Api as api4,
     AutoscalingV1Api as api3,
-    AppsV1beta2Api as api2,
+    AppsV1Api as api2,
     CoreV1Api as api1,
     KubeConfig,
 } from '@kubernetes/client-node'
@@ -93,7 +93,7 @@ const CoreV1Api = jest.fn().mockImplementation(function() {
 export const replaceDeploymentMock = jest.fn()
 export const createDeploymentMock = jest.fn()
 
-const AppsV1beta2Api = jest.fn().mockImplementation(function() {
+const AppsV1Api = jest.fn().mockImplementation(function() {
     const mockedApi = new api2()
     mockedApi.listNamespacedDeployment = jest.fn().mockResolvedValue({
         body: {
@@ -159,4 +159,4 @@ const BatchV1beta1Api = jest.fn().mockImplementation(function() {
     return mockedApi
 })
 
-export { BatchV1beta1Api, CoreV1Api, AppsV1beta2Api, AutoscalingV1Api, KubeConfig }
+export { BatchV1beta1Api, CoreV1Api, AppsV1Api, AutoscalingV1Api, KubeConfig }

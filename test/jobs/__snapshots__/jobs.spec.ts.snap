@@ -1,0 +1,21 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`JobsRepositoryImpl cron jobs shows next five runs 1`] = `
+Array [
+  1520985600000,
+  1521072000000,
+  1521158400000,
+  1521417600000,
+  1521504000000,
+]
+`;
+
+exports[`JobsRepositoryImpl cron jobs shows next five runs 2`] = `
+Array [
+  1520917200000,
+  1520935200000,
+  1520953200000,
+  1520971200000,
+  1520985600000,
+]
+`;

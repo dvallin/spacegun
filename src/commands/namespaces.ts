@@ -1,4 +1,4 @@
-import chalk from 'chalk'
+import * as chalk from 'chalk'
 
 import { CommandFn } from './'
 import { Options } from '../options'
@@ -13,7 +13,7 @@ import { load, foreachCluster } from './helpers'
 
 export const namespacesCommand: CommandFn = async (options: Options, io: IO) => foreachCluster(options, io, namespaces)
 
-export async function namespaces({  }: Options, io: IO, cluster: string) {
+export async function namespaces({}: Options, io: IO, cluster: string) {
     io.out(chalk.underline.bold(pad(`${cluster}`)))
     const namespaces = await load(call(clusterModule.namespaces)({ cluster }))
     namespaces.forEach(namespace => io.out(namespace))

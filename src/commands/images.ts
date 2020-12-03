@@ -1,4 +1,4 @@
-import chalk from 'chalk'
+import * as chalk from 'chalk'
 
 import { CommandFn } from './'
 import { load } from './helpers'
@@ -12,7 +12,7 @@ import { Options } from '../options'
 
 import { Image } from '../cluster/model/Image'
 
-export const imagesCommand: CommandFn = async ({  }: Options, io: IO) => images(io)
+export const imagesCommand: CommandFn = async ({}: Options, io: IO) => images(io)
 
 async function images(io: IO) {
     const images = await load(call(imageModule.list)())
