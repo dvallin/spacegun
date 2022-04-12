@@ -40,7 +40,7 @@
         "ora": "^3.4.0",
         "pug": "^2.0.4",
         "rxjs": "^6.5.2",
-        "simple-git": "1.96.0",
+        "simple-git": "3.5.0",
         "websocket": "^1.0.28"
     },
     "devDependencies": {
